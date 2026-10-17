@@ -279,8 +279,10 @@ class _ObMaxSplashPainter extends CustomPainter {
             _starCenter.dx / 512 - 1,
             _starCenter.dy / 512 - 1,
           ),
-          startAngle: -math.pi / 2,
-          endAngle: 3 * math.pi / 2,
+          // A negative startAngle leaves the 12-to-3 o'clock quarter outside
+          // the gradient, so the sweep starts at 3 o'clock and is turned back
+          // a quarter to begin at the top point.
+          transform: const GradientRotation(-math.pi / 2),
           colors: const [
             Color(0xFFFFFFFF),
             Color(0xFFFFFFFF),
