@@ -12,7 +12,7 @@ Toutes les versions doivent être signées avec **la même clé**. Sinon Android
    & "E:\jdk17\jdk-17.0.20.1+1\bin\keytool.exe" -genkeypair -v -storetype PKCS12 -keystore E:\obmax-keys\obmax-release.p12 -alias obmax -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=OB Max, O=OB Max, C=FR"
    ```
 
-2. Créer `android\keystore.properties` (ignoré par git) :
+2. Créer `android\keystore.properties` (ignoré par git). Pour y écrire le mot de passe sans le taper dans un éditeur, lancer `.	ools\set_keystore_password.ps1` : saisie masquée, vérification sur le keystore, puis écriture dans le fichier. Contenu attendu :
 
    ```properties
    storeFile=E:/obmax-keys/obmax-release.p12
