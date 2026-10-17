@@ -1,11 +1,12 @@
 name: moonfin
 description: "Moonfin - Jellyfin & Emby media client for mobile, tablet, and desktop"
 publish_to: 'none'
-version: 2.7.0+30000154
+# OBMAX: OB Max versioning (both flavors share one versionCode), bumped by tools/release.ps1
+version: 1.0.0+1
 
 moonfin:
-  android_tv_version: 2.7.0
-  android_tv_build_number: 2000021
+  android_tv_version: 1.0.0
+  android_tv_build_number: 1
   beta: false
   beta_number: 1
 

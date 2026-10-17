@@ -10,7 +10,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Moonfin';
+  String get appTitle => 'OB Max';
 
   @override
   String get animeMarkerFiller => 'Filler';
@@ -105,7 +105,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String appVersionFooter(String version) {
-    return 'Moonfin version $version';
+    return 'OB Max version $version';
   }
 
   @override
@@ -157,7 +157,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get secureStorageUnavailableMessage =>
-      'Moonfin could not access your system keyring. Login can continue, but secure token storage may be unavailable until the keyring is unlocked.';
+      'OB Max could not access your system keyring. Login can continue, but secure token storage may be unavailable until the keyring is unlocked.';
 
   @override
   String get ok => 'OK';
@@ -410,10 +410,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendationSystemSubtitle =>
-      'Use the Moonfin Recommends local-library algorithm, Jellyfin Recommends server engine, or the online TMDb\'s Similarity Metrics. Note: Online recommendations require Seerr integration.';
+      'Use the OB Max Recommends local-library algorithm, Jellyfin Recommends server engine, or the online TMDb\'s Similarity Metrics. Note: Online recommendations require Seerr integration.';
 
   @override
-  String get recommendationSystemMoonfin => 'Moonfin Recommends';
+  String get recommendationSystemMoonfin => 'OB Max Recommends';
 
   @override
   String get recommendationSystemJellyfin => 'Jellyfin Recommends';
@@ -427,7 +427,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendationsApplyParentalRatingCapSubtitle =>
-      'Limit Moonfin Recommends suggestions by parental rating of target media';
+      'Limit OB Max Recommends suggestions by parental rating of target media';
 
   @override
   String get interfaceStyle => 'Interface Style';
@@ -450,7 +450,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get interfaceLayoutSubtitle =>
-      'Override the detected layout when this device is read wrong. Restart Moonfin for changes to take effect.';
+      'Override the detected layout when this device is read wrong. Restart OB Max for changes to take effect.';
 
   @override
   String get interfaceLayoutAutomatic => 'Automatic';
@@ -535,7 +535,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customThemeSubtitle =>
-      'Custom themes alter visual elements across Moonfin. Choose one of these options to suit your style.';
+      'Custom themes alter visual elements across OB Max. Choose one of these options to suit your style.';
 
   @override
   String get keyboardPreferSystemIme => 'Prefer System Keyboard';
@@ -555,10 +555,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Let a connected game controller move focus and select items';
 
   @override
-  String get themeMoonfin => 'Moonfin';
+  String get themeMoonfin => 'OB Max';
 
   @override
-  String get themeMoonfinSubtitle => 'The original clean Moonfin default.';
+  String get themeMoonfinSubtitle => 'The original clean OB Max default.';
 
   @override
   String get themeNeonPulse => 'Neon Pulse';
@@ -633,7 +633,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exitApp => 'Exit Moonfin?';
+  String get exitApp => 'Exit OB Max?';
 
   @override
   String get exitAppConfirmation => 'Are you sure you want to exit?';
@@ -1809,7 +1809,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shuffleAllMusic => 'Shuffle all music';
 
   @override
-  String get carSignInPrompt => 'Sign in to Moonfin on your phone';
+  String get carSignInPrompt => 'Sign in to OB Max on your phone';
 
   @override
   String get carServerUnreachable => 'Can\'t reach your server';
@@ -2094,7 +2094,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shortcutToggleFullscreen => 'Fullscreen on or off';
 
   @override
-  String get shortcutQuit => 'Quit Moonfin';
+  String get shortcutQuit => 'Quit OB Max';
 
   @override
   String get shortcutPlayPause => 'Play or pause';
@@ -3078,7 +3078,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loadingAnimationDescription =>
-      'Customize the loading animations used throughout Moonfin';
+      'Customize the loading animations used throughout OB Max';
 
   @override
   String get loadingAnimationConfiguration => 'Loading Animation Configuration';
@@ -3087,7 +3087,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingAnimationImage => 'Image';
 
   @override
-  String get loadingAnimationImageMoonfinLogo => 'Moonfin Logo';
+  String get loadingAnimationImageMoonfinLogo => 'OB Max Logo';
 
   @override
   String get loadingAnimationImageSpinner => 'Spinner';
@@ -3099,7 +3099,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingAnimationImageMoonPhases => 'Moon Phases';
 
   @override
-  String get loadingAnimationImageMoonfinPhases => 'Moonfin Phases';
+  String get loadingAnimationImageMoonfinPhases => 'OB Max Phases';
 
   @override
   String get loadingAnimationImageNeonfinPhases => 'Neonfin Phases';
@@ -4120,7 +4120,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notSetMpvConf =>
-      'Not set. Moonfin will try a default mpv.conf in app/data folders.';
+      'Not set. OB Max will try a default mpv.conf in app/data folders.';
 
   @override
   String get selectMpvConf => 'Select mpv.conf';
@@ -4412,7 +4412,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadLocationLimitedByAndroid =>
-      'Android only lets Moonfin write to the folders it owns, and this device has no removable storage. Turn on Save to Downloads folder above to keep downloads somewhere other apps can reach.';
+      'Android only lets OB Max write to the folders it owns, and this device has no removable storage. Turn on Save to Downloads folder above to keep downloads somewhere other apps can reach.';
 
   @override
   String get saveToDownloadsFolder => 'Save to Downloads Folder';
@@ -4627,7 +4627,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryVisibilityDescription =>
-      'Toggle home page visibility per library. Restart Moonfin for changes to take effect.';
+      'Toggle home page visibility per library. Restart OB Max for changes to take effect.';
 
   @override
   String get showInNavigation => 'Show in navigation';
@@ -4689,7 +4689,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose between various media bar styles, or turn the media bar off';
 
   @override
-  String get mediaBarModeMoonfin => 'Moonfin';
+  String get mediaBarModeMoonfin => 'OB Max';
 
   @override
   String get mediaBarModeMakd => 'MakD';
@@ -5009,7 +5009,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get screensaverBackdropBlack => 'Black';
 
   @override
-  String get screensaverBackdropMoonfin => 'Moonfin';
+  String get screensaverBackdropMoonfin => 'OB Max';
 
   @override
   String get screensaverBackdropCalm => 'Calm';
@@ -5024,7 +5024,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get screensaverAdditionalComponent => 'Additional Component';
 
   @override
-  String get screensaverComponentMoonfinLogo => 'Moonfin Logo';
+  String get screensaverComponentMoonfinLogo => 'OB Max Logo';
 
   @override
   String get screensaverComponentRunner => 'Runner';
@@ -5486,7 +5486,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancelRequest4k => 'Cancel 4K Request';
 
   @override
-  String get playInMoonfin => 'Play in Moonfin';
+  String get playInMoonfin => 'Play in OB Max';
 
   @override
   String get requestedByLabel => 'Requested by';
@@ -5531,7 +5531,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keep => 'Keep';
 
   @override
-  String get itemNotFoundInLibrary => 'Item not found in your Moonfin library';
+  String get itemNotFoundInLibrary => 'Item not found in your OB Max library';
 
   @override
   String get errorSearchingLibrary => 'Error searching library';
@@ -6913,7 +6913,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminServerRebootMessage =>
-      'Server reboot in progress, please restart Moonfin';
+      'Server reboot in progress, please restart OB Max';
 
   @override
   String get adminActiveSessions => 'Active Sessions';
@@ -10607,7 +10607,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLibraryVisibilitySubtitle =>
-      'Toggle home page visibility per library. Restart Moonfin for changes to take effect.';
+      'Toggle home page visibility per library. Restart OB Max for changes to take effect.';
 
   @override
   String get settingsMediaBarAndLocalPreviews => 'Media Bar & Local Previews';
@@ -10727,7 +10727,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsJoinTheDiscord => 'Join the Discord';
 
   @override
-  String get settingsSupportMoonfin => 'Support Moonfin';
+  String get settingsSupportMoonfin => 'Support OB Max';
 
   @override
   String get settingsSupportMoonfinSubtitle =>
@@ -10746,14 +10746,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPrivacyPolicy => 'Privacy Policy';
 
   @override
-  String get settingsPrivacyPolicySubtitle => 'How Moonfin handles your data';
+  String get settingsPrivacyPolicySubtitle => 'How OB Max handles your data';
 
   @override
   String get settingsCheckForUpdates => 'Check for Updates';
 
   @override
   String get settingsCheckForUpdatesSubtitle =>
-      'Check for the latest Moonfin release';
+      'Check for the latest OB Max release';
 
   @override
   String get settingsBoth => 'Both';
@@ -11184,7 +11184,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedThemesDescription =>
-      'These are themes downloaded from the Moonfin plugin for the current server. Deleting removes only this local copy.';
+      'These are themes downloaded from the OB Max plugin for the current server. Deleting removes only this local copy.';
 
   @override
   String get savedThemesEmpty => 'No saved themes were found for this server.';
@@ -11206,7 +11206,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeEditorSubtitle =>
-      'Open the Moonfin Theme Editor in your browser';
+      'Open the OB Max Theme Editor in your browser';
 
   @override
   String get homeScreen => 'Home Screen';
@@ -11524,7 +11524,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webDiagnostics => 'Web diagnostics';
 
   @override
-  String get webDiagnosticsTitle => 'Moonfin Web Diagnostics';
+  String get webDiagnosticsTitle => 'OB Max Web Diagnostics';
 
   @override
   String get webDiagnosticsIntro =>
@@ -11540,11 +11540,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webDiagnosticsMixedContentFailureBody =>
-      'Moonfin detected an HTTPS page trying to call an HTTP server URL. Browsers block this request before it reaches your server.';
+      'OB Max detected an HTTPS page trying to call an HTTP server URL. Browsers block this request before it reaches your server.';
 
   @override
   String get webDiagnosticsCorsFailureBody =>
-      'Moonfin detected a browser-level request failure that is commonly caused by missing CORS or preflight headers on the media server.';
+      'OB Max detected a browser-level request failure that is commonly caused by missing CORS or preflight headers on the media server.';
 
   @override
   String webDiagnosticsTargetUrl(String url) {
@@ -11592,7 +11592,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webDiagnosticsMixedContentFix =>
-      'Fix: serve your media server or proxy endpoint via HTTPS, or load Moonfin over HTTP on trusted local networks only.';
+      'Fix: serve your media server or proxy endpoint via HTTPS, or load OB Max over HTTP on trusted local networks only.';
 
   @override
   String get webDiagnosticsNoMixedContentDetected =>
@@ -13272,7 +13272,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get impellerRenderingSubtitle =>
-      'Impeller is Flutter\'s modern GPU renderer for smoother animations and less stutter. On some TV boxes and older GPUs it can cause glitches or black video; switch it Off if you see those. Automatic picks the best default for your device. Restart Moonfin to apply.';
+      'Impeller is Flutter\'s modern GPU renderer for smoother animations and less stutter. On some TV boxes and older GPUs it can cause glitches or black video; switch it Off if you see those. Automatic picks the best default for your device. Restart OB Max to apply.';
 
   @override
   String get impellerAuto => 'Automatic';
@@ -13288,7 +13288,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get impellerRestartMessage =>
-      'Moonfin needs to restart to change the rendering engine. Close the app now, then reopen it to apply.';
+      'OB Max needs to restart to change the rendering engine. Close the app now, then reopen it to apply.';
 
   @override
   String get impellerCloseNow => 'Close app now';
@@ -13782,7 +13782,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoDownloadTranscodedForegroundNote =>
-      'Transcoded qualities only download while Moonfin is open. Original quality also downloads in the background.';
+      'Transcoded qualities only download while OB Max is open. Original quality also downloads in the background.';
 
   @override
   String get autoDownloadTranscodedRunningNote =>
@@ -13790,7 +13790,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoDownloadForegroundOnly =>
-      'Downloads only while Moonfin is open';
+      'Downloads only while OB Max is open';
 
   @override
   String get autoDownloadQualityTitle => 'Auto-download quality';
@@ -13813,7 +13813,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smartDownloadsEnableSubtitle =>
-      'When you finish an episode on any device, Moonfin downloads the next ones. Downloaded episodes are deleted once watched.';
+      'When you finish an episode on any device, OB Max downloads the next ones. Downloaded episodes are deleted once watched.';
 
   @override
   String get smartDownloadsKeepReady => 'Episodes to Keep Downloaded';
@@ -13873,15 +13873,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoDownloadBackgroundRefreshSubtitle =>
-      'Allow the system to check for new episodes periodically while Moonfin is closed';
+      'Allow the system to check for new episodes periodically while OB Max is closed';
 
   @override
   String get autoDownloadBackgroundRefreshDenied =>
-      'Background App Refresh is disabled for Moonfin. Enable it in iOS Settings.';
+      'Background App Refresh is disabled for OB Max. Enable it in iOS Settings.';
 
   @override
   String get autoDownloadBackgroundRestrictedAndroid =>
-      'Background usage is restricted for Moonfin in Android Settings.';
+      'Background usage is restricted for OB Max in Android Settings.';
 
   @override
   String get autoDownloadCheckNow => 'Check Now';
@@ -14099,13 +14099,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get topShelfDescription =>
-      'What the Apple TV home screen shows above the Moonfin icon when it is selected. This setting stays on this device.';
+      'What the Apple TV home screen shows above the OB Max icon when it is selected. This setting stays on this device.';
 
   @override
   String get topShelfLatestMedia => 'Latest media';
 
   @override
-  String get topShelfAppBanner => 'Moonfin banner';
+  String get topShelfAppBanner => 'OB Max banner';
 
   @override
   String get keepVideoClearOfDynamicIsland =>
@@ -14367,7 +14367,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   AppLocalizationsEnGb() : super('en_GB');
 
   @override
-  String get appTitle => 'Moonfin';
+  String get appTitle => 'OB Max';
 
   @override
   String get animeMarkerFiller => 'Filler';
@@ -14462,7 +14462,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String appVersionFooter(String version) {
-    return 'Moonfin version $version';
+    return 'OB Max version $version';
   }
 
   @override
@@ -14514,7 +14514,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get secureStorageUnavailableMessage =>
-      'Moonfin could not access your system keyring. Login can continue, but secure token storage may be unavailable until the keyring is unlocked.';
+      'OB Max could not access your system keyring. Login can continue, but secure token storage may be unavailable until the keyring is unlocked.';
 
   @override
   String get ok => 'OK';
@@ -14527,7 +14527,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get detailScreenStyleSubtitle =>
-      'Classic is the original centred Moonfin layout. Modern is a responsive cinematic layout. Spotlight is a hero-first layout with pop-up content cards. Nouveau is a full-screen layout with sections stacked down the page. Minimalist is artwork, one play button and the episodes.';
+      'Classic is the original centred OB Max layout. Modern is a responsive cinematic layout. Spotlight is a hero-first layout with pop-up content cards. Nouveau is a full-screen layout with sections stacked down the page. Minimalist is artwork, one play button and the episodes.';
 
   @override
   String get detailScreenStyleMoonfin => 'Classic';
@@ -14764,10 +14764,10 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get recommendationSystemSubtitle =>
-      'Use the Moonfin Recommends local-library algorithm, Jellyfin Recommends server engine, or the online TMDb\'s Similarity Metrics. Note: Online recommendations require Seerr integration.';
+      'Use the OB Max Recommends local-library algorithm, Jellyfin Recommends server engine, or the online TMDb\'s Similarity Metrics. Note: Online recommendations require Seerr integration.';
 
   @override
-  String get recommendationSystemMoonfin => 'Moonfin Recommends';
+  String get recommendationSystemMoonfin => 'OB Max Recommends';
 
   @override
   String get recommendationSystemJellyfin => 'Jellyfin Recommends';
@@ -14781,7 +14781,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get recommendationsApplyParentalRatingCapSubtitle =>
-      'Limit Moonfin Recommends suggestions by parental rating of target media';
+      'Limit OB Max Recommends suggestions by parental rating of target media';
 
   @override
   String get interfaceStyle => 'Interface Style';
@@ -14804,7 +14804,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get interfaceLayoutSubtitle =>
-      'Override the detected layout when this device is read wrong. Restart Moonfin for changes to take effect.';
+      'Override the detected layout when this device is read wrong. Restart OB Max for changes to take effect.';
 
   @override
   String get interfaceLayoutAutomatic => 'Automatic';
@@ -14876,7 +14876,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get customThemeSubtitle =>
-      'Custom themes alter visual elements across Moonfin. Choose one of these options to suit your style.';
+      'Custom themes alter visual elements across OB Max. Choose one of these options to suit your style.';
 
   @override
   String get keyboardPreferSystemIme => 'Prefer system keyboard';
@@ -14896,10 +14896,10 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
       'Let a connected game controller move focus and select items';
 
   @override
-  String get themeMoonfin => 'Moonfin';
+  String get themeMoonfin => 'OB Max';
 
   @override
-  String get themeMoonfinSubtitle => 'The original clean Moonfin default.';
+  String get themeMoonfinSubtitle => 'The original clean OB Max default.';
 
   @override
   String get themeNeonPulse => 'Neon Pulse';
@@ -14974,7 +14974,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   }
 
   @override
-  String get exitApp => 'Exit Moonfin?';
+  String get exitApp => 'Exit OB Max?';
 
   @override
   String get exitAppConfirmation => 'Are you sure you want to exit?';
@@ -16112,7 +16112,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get shuffleAllMusic => 'Shuffle all music';
 
   @override
-  String get carSignInPrompt => 'Sign in to Moonfin on your phone';
+  String get carSignInPrompt => 'Sign in to OB Max on your phone';
 
   @override
   String get carServerUnreachable => 'Can\'t reach your server';
@@ -16397,7 +16397,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get shortcutToggleFullscreen => 'Fullscreen on or off';
 
   @override
-  String get shortcutQuit => 'Quit Moonfin';
+  String get shortcutQuit => 'Quit OB Max';
 
   @override
   String get shortcutPlayPause => 'Play or pause';
@@ -17325,7 +17325,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get loadingAnimationDescription =>
-      'Customize the loading animations used throughout Moonfin';
+      'Customize the loading animations used throughout OB Max';
 
   @override
   String get loadingAnimationConfiguration => 'Loading Animation Configuration';
@@ -17334,7 +17334,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get loadingAnimationImage => 'Image';
 
   @override
-  String get loadingAnimationImageMoonfinLogo => 'Moonfin Logo';
+  String get loadingAnimationImageMoonfinLogo => 'OB Max Logo';
 
   @override
   String get loadingAnimationImageSpinner => 'Spinner';
@@ -17346,7 +17346,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get loadingAnimationImageMoonPhases => 'Moon Phases';
 
   @override
-  String get loadingAnimationImageMoonfinPhases => 'Moonfin Phases';
+  String get loadingAnimationImageMoonfinPhases => 'OB Max Phases';
 
   @override
   String get loadingAnimationImageNeonfinPhases => 'Neonfin Phases';
@@ -18132,7 +18132,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get notSetMpvConf =>
-      'Not set. Moonfin will try a default mpv.conf in app/data folders.';
+      'Not set. OB Max will try a default mpv.conf in app/data folders.';
 
   @override
   String get selectMpvConf => 'Select mpv.conf';
@@ -18394,7 +18394,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get downloadLocationLimitedByAndroid =>
-      'Android only lets Moonfin write to the folders it owns, and this device has no removable storage. Turn on Save to Downloads folder above to keep downloads somewhere other apps can reach.';
+      'Android only lets OB Max write to the folders it owns, and this device has no removable storage. Turn on Save to Downloads folder above to keep downloads somewhere other apps can reach.';
 
   @override
   String get saveToDownloadsFolder => 'Save to Downloads folder';
@@ -18580,7 +18580,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get libraryVisibilityDescription =>
-      'Toggle home page visibility per library. Restart Moonfin for changes to take effect.';
+      'Toggle home page visibility per library. Restart OB Max for changes to take effect.';
 
   @override
   String get showInNavigation => 'Show in navigation';
@@ -18625,7 +18625,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
       'Choose between various media bar styles, or turn the media bar off';
 
   @override
-  String get mediaBarModeMoonfin => 'Moonfin';
+  String get mediaBarModeMoonfin => 'OB Max';
 
   @override
   String get mediaBarModeMakd => 'MakD';
@@ -18945,7 +18945,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get screensaverBackdropBlack => 'Black';
 
   @override
-  String get screensaverBackdropMoonfin => 'Moonfin';
+  String get screensaverBackdropMoonfin => 'OB Max';
 
   @override
   String get screensaverBackdropCalm => 'Calm';
@@ -18960,7 +18960,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get screensaverAdditionalComponent => 'Additional Component';
 
   @override
-  String get screensaverComponentMoonfinLogo => 'Moonfin Logo';
+  String get screensaverComponentMoonfinLogo => 'OB Max Logo';
 
   @override
   String get screensaverComponentRunner => 'Runner';
@@ -19378,7 +19378,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get cancelRequest4k => 'Cancel 4K Request';
 
   @override
-  String get playInMoonfin => 'Play in Moonfin';
+  String get playInMoonfin => 'Play in OB Max';
 
   @override
   String get requestedByLabel => 'Requested by';
@@ -19423,7 +19423,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get keep => 'Keep';
 
   @override
-  String get itemNotFoundInLibrary => 'Item not found in your Moonfin library';
+  String get itemNotFoundInLibrary => 'Item not found in your OB Max library';
 
   @override
   String get errorSearchingLibrary => 'Error searching library';
@@ -20007,7 +20007,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get adminServerRebootMessage =>
-      'Server reboot in progress, please restart Moonfin';
+      'Server reboot in progress, please restart OB Max';
 
   @override
   String get adminActiveSessions => 'Active Sessions';
@@ -23605,7 +23605,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get settingsLibraryVisibilitySubtitle =>
-      'Toggle home page visibility per library. Restart Moonfin for changes to take effect.';
+      'Toggle home page visibility per library. Restart OB Max for changes to take effect.';
 
   @override
   String get settingsMediaBarAndLocalPreviews => 'Media Bar & Local Previews';
@@ -23725,7 +23725,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get settingsJoinTheDiscord => 'Join the Discord';
 
   @override
-  String get settingsSupportMoonfin => 'Support Moonfin';
+  String get settingsSupportMoonfin => 'Support OB Max';
 
   @override
   String get settingsSupportMoonfinSubtitle =>
@@ -23744,14 +23744,14 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get settingsPrivacyPolicy => 'Privacy Policy';
 
   @override
-  String get settingsPrivacyPolicySubtitle => 'How Moonfin handles your data';
+  String get settingsPrivacyPolicySubtitle => 'How OB Max handles your data';
 
   @override
   String get settingsCheckForUpdates => 'Check for Updates';
 
   @override
   String get settingsCheckForUpdatesSubtitle =>
-      'Check for the latest Moonfin release';
+      'Check for the latest OB Max release';
 
   @override
   String get settingsBoth => 'Both';
@@ -24182,7 +24182,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get savedThemesDescription =>
-      'These are themes downloaded from the Moonfin plugin for the current server. Deleting removes only this local copy.';
+      'These are themes downloaded from the OB Max plugin for the current server. Deleting removes only this local copy.';
 
   @override
   String get savedThemesEmpty => 'No saved themes were found for this server.';
@@ -24204,7 +24204,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get themeEditorSubtitle =>
-      'Open the Moonfin Theme Editor in your browser';
+      'Open the OB Max Theme Editor in your browser';
 
   @override
   String get homeScreen => 'Home Screen';
@@ -24508,7 +24508,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   String get webDiagnostics => 'Web diagnostics';
 
   @override
-  String get webDiagnosticsTitle => 'Moonfin Web Diagnostics';
+  String get webDiagnosticsTitle => 'OB Max Web Diagnostics';
 
   @override
   String get webDiagnosticsIntro =>
@@ -24524,11 +24524,11 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get webDiagnosticsMixedContentFailureBody =>
-      'Moonfin detected an HTTPS page trying to call an HTTP server URL. Browsers block this request before it reaches your server.';
+      'OB Max detected an HTTPS page trying to call an HTTP server URL. Browsers block this request before it reaches your server.';
 
   @override
   String get webDiagnosticsCorsFailureBody =>
-      'Moonfin detected a browser-level request failure that is commonly caused by missing CORS or preflight headers on the media server.';
+      'OB Max detected a browser-level request failure that is commonly caused by missing CORS or preflight headers on the media server.';
 
   @override
   String webDiagnosticsTargetUrl(String url) {
@@ -24576,7 +24576,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get webDiagnosticsMixedContentFix =>
-      'Fix: serve your media server or proxy endpoint via HTTPS, or load Moonfin over HTTP on trusted local networks only.';
+      'Fix: serve your media server or proxy endpoint via HTTPS, or load OB Max over HTTP on trusted local networks only.';
 
   @override
   String get webDiagnosticsNoMixedContentDetected =>
@@ -25890,7 +25890,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get impellerRenderingSubtitle =>
-      'Impeller is Flutter\'s modern GPU renderer for smoother animations and less stutter. On some TV boxes and older GPUs it can cause glitches or black video; switch it Off if you see those. Automatic picks the best default for your device. Restart Moonfin to apply.';
+      'Impeller is Flutter\'s modern GPU renderer for smoother animations and less stutter. On some TV boxes and older GPUs it can cause glitches or black video; switch it Off if you see those. Automatic picks the best default for your device. Restart OB Max to apply.';
 
   @override
   String get impellerAuto => 'Automatic';
@@ -25906,7 +25906,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get impellerRestartMessage =>
-      'Moonfin needs to restart to change the rendering engine. Close the app now, then reopen it to apply.';
+      'OB Max needs to restart to change the rendering engine. Close the app now, then reopen it to apply.';
 
   @override
   String get impellerCloseNow => 'Close app now';
@@ -26382,7 +26382,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get autoDownloadTranscodedForegroundNote =>
-      'Transcoded qualities only download while Moonfin is open. Original quality also downloads in the background.';
+      'Transcoded qualities only download while OB Max is open. Original quality also downloads in the background.';
 
   @override
   String get autoDownloadTranscodedRunningNote =>
@@ -26390,7 +26390,7 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get autoDownloadForegroundOnly =>
-      'Downloads only while Moonfin is open';
+      'Downloads only while OB Max is open';
 
   @override
   String get autoDownloadQualityTitle => 'Auto-download quality';
@@ -26445,15 +26445,15 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get autoDownloadBackgroundRefreshSubtitle =>
-      'Allow the system to check for new episodes periodically while Moonfin is closed';
+      'Allow the system to check for new episodes periodically while OB Max is closed';
 
   @override
   String get autoDownloadBackgroundRefreshDenied =>
-      'Background App Refresh is disabled for Moonfin. Enable it in iOS Settings.';
+      'Background App Refresh is disabled for OB Max. Enable it in iOS Settings.';
 
   @override
   String get autoDownloadBackgroundRestrictedAndroid =>
-      'Background usage is restricted for Moonfin in Android Settings.';
+      'Background usage is restricted for OB Max in Android Settings.';
 
   @override
   String get autoDownloadCheckNow => 'Check now';

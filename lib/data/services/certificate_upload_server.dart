@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import '../../obmax/onboarding/obmax_upload_page.dart'; // OBMAX
 import '../../util/pkcs12_decoder.dart';
 
 /// A one-time page on the LAN that lets a phone send a .p12 and its password
@@ -46,7 +47,7 @@ class CertificateUploadServer {
     } else if (request.method == 'GET') {
       response
         ..headers.contentType = ContentType.html
-        ..write(_page);
+        ..write(kObMaxCertificateUploadPage); // OBMAX: French OB Max page
     } else if (request.method != 'POST') {
       response.statusCode = HttpStatus.methodNotAllowed;
     } else {
@@ -98,6 +99,7 @@ class CertificateUploadServer {
     ).join();
   }
 
+  // ignore: unused_field // OBMAX: replaced by kObMaxCertificateUploadPage
   static const _page = '''
 <!doctype html>
 <html><head><meta charset="utf-8">

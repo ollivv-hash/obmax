@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../firebase_options.dart';
+import '../../obmax/obmax_features.dart'; // OBMAX
 import '../../ui/navigation/app_router.dart';
 import '../../ui/widgets/server_messages_dialog.dart';
 import '../../util/platform_detection.dart';
@@ -36,6 +37,7 @@ class PushMessagingService {
 
   Future<void> _doInitialize() async {
     if (!PlatformDetection.isMobile) return;
+    if (!ObMaxFeatures.pushMessaging) return; // OBMAX: no Firebase project
 
     try {
       await Firebase.initializeApp(

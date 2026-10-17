@@ -14025,7 +14025,7 @@ class AppLocalizationsSr extends AppLocalizations {
 
   @override
   String get smartDownloadsEnableSubtitle =>
-      'When you finish an episode on any device, Moonfin downloads the next ones. Downloaded episodes are deleted once watched.';
+      'When you finish an episode on any device, OB Max downloads the next ones. Downloaded episodes are deleted once watched.';
 
   @override
   String get smartDownloadsKeepReady => 'Episodes to Keep Downloaded';

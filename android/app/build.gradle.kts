@@ -34,8 +34,9 @@ plugins {
     // it there is safe because push messaging bails immediately on TV anyway -
     // push_messaging_service.dart:38 returns unless PlatformDetection.isMobile,
     // and the initializeApp call is try/caught regardless.
+    // OBMAX: Firebase push is off. google-services.json only lists Moonfin's ids.
     id("com.google.gms.google-services")
-        .apply(System.getenv("MOONFIN_TEST_ID_SUFFIX").isNullOrEmpty())
+        .apply(false)
     // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -79,8 +80,9 @@ android {
 
     flavorDimensions += "device"
     productFlavors {
-        val baseAppId = "org.moonfin.androidtv"
-        val baseAppName = "Moonfin"
+        // OBMAX: one application id for both flavors, a device installs only one.
+        val baseAppId = "com.example.obmax"
+        val baseAppName = "OB Max"
         // Optional application-id suffix for on-device testing, set through the
         // environment so an unset build is byte-identical to before:
         //   MOONFIN_TEST_ID_SUFFIX=.hwtest flutter build apk --flavor androidTv --debug

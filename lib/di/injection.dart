@@ -32,6 +32,7 @@ import 'modules/auth_module.dart';
 import 'modules/server_module.dart';
 import 'modules/playback_module.dart';
 import 'modules/preference_module.dart';
+import '../obmax/obmax_config.dart'; // OBMAX
 
 final getIt = GetIt.instance;
 
@@ -47,6 +48,7 @@ bool _legacyStereoAacFallbackDefaultForPlatform() {
 }
 
 String _clientName() {
+  if (kObMaxAppName.isNotEmpty) return kObMaxAppName; // OBMAX: client name seen by Jellyfin
   if (PlatformDetection.isAppleTV) return 'Moonfin for tvOS';
   if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
     return 'Moonfin for Android TV';

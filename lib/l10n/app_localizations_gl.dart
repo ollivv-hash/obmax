@@ -450,7 +450,7 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get interfaceLayoutSubtitle =>
-      'Override the detected layout when this device is read wrong. Restart Moonfin for changes to take effect.';
+      'Override the detected layout when this device is read wrong. Restart OB Max for changes to take effect.';
 
   @override
   String get interfaceLayoutAutomatic => 'Automatic';
@@ -2117,7 +2117,7 @@ class AppLocalizationsGl extends AppLocalizations {
   String get shortcutToggleFullscreen => 'Fullscreen on or off';
 
   @override
-  String get shortcutQuit => 'Quit Moonfin';
+  String get shortcutQuit => 'Quit OB Max';
 
   @override
   String get shortcutPlayPause => 'Play or pause';
@@ -3115,7 +3115,7 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get loadingAnimationDescription =>
-      'Customize the loading animations used throughout Moonfin';
+      'Customize the loading animations used throughout OB Max';
 
   @override
   String get loadingAnimationConfiguration => 'Loading Animation Configuration';
@@ -3124,7 +3124,7 @@ class AppLocalizationsGl extends AppLocalizations {
   String get loadingAnimationImage => 'Image';
 
   @override
-  String get loadingAnimationImageMoonfinLogo => 'Moonfin Logo';
+  String get loadingAnimationImageMoonfinLogo => 'OB Max Logo';
 
   @override
   String get loadingAnimationImageSpinner => 'Spinner';
@@ -3136,7 +3136,7 @@ class AppLocalizationsGl extends AppLocalizations {
   String get loadingAnimationImageMoonPhases => 'Moon Phases';
 
   @override
-  String get loadingAnimationImageMoonfinPhases => 'Moonfin Phases';
+  String get loadingAnimationImageMoonfinPhases => 'OB Max Phases';
 
   @override
   String get loadingAnimationImageNeonfinPhases => 'Neonfin Phases';
@@ -4458,7 +4458,7 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get downloadLocationLimitedByAndroid =>
-      'Android only lets Moonfin write to the folders it owns, and this device has no removable storage. Turn on Save to Downloads folder above to keep downloads somewhere other apps can reach.';
+      'Android only lets OB Max write to the folders it owns, and this device has no removable storage. Turn on Save to Downloads folder above to keep downloads somewhere other apps can reach.';
 
   @override
   String get saveToDownloadsFolder => 'Gardar no cartafol Descargas';
@@ -5067,7 +5067,7 @@ class AppLocalizationsGl extends AppLocalizations {
   String get screensaverBackdropBlack => 'Black';
 
   @override
-  String get screensaverBackdropMoonfin => 'Moonfin';
+  String get screensaverBackdropMoonfin => 'OB Max';
 
   @override
   String get screensaverBackdropCalm => 'Calm';
@@ -5082,7 +5082,7 @@ class AppLocalizationsGl extends AppLocalizations {
   String get screensaverAdditionalComponent => 'Additional Component';
 
   @override
-  String get screensaverComponentMoonfinLogo => 'Moonfin Logo';
+  String get screensaverComponentMoonfinLogo => 'OB Max Logo';
 
   @override
   String get screensaverComponentRunner => 'Runner';
@@ -13998,7 +13998,7 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get autoDownloadTranscodedForegroundNote =>
-      'Transcoded qualities only download while Moonfin is open. Original quality also downloads in the background.';
+      'Transcoded qualities only download while OB Max is open. Original quality also downloads in the background.';
 
   @override
   String get autoDownloadTranscodedRunningNote =>
@@ -14006,7 +14006,7 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get autoDownloadForegroundOnly =>
-      'Downloads only while Moonfin is open';
+      'Downloads only while OB Max is open';
 
   @override
   String get autoDownloadQualityTitle => 'Auto-download quality';
@@ -14029,7 +14029,7 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get smartDownloadsEnableSubtitle =>
-      'When you finish an episode on any device, Moonfin downloads the next ones. Downloaded episodes are deleted once watched.';
+      'When you finish an episode on any device, OB Max downloads the next ones. Downloaded episodes are deleted once watched.';
 
   @override
   String get smartDownloadsKeepReady => 'Episodes to Keep Downloaded';
@@ -14089,15 +14089,15 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get autoDownloadBackgroundRefreshSubtitle =>
-      'Allow the system to check for new episodes periodically while Moonfin is closed';
+      'Allow the system to check for new episodes periodically while OB Max is closed';
 
   @override
   String get autoDownloadBackgroundRefreshDenied =>
-      'Background App Refresh is disabled for Moonfin. Enable it in iOS Settings.';
+      'Background App Refresh is disabled for OB Max. Enable it in iOS Settings.';
 
   @override
   String get autoDownloadBackgroundRestrictedAndroid =>
-      'Background usage is restricted for Moonfin in Android Settings.';
+      'Background usage is restricted for OB Max in Android Settings.';
 
   @override
   String get autoDownloadCheckNow => 'Check Now';
@@ -14315,13 +14315,13 @@ class AppLocalizationsGl extends AppLocalizations {
 
   @override
   String get topShelfDescription =>
-      'What the Apple TV home screen shows above the Moonfin icon when it is selected. This setting stays on this device.';
+      'What the Apple TV home screen shows above the OB Max icon when it is selected. This setting stays on this device.';
 
   @override
   String get topShelfLatestMedia => 'Latest media';
 
   @override
-  String get topShelfAppBanner => 'Moonfin banner';
+  String get topShelfAppBanner => 'OB Max banner';
 
   @override
   String get keepVideoClearOfDynamicIsland =>

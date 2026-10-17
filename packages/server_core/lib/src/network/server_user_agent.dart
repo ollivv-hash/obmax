@@ -13,7 +13,8 @@ const _fallbackVersion = 'Flutter';
 String _version = _fallbackVersion;
 
 /// The `User-Agent` value for all media-server traffic.
-String get serverUserAgent => 'Mozilla/5.0 (compatible; Moonfin/$_version)';
+// OBMAX: OB Max in server access logs.
+String get serverUserAgent => 'Mozilla/5.0 (compatible; OBMax/$_version)';
 
 /// For `Image.network` and `NetworkImage`, which fetch through a shared client
 /// of Flutter's own that nothing can configure, so each call site passes the
