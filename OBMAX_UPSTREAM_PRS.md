@@ -95,15 +95,15 @@ Written with the help of an AI assistant (Claude Code); I ran and verified the c
 
 **Opened:** https://github.com/Moonfin-Client/Moonfin-Core/pull/1894 (2026-10-17)
 
-**Create PR:** https://github.com/Moonfin-Client/Moonfin-Core/compare/main...ollivv-hash:Moonfin-Core:upstream-pr/mtls-onboarding?expand=1
+**History:** CodeRabbit pointed out that the first https candidate can be the wrong one (an earlier port refused, a later one asking for the certificate). Fixed in a second commit (`adde59f`, also cherry-picked into `obmax/main`), reply posted in the review thread, title and body updated (below).
 
 **Title:**
 
 ```
-Offer client-certificate import for the first https candidate
+Offer client-certificate import for the https address that was reached
 ```
 
-**Body:**
+**Body (as on GitHub):**
 
 ```markdown
 # Pull Request
@@ -114,7 +114,7 @@ Adding a server behind a reverse proxy that requires a client certificate (e.g. 
 1. With TLS 1.3 the client completes its side of the handshake before the server verifies the certificate. Caddy sends `certificate_required` (alert 116) and closes the connection. On Android the request write usually hits the closed socket first: `HttpException: Broken pipe` (5/5 tries on a Shield), so `isClientCertificateRejected()` does not match and `clientCertCandidate` stays null. On Windows the same probe reads `TLSV1_ALERT_CERTIFICATE_REQUIRED` (10/10).
 2. The fallback meant for this case ("a proxy that turns a missing certificate away looks like any other failure, so offer the import anyway") checks `lastCandidate`, which is always the plain `http://host:8920` candidate built by `ServerRepository._buildCandidates`. It never fires.
 
-This PR offers the import for the first `https` candidate that was tried instead of the last candidate.
+This PR offers the import for the first `https` address that was actually reached before failing. `ServerRepository` records it as `possibleClientCertCandidate`: a refused, unreachable, timed out or unresolved connection doesn't count, so when `https://host` is refused and `https://host:8920` is the proxy hanging up, the import goes to `:8920` (point raised in review). Those connection failures are told apart by errno rather than by message, since the OS message is localised (Windows reports a refusal as errno 1225 with a translated text). When no https address answered at all, no import is offered.
 
 Possible follow-ups, not in this PR: treat `Broken pipe` / `Connection reset by peer` on an https candidate as "certificate possibly required" in `isClientCertificateRejected()`, and have `probeServerPublicInfo` keep the first TLS error instead of only the last path's.
 
@@ -132,7 +132,10 @@ Possible follow-ups, not in this PR: treat `Broken pipe` / `Connection reset by 
 - [ ] Other (describe):
 
 ## Changes Made
-- `AddServerDialog`: the import fallback uses the first https candidate tried, not the last candidate.
+- `ServerUnableToConnect.possibleClientCertCandidate`: the first https candidate that failed after something answered there.
+- `ServerRepository.addServer`: records it, using errno to leave out refused, unreachable, timed out and unresolved connections.
+- `AddServerDialog`: the import fallback uses that candidate instead of the last one tried.
+- New test `test/auth/server_repository_client_cert_test.dart`.
 
 ## Platform
 - [x] Android
@@ -151,7 +154,9 @@ Possible follow-ups, not in this PR: treat `Broken pipe` / `Connection reset by 
 - [x] Manual testing completed
 - [ ] Not tested (explain why):
 
-Nvidia Shield (Android 11) against Caddy over TLS 1.3. `test/add_server_dialog_test.dart` and `test/auth/server_repository_idn_test.dart` pass.
+The first commit (first https candidate) was tested on an Nvidia Shield (Android 11) against Caddy over TLS 1.3. In that setup `https://host` is the address that answers, so the second commit picks the same one; I haven't re-run it on the device yet.
+
+The second commit is covered by `test/auth/server_repository_client_cert_test.dart`: `https://host` refused and `https://host:8920` hanging up mid-handshake gives `:8920`; nothing answering gives no candidate. `test/add_server_dialog_test.dart` and `test/auth/server_repository_idn_test.dart` still pass.
 
 ### Test Steps
 1. Without any client certificate imported, add a server whose proxy requires one (TLS 1.3).
@@ -167,7 +172,7 @@ n/a
 - [x] No unnecessary commented-out code
 - [x] No new warnings introduced
 
-Written with the help of an AI assistant (Claude Code); I ran and verified the change on the device above.
+Written with the help of an AI assistant (Claude Code); I ran and verified the first commit on the device above, the second one with the tests listed.
 ```
 
 Side note for a separate contribution: `clientCertAddButton` and the certificate dialog strings ("Client certificate", "Send from phone", "Stop waiting") had no French translation. Upstream translations go through Weblate (translate.moonfin.io), not through the `.arb` files.
