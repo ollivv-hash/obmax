@@ -29,7 +29,10 @@ param(
     [switch]$AllowDebugSigning
 )
 
-$ErrorActionPreference = 'Stop'
+# Not 'Stop': Windows PowerShell turns any stderr line of a native command
+# (flutter prints warnings there) into a terminating error once the output
+# is redirected. Failures are caught through $LASTEXITCODE and explicit throws.
+$ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 . "$PSScriptRoot\obmax_env.ps1"
@@ -78,7 +81,7 @@ foreach ($b in $builds) {
     if ($LASTEXITCODE -ne 0) { throw "Build $($b.Flavor) en échec" }
     $apk = Join-Path $root "build\app\outputs\flutter-apk\$($b.Out)"
     if (-not (Test-Path $apk)) { throw "APK introuvable : $apk" }
-    Copy-Item $apk (Join-Path $dist $b.Name)
+    Copy-Item $apk (Join-Path $dist $b.Name) -ErrorAction Stop
 }
 
 # --- 3. Checksums and version.json -------------------------------------------
