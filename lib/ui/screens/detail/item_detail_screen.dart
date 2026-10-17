@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import '../../../obmax/theme/obmax_backdrop_veil.dart'; // OBMAX
 import '../../theme/focus_foreground.dart';
 import '../../widgets/bounded_network_image.dart';
 import '../../widgets/offline_aware_image.dart';
@@ -3764,11 +3765,12 @@ class _Backdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
+      child: ObMaxBackdropVeil( // OBMAX: night-blue veil over the artwork
       child: FullscreenBackdropSwitcher(
         imageUrl: url,
         duration: BackgroundService.transitionDuration,
         imageBuilder: (imageUrl) => _blurredImage(imageUrl, blurAmount),
-      ),
+      )),
     );
   }
 

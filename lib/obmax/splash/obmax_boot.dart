@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../theme/obmax_theme.dart';
 import 'obmax_splash.dart';
 
 /// Shows the OB Max splash while `main()` initializes the app (DI,
@@ -11,7 +12,10 @@ import 'obmax_splash.dart';
 abstract final class ObMaxBoot {
   static final _app = ValueNotifier<Widget?>(null);
 
-  static void showSplash() => runApp(const _ObMaxBootHost());
+  static void showSplash() {
+    ObMaxTheme.install();
+    runApp(const _ObMaxBootHost());
+  }
 
   static void finish(Widget app) => _app.value = app;
 }

@@ -20,6 +20,7 @@ import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 import 'package:window_manager/window_manager.dart';
 
+import '../../../obmax/theme/obmax_backdrop_veil.dart'; // OBMAX
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/home_row.dart';
 import '../../../data/repositories/mdblist_repository.dart';
@@ -646,6 +647,7 @@ class _Backdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
+      child: ObMaxBackdropVeil( // OBMAX: night-blue veil over the artwork
       child: FullscreenBackdropSwitcher(
         imageUrl: url,
         duration: BackgroundService.transitionDuration,
@@ -683,7 +685,7 @@ class _Backdrop extends StatelessWidget {
             ),
           );
         },
-      ),
+      )),
     );
   }
 

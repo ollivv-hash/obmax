@@ -54,8 +54,11 @@ class ThemeRegistry {
 
   static ThemeSpec get active => _active;
 
+  /// OBMAX: when set, every theme id resolves to this one spec.
+  static ThemeSpec? forcedTheme;
+
   static void setActiveById(String id) {
-    _base = availableThemes[id] ?? moonfinThemeSpec;
+    _base = forcedTheme ?? availableThemes[id] ?? moonfinThemeSpec; // OBMAX
     _recompute();
   }
 
@@ -68,7 +71,7 @@ class ThemeRegistry {
   static void _recompute() => _active = applyOled(_base, _oled);
 
   static ThemeSpec resolveById(String id) {
-    return availableThemes[id] ?? moonfinThemeSpec;
+    return forcedTheme ?? availableThemes[id] ?? moonfinThemeSpec; // OBMAX
   }
 
   /// Register or replace a plugin-supplied theme. Built-in IDs are reserved

@@ -34,7 +34,11 @@ abstract final class ObMaxFeatures {
   /// One OB Max theme, no theme, accent or theme store choice.
   static const themeChoice = false;
 
-  /// Home rows are fixed (see ObMaxHome).
+  /// The OB Max logo replaces the user's avatar at the top left (it still
+  /// opens the user menu).
+  static const toolbarLogo = true;
+
+  /// Home rows are fixed (see ObMaxDefaults.homeSections).
   static const homeSectionsEditor = false;
 
   /// Collection types (Jellyfin `CollectionType`) hidden everywhere. Music

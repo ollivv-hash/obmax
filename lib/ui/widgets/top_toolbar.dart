@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../obmax/obmax_features.dart'; // OBMAX
 import '../../l10n/app_localizations.dart';
 import '../../auth/repositories/user_repository.dart';
 import '../../data/models/aggregated_library.dart';
@@ -921,16 +922,22 @@ class _TopToolbarState extends State<TopToolbar> with RouteAware {
             height: avatarSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: (avatarFocusVisible && !PlatformDetection.isTV)
+              border: (avatarFocusVisible &&
+                      (!PlatformDetection.isTV || ObMaxFeatures.toolbarLogo)) // OBMAX
                   ? Border.fromBorderSide(
                       ThemeRegistry.active.borders.focusBorder,
                     )
                   : null,
-              color: (avatarFocusVisible && PlatformDetection.isTV)
+              color: (avatarFocusVisible &&
+                      PlatformDetection.isTV &&
+                      !ObMaxFeatures.toolbarLogo) // OBMAX
                   ? Colors.white
                   : null,
             ),
-            child: ClipOval(
+            // OBMAX: the OB Max logo in place of the user's avatar.
+            child: ObMaxFeatures.toolbarLogo
+                ? Image.asset('assets/obmax/logo.png', fit: BoxFit.contain)
+                : ClipOval(
               child: _userImageUrl != null
                   ? Image(
                       image: ResizeImage.resizeIfNeeded(

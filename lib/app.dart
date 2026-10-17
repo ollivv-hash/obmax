@@ -71,6 +71,8 @@ import 'util/focus/gamepad/gamepad_navigation_scope.dart';
 import 'util/focus/gamepad/gamepad_key_synthesizer.dart';
 import 'util/focus/open_popup.dart';
 import 'package:custom_tv_text_field/custom_tv_text_field.dart';
+import 'obmax/obmax_defaults.dart'; // OBMAX
+import 'obmax/theme/obmax_theme.dart'; // OBMAX
 
 class MoonfinApp extends StatefulWidget {
   const MoonfinApp({super.key});
@@ -202,6 +204,8 @@ class _MoonfinAppState extends State<MoonfinApp> {
   }
 
   Locale? _resolveLocale() {
+    return kObMaxLocale; // OBMAX: always French
+    // ignore: dead_code
     final override = _prefs.get(UserPreferences.languageOverride);
     if (override == 'system') {
       return null;
@@ -237,7 +241,9 @@ class _MoonfinAppState extends State<MoonfinApp> {
             return MaterialApp.router(
               onGenerateTitle: (context) =>
                   AppLocalizations.of(context).appTitle,
-              theme: AppTheme.buildTheme(_themeController.activeSpec),
+              theme: ObMaxTheme.adapt( // OBMAX: OB Max palette
+                AppTheme.buildTheme(_themeController.activeSpec),
+              ),
               routerConfig: appRouter,
               debugShowCheckedModeBanner: false,
               localizationsDelegates: AppLocalizations.localizationsDelegates,

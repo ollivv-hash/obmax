@@ -14,6 +14,7 @@ class JellyfinUserViewsApi implements UserViewsApi {
       '/UserViews',
       queryParameters: {if (includeHidden) 'includeHidden': true},
     );
-    return response.data as Map<String, dynamic>;
+    final data = response.data as Map<String, dynamic>;
+    return userViewsFilter?.call(data) ?? data; // OBMAX
   }
 }

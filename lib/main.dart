@@ -36,6 +36,7 @@ import 'util/scroll_sensitivity_binding.dart';
 import 'util/webview_environment.dart';
 import 'data/services/theme_store_service.dart';
 import 'di/injection.dart';
+import 'obmax/obmax_defaults.dart'; // OBMAX
 import 'obmax/splash/obmax_boot.dart'; // OBMAX
 import 'playback/appletv_audio_now_playing_feeder.dart';
 import 'playback/appletv_backend.dart';
@@ -955,6 +956,7 @@ void main() async {
   }
 
   await configureDependencies();
+  await ObMaxDefaults.install(); // OBMAX: forced settings, library filter
   _installCrashHandlers();
   if (PlatformDetection.isAndroid) _startProcessExitReporter();
   // When the system runs the auto-download refresh task against this

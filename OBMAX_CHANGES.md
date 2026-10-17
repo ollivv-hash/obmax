@@ -37,6 +37,13 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/ui/navigation/app_router.dart` | La route `serverSelect` ouvre `ObMaxOnboardingScreen` (certificat → test → serveur) : tous les flux upstream qui renvoient vers la sélection de serveur (reconnexion, session expirée, PIN oublié) arrivent sur la porte OB Max. Route Emby Connect redirigée. |
 | `lib/ui/screens/auth/server_screen.dart` | Bouton « Sélectionner un serveur » masqué. |
 | `pubspec.yaml` (assets) | Déclare `assets/obmax/` et `assets/obmax/splash/`. |
+| `packages/design/lib/src/theme/theme_registry.dart` | `ThemeRegistry.forcedTheme` : toute résolution de thème renvoie le thème OB Max (installé par `ObMaxTheme.install()`). |
+| `lib/app.dart` | `ObMaxTheme.adapt()` autour du `ThemeData` (secondaire, tertiaire, textes secondaires, progression bleue…) ; `_resolveLocale()` renvoie toujours `fr`. |
+| `lib/preference/preference_constants.dart` | Valeur `AppTheme.obMaxGold` ajoutée en fin d'enum (couleur du focus TV). |
+| `lib/main.dart` | `ObMaxDefaults.install()` après `configureDependencies()` : préférences forcées (thème, focus or, Media3, media bar bandes-annonces, sections d'accueil, pas de multi-serveur ni de lecteur externe), réappliquées à chaque session prête. |
+| `packages/server_core/lib/src/api/user_views_api.dart`, `packages/server_jellyfin/lib/src/api/jellyfin_user_views_api.dart` | Filtre global `userViewsFilter` appliqué à chaque réponse `/UserViews` : OB Max y retire les bibliothèques Livres, Musique et Live TV, qui disparaissent partout (navigation, Mes médias, rangées, sélecteurs). |
+| `lib/ui/widgets/top_toolbar.dart` | Logo OB Max à la place de l'avatar en haut à gauche (il ouvre toujours le menu utilisateur) ; focus doré sur TV. |
+| `lib/ui/screens/home/home_screen.dart`, `lib/ui/screens/detail/item_detail_screen.dart` | Voile dégradé `#080A23` 70 % → transparent sur les fonds flous (`ObMaxBackdropVeil`). |
 | `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max (générée depuis `obmax_ipad_1024.png`, sans canal alpha). |
 
 ## Ressources ajoutées (pas de conflit possible)
