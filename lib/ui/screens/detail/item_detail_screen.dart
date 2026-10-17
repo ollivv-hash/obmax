@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../obmax/theme/obmax_backdrop_veil.dart'; // OBMAX
 import '../../theme/focus_foreground.dart';
 import '../../widgets/bounded_network_image.dart';
@@ -7002,7 +7003,8 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           isActive: widget.selectedMediaSourceId != null,
           activeColor: AppColorScheme.accent,
         ),
-      if (!isBook && !PlatformDetection.isTV && shows(DetailButton.cast))
+      if (ObMaxFeatures.cast && // OBMAX
+          !isBook && !PlatformDetection.isTV && shows(DetailButton.cast))
         DetailButton.cast: _DetailActionButton(
           label: l10n.cast,
           icon: Icons.cast,

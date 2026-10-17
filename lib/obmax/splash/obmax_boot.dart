@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
+
+import '../../ui/navigation/app_router.dart' show appRouter;
+import '../ota/obmax_updater.dart';
 
 import '../theme/obmax_theme.dart';
 import 'obmax_splash.dart';
@@ -17,7 +22,17 @@ abstract final class ObMaxBoot {
     runApp(const _ObMaxBootHost());
   }
 
-  static void finish(Widget app) => _app.value = app;
+  static void finish(Widget app) {
+    _app.value = app;
+    // Update check once the app is up (at most once a day, Android only).
+    Timer(const Duration(seconds: 12), () {
+      unawaited(
+        ObMaxUpdater.checkIfDue(
+          () => appRouter.routerDelegate.navigatorKey.currentContext,
+        ),
+      );
+    });
+  }
 }
 
 class _ObMaxBootHost extends StatefulWidget {

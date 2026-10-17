@@ -38,12 +38,36 @@ abstract final class ObMaxFeatures {
   /// opens the user menu).
   static const toolbarLogo = true;
 
+  /// Moonfin's first-run wizard asks for what OB Max fixes.
+  static const setupWizard = false;
+
+  /// The trimmed OB Max settings panel (see obmax_settings_panel.dart): only
+  /// what the user may change, no settings search.
+  static const settingsPanel = true;
+
   /// Home rows are fixed (see ObMaxDefaults.homeSections).
   static const homeSectionsEditor = false;
 
   /// Collection types (Jellyfin `CollectionType`) hidden everywhere. Music
   /// videos stay: the Concerts library may use that type.
   static const hiddenCollectionTypes = <String>{'books', 'music', 'livetv'};
+
+  /// Routes of the features above. The router sends them home, so a deep
+  /// link or a leftover entry point cannot reach them.
+  static const _blockedRoutePrefixes = [
+    '/music/',
+    '/books/',
+    '/player/book/',
+    '/games/',
+    '/game/',
+    '/game-player/',
+    '/live-tv',
+    '/seerr',
+    '/player/external',
+  ];
+
+  static bool isRouteBlocked(String path) =>
+      _blockedRoutePrefixes.any(path.startsWith);
 
   static bool isCollectionTypeVisible(String? collectionType) =>
       !hiddenCollectionTypes.contains(collectionType?.toLowerCase());

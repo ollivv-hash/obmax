@@ -14,6 +14,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../obmax/obmax_config.dart'; // OBMAX
+import '../../../obmax/obmax_features.dart'; // OBMAX
+import '../../../obmax/ota/obmax_updater.dart'; // OBMAX
+import '../../navigation/app_router.dart' show appRouter; // OBMAX
 import '../../../data/services/achievements_service.dart';
 import '../../../data/services/auto_download_service.dart';
 import '../../../data/services/plugin_sync_service.dart';
@@ -114,6 +118,7 @@ import '../playback/osd_buttons.dart';
 import '../syncplay/syncplay_screen.dart';
 
 part 'panel/settings_panel_infra.dart';
+part '../../../obmax/settings/obmax_settings_panel.dart'; // OBMAX
 part 'panel/settings_search_field.dart';
 part 'panel/settings_search_index.dart';
 part 'panel/account_screen.dart';
@@ -321,6 +326,17 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
               onTap: () => unawaited(_exitKidsMode(context)),
             ),
           ]
+        // OBMAX: the trimmed OB Max panel instead of Moonfin's categories.
+        : ObMaxFeatures.settingsPanel
+        ? _obMaxPanelEntries(
+            context,
+            showAdmin: showAdmin,
+            firstFocus: enablePanelAutofocus ? _firstFocusNode : null,
+            openAdmin: () {
+              _closeSettingsPanel();
+              context.navigateTopLevel(Destinations.admin);
+            },
+          )
         : <_PanelEntry>[
             if (showAdmin)
               _PanelEntry(
@@ -398,6 +414,8 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
       ),
       body: Column(
         children: [
+          // OBMAX: search would reach the settings OB Max hides.
+          if (!ObMaxFeatures.settingsPanel)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: _SettingsSearchField(

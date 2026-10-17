@@ -3,6 +3,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../obmax/obmax_features.dart'; // OBMAX
 import '../../auth/repositories/session_repository.dart';
 import '../../auth/store/authentication_store.dart';
 import '../../auth/store/credential_store.dart';
@@ -126,6 +127,8 @@ void registerAppModule() {
     () => CastService(
       [
         RemoteSessionCastProvider(_getIt<MediaServerClientFactory>()),
+        // OBMAX: receivers fetch the stream without the client certificate.
+        if (ObMaxFeatures.cast) ...[
         GoogleCastProvider(
           _getIt<NativeCastChannel>(),
           _getIt<MediaServerClientFactory>(),
@@ -139,6 +142,7 @@ void registerAppModule() {
           _getIt<NativeDlnaChannel>(),
           _getIt<MediaServerClientFactory>(),
         ),
+        ],
       ],
       nativeCast: _getIt<NativeCastChannel>(),
       nativeDlna: _getIt<NativeDlnaChannel>(),

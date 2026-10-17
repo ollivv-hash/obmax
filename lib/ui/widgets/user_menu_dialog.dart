@@ -8,6 +8,7 @@ import 'package:server_core/server_core.dart';
 
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 
+import '../../obmax/obmax_features.dart'; // OBMAX
 import '../../auth/models/server.dart';
 import '../../auth/models/user.dart';
 import '../../auth/repositories/server_repository.dart';
@@ -328,7 +329,8 @@ class _AccountDialogState extends State<_AccountDialog> {
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: PlatformDetection.isWeb
+                // OBMAX: one server, so no "select server" next to sign out.
+                child: PlatformDetection.isWeb || !ObMaxFeatures.serverSwitching
                     ? SizedBox(
                         width: double.infinity,
                         child: _ActionButton(
@@ -350,7 +352,9 @@ class _AccountDialogState extends State<_AccountDialog> {
                         ),
                       ),
               ),
-              if (_accounts.length > 1) ...[
+              // OBMAX: signing everyone out deletes the server, and with it
+              // the client certificate.
+              if (_accounts.length > 1 && ObMaxFeatures.serverSwitching) ...[
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),

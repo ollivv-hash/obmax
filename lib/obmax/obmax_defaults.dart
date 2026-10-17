@@ -9,6 +9,7 @@ import '../auth/repositories/session_repository.dart';
 import '../preference/home_section_config.dart';
 import '../preference/preference_constants.dart';
 import '../preference/user_preferences.dart';
+import '../util/game_library.dart';
 import '../util/platform_detection.dart';
 import 'obmax_features.dart';
 
@@ -43,6 +44,11 @@ abstract final class ObMaxDefaults {
     await force(UserPreferences.customThemeId, '');
     await force(UserPreferences.oledMode, OledMode.off);
     await force(UserPreferences.focusColor, AppTheme.obMaxGold);
+
+    // Navigation buttons of the features OB Max leaves out.
+    await force(UserPreferences.showLiveTvButton, false);
+    await force(UserPreferences.showSeerrButton, false);
+    await force(UserPreferences.showFriendsButton, false);
 
     // One server, played in-app only.
     await force(UserPreferences.enableMultiServerLibraries, false);
@@ -90,6 +96,17 @@ abstract final class ObMaxDefaults {
     ];
   }
 
+  static bool _isOffered(Map item) {
+    final type = item['CollectionType'] as String?;
+    if (!ObMaxFeatures.isCollectionTypeVisible(type)) return false;
+    if (ObMaxFeatures.games) return true;
+    return !isGameLibrary(
+      item['Id']?.toString() ?? '',
+      type,
+      item['Name'] as String?,
+    );
+  }
+
   /// Drops the libraries OB Max does not offer (books, music, live TV) from
   /// every `/UserViews` answer, so they vanish from navigation, My Media,
   /// home rows and pickers alike.
@@ -100,11 +117,7 @@ abstract final class ObMaxDefaults {
       ...response,
       'Items': [
         for (final item in items)
-          if (item is! Map ||
-              ObMaxFeatures.isCollectionTypeVisible(
-                item['CollectionType'] as String?,
-              ))
-            item,
+          if (item is! Map || _isOffered(item)) item,
       ],
     };
   }

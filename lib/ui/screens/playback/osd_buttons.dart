@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../l10n/app_localizations.dart';
 import '../../../preference/button_layout.dart';
 import '../../../preference/user_preferences.dart';
@@ -40,7 +41,7 @@ enum OsdButton {
   /// never gets drawn here isn't worth offering a switch for.
   bool get isOffered => switch (this) {
     OsdButton.castControls => false,
-    OsdButton.cast => !PlatformDetection.isTV,
+    OsdButton.cast => ObMaxFeatures.cast && !PlatformDetection.isTV, // OBMAX
     OsdButton.volume => PlatformDetection.useDesktopUi,
     OsdButton.orientation => PlatformDetection.isMobile,
     OsdButton.fullscreen => PlatformDetection.useDesktopUi,

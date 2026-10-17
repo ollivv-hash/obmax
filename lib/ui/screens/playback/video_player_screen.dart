@@ -18,6 +18,7 @@ import 'package:screen_brightness_platform_interface/screen_brightness_platform_
 import 'package:volume_controller/volume_controller.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../data/utils/chapter_markers.dart';
 import '../../../data/utils/video_range_label.dart';
 import '../../../playback/subtitle_style.dart';
@@ -5868,7 +5869,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               extent: secondaryExtent,
               tooltip: l10n.castAndCrew,
             ),
-          if (!PlatformDetection.isTV && shows(OsdButton.cast))
+          if (ObMaxFeatures.cast && // OBMAX
+              !PlatformDetection.isTV && shows(OsdButton.cast))
             OsdButton.cast: _controlButton(
               Icons.cast,
               onPressed: _castToDevice,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../preference/button_layout.dart';
@@ -66,7 +67,7 @@ enum DetailButton {
       return false;
     }
     return switch (this) {
-      DetailButton.cast => !PlatformDetection.isTV,
+      DetailButton.cast => ObMaxFeatures.cast && !PlatformDetection.isTV, // OBMAX
       DetailButton.download ||
       DetailButton.deleteFiles => PlatformDetection.supportsOfflineDownloads,
       DetailButton.seerrRequest ||

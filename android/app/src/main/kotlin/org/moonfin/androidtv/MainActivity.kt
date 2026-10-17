@@ -359,6 +359,7 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         engineHandedToActivity = flutterEngine
+        org.moonfin.androidtv.obmax.ObMaxInstaller.register(flutterEngine, this) // OBMAX: OTA
 
         val bridge = LibretroBridge(
             flutterEngine,

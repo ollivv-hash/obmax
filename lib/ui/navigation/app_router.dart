@@ -91,6 +91,8 @@ const _authRoutes = {
 /// answers false for anything it can't decide cheaply, since letting somebody
 /// through to Home costs nothing next to stranding them outside it.
 bool _shouldRunSetupWizard() {
+  // OBMAX: the wizard asks for what OB Max fixes (theme, home, engine).
+  if (!ObMaxFeatures.setupWizard) return false;
   try {
     final client = GetIt.instance<MediaServerClientFactory>().getActiveClient();
     return GetIt.instance<SetupWizardGate>().shouldRun(client);
@@ -209,6 +211,9 @@ final appRouter = GoRouter(
             path.startsWith('/live-tv'))) {
       return Destinations.home;
     }
+
+    // OBMAX: hard gate for the features OB Max leaves out, deep links included.
+    if (ObMaxFeatures.isRouteBlocked(path)) return Destinations.home;
 
     final connectivity = GetIt.instance<ConnectivityService>();
     if (!connectivity.canReachServer && _isOfflineBlocked(path)) {

@@ -44,9 +44,25 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `packages/server_core/lib/src/api/user_views_api.dart`, `packages/server_jellyfin/lib/src/api/jellyfin_user_views_api.dart` | Filtre global `userViewsFilter` appliqué à chaque réponse `/UserViews` : OB Max y retire les bibliothèques Livres, Musique et Live TV, qui disparaissent partout (navigation, Mes médias, rangées, sélecteurs). |
 | `lib/ui/widgets/top_toolbar.dart` | Logo OB Max à la place de l'avatar en haut à gauche (il ouvre toujours le menu utilisateur) ; focus doré sur TV. |
 | `lib/ui/screens/home/home_screen.dart`, `lib/ui/screens/detail/item_detail_screen.dart` | Voile dégradé `#080A23` 70 % → transparent sur les fonds flous (`ObMaxBackdropVeil`). |
+| `lib/ui/navigation/app_router.dart` (bis) | Garde de routes `ObMaxFeatures.isRouteBlocked` (musique, livres, jeux, Live TV, Seerr, lecteur externe → accueil, liens profonds compris) ; assistant de premier lancement désactivé. |
+| `lib/di/modules/app_module.dart` | Fournisseurs Google Cast, AirPlay et DLNA non enregistrés (incompatibles mTLS). « Lire sur » une autre session Jellyfin reste possible. |
+| `lib/ui/screens/detail/detail_buttons.dart`, `lib/ui/screens/detail/item_detail_screen.dart`, `lib/ui/screens/playback/osd_buttons.dart`, `lib/ui/screens/playback/video_player_screen.dart` | Boutons Cast masqués (fiche et lecteur). |
+| `lib/playback/mpv_client_certificate.dart` | Bug n°3 du spike : `tls-verify=yes` (+ `tls-ca-file` construit depuis le magasin Android) quand un certificat client est présenté. Non testé : mpv est désactivé sur Android. |
+| `lib/ui/screens/settings/settings_side_panel.dart` | `part` du panneau OB Max (`lib/obmax/settings/obmax_settings_panel.dart`) à la place des catégories Moonfin ; recherche des réglages masquée (elle atteignait les réglages cachés). |
+| `lib/ui/widgets/user_menu_dialog.dart` | Plus de « Sélectionner un serveur » ni de « Déconnecter tous les utilisateurs » (qui supprimait le serveur, et avec lui le certificat). |
+| `android/app/src/main/kotlin/org/moonfin/androidtv/MainActivity.kt` | Enregistre `ObMaxInstaller` (canal `obmax/installer`) pour l'OTA. |
+| `android/app/src/main/AndroidManifest.xml` | Permission `REQUEST_INSTALL_PACKAGES` (OTA). |
 | `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max (générée depuis `obmax_ipad_1024.png`, sans canal alpha). |
 
 ## Ressources ajoutées (pas de conflit possible)
 
 - `android/app/src/mobile/res/`, `android/app/src/androidTv/res/` : icônes OB Max (mipmaps, adaptive icon sur fond `#080A23`). Elles remplacent celles de `main/res` pour les flavors `mobile` et `androidTv`. La bannière TV est copiée sous le nom upstream `drawable-nodpi/moonfin_tv_banner.png` : le manifest (`android:banner="@drawable/moonfin_tv_banner"`) reste inchangé.
 - Le splash natif Android 12+ (`values-v31/styles.xml`) utilise déjà `@color/ic_launcher_background` et `@mipmap/ic_launcher_foreground` : il passe automatiquement à `#080A23` + icône OB Max, sans modifier les styles.
+
+## Code OB Max hors `lib/obmax/`
+
+- `android/app/src/main/kotlin/org/moonfin/androidtv/obmax/ObMaxInstaller.kt` : installation des mises à jour via `PackageInstaller`.
+
+## Écarts assumés par rapport à la spec
+
+- **OTA** : `lib/data/services/app_update_service.dart` n'est pas modifié. Il ne sait qu'ouvrir une page de release (desktop) et reste inactif dans OB Max (aucun `DISTRIBUTION_CHANNEL` n'est passé au build). Le service OB Max (`lib/obmax/ota/obmax_updater.dart`) lit `version.json`, télécharge, vérifie le SHA-256 et installe : réécrire le service upstream aurait créé un gros diff à chaque rebase.
