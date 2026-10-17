@@ -45,6 +45,12 @@ abstract final class ObMaxDefaults {
     await force(UserPreferences.oledMode, OledMode.off);
     await force(UserPreferences.focusColor, AppTheme.obMaxGold);
 
+    // Moonfin's moon logo as the loading animation would undo the branding.
+    await force(
+      UserPreferences.loadingAnimationImage,
+      LoadingAnimationImage.spinner,
+    );
+
     // Navigation buttons of the features OB Max leaves out.
     await force(UserPreferences.showLiveTvButton, false);
     await force(UserPreferences.showSeerrButton, false);

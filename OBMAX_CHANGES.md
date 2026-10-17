@@ -53,6 +53,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/ui/widgets/user_menu_dialog.dart` | Plus de « Sélectionner un serveur » ni de « Déconnecter tous les utilisateurs » (qui supprimait le serveur, et avec lui le certificat). |
 | `android/app/src/main/kotlin/org/moonfin/androidtv/MainActivity.kt` | Enregistre `ObMaxInstaller` (canal `obmax/installer`) pour l'OTA. |
 | `android/app/src/main/AndroidManifest.xml` | Permission `REQUEST_INSTALL_PACKAGES` (OTA). |
+| `assets/images/logo_and_text.png` | Remplacé par le logo OB Max (même format 1179×266) : il est affiché par les écrans de connexion, l'économiseur d'écran et l'À propos upstream. En cas de conflit au rebase, garder la version OB Max. |
 | `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max (générée depuis `obmax_ipad_1024.png`, sans canal alpha). |
 
 ## Ressources ajoutées (pas de conflit possible)
