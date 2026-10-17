@@ -11,6 +11,8 @@
 .EXAMPLE
   .\tools\release.ps1 -Version 1.0.1 -Notes "Corrections et améliorations."
 .EXAMPLE
+  .\tools\release.ps1 -Version 1.0.0 -VersionCode 1 -NoPublish
+.EXAMPLE
   .\tools\release.ps1 -Version 1.1.0 -Notes "Nouvelle version obligatoire." -Mandatory
 #>
 param(
@@ -19,6 +21,10 @@ param(
     [switch]$Mandatory,
     [switch]$Armv7,
     [string]$ReleasesRepo = 'ollivv-hash/obmax-releases',
+    # Explicit versionCode (default: previous + 1), e.g. 1 for the very first release.
+    [int]$VersionCode = 0,
+    # Build, checksums and version.json only: no publication, pubspec.yaml restored afterwards.
+    [switch]$NoPublish,
     # Only for a throwaway test build: a debug-signed APK cannot update a release-signed install.
     [switch]$AllowDebugSigning
 )
@@ -32,6 +38,9 @@ Set-Location $root
 if (-not $AllowDebugSigning -and -not (Test-Path 'android\keystore.properties')) {
     throw "android\keystore.properties manquant : le build serait signé avec la clé debug et ne pourrait pas mettre à jour une installation existante. Voir RELEASE.md."
 }
+if ((Test-Path 'android\keystore.properties') -and (Select-String -Path 'android\keystore.properties' -Pattern 'A_REMPLACER' -Quiet)) {
+    throw "android\keystore.properties contient encore A_REMPLACER : renseignez les mots de passe du keystore."
+}
 $dirty = git status --porcelain --untracked-files=no
 if ($dirty) { Write-Warning "Le dépôt a des modifications non commitées :`n$dirty" }
 
@@ -41,7 +50,8 @@ $pubspec = [System.IO.File]::ReadAllText($pubspecPath)
 $m = [regex]::Match($pubspec, '(?m)^version:\s*(\d+\.\d+\.\d+)\+(\d+)\s*$')
 if (-not $m.Success) { throw "Ligne 'version:' introuvable dans pubspec.yaml" }
 $previous = "$($m.Groups[1].Value)+$($m.Groups[2].Value)"
-$versionCode = [int]$m.Groups[2].Value + 1
+$versionCode = if ($VersionCode -gt 0) { $VersionCode } else { [int]$m.Groups[2].Value + 1 }
+$originalPubspec = $pubspec
 $pubspec = [regex]::Replace($pubspec, '(?m)^version:.*$', "version: $Version+$versionCode")
 $pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_version:.*$', "`${1}android_tv_version: $Version")
 $pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_build_number:.*$', "`${1}android_tv_build_number: $versionCode")
@@ -101,6 +111,12 @@ foreach ($b in $builds) {
 }
 Write-Host "version.json : $(Join-Path $dist 'version.json')"
 Write-Host ''
+
+if ($NoPublish) {
+    [System.IO.File]::WriteAllText($pubspecPath, $originalPubspec, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host 'Mode -NoPublish : rien n''est publié, pubspec.yaml est restauré. Les fichiers sont dans dist\.' -ForegroundColor Yellow
+    exit 0
+}
 
 $files = @($builds | ForEach-Object { Join-Path $dist $_.Name }) + (Join-Path $dist 'version.json')
 $ghArgs = @('release', 'create', "v$Version") + $files + @('--repo', $ReleasesRepo, '--title', "OB Max $Version", '--notes', $Notes)
