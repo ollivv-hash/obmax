@@ -15,6 +15,8 @@ Upstream asks contributors to say when an AI assistant helped, and to have run t
 
 ## PR 1: `upstream-pr/ws-port0`
 
+**Opened:** https://github.com/Moonfin-Client/Moonfin-Core/pull/1893 (2026-10-17)
+
 **Create PR:** https://github.com/Moonfin-Client/Moonfin-Core/compare/main...ollivv-hash:Moonfin-Core:upstream-pr/ws-port0?expand=1
 
 **Title:**
@@ -90,6 +92,8 @@ Written with the help of an AI assistant (Claude Code); I ran and verified the c
 ---
 
 ## PR 2: `upstream-pr/mtls-onboarding`
+
+**Opened:** https://github.com/Moonfin-Client/Moonfin-Core/pull/1894 (2026-10-17)
 
 **Create PR:** https://github.com/Moonfin-Client/Moonfin-Core/compare/main...ollivv-hash:Moonfin-Core:upstream-pr/mtls-onboarding?expand=1
 
