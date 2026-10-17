@@ -104,7 +104,7 @@ bool _shouldRunSetupWizard() {
 /// The admin area talks to Jellyfin's admin API, which Emby lacks, and has no
 /// TV layout. The settings tile is hidden in both cases, this stops deep links.
 bool _adminAvailable() {
-  if (PlatformDetection.isTV) return false;
+  if (PlatformDetection.isTV && !ObMaxFeatures.adminOnTv) return false; // OBMAX
   if (!GetIt.instance.isRegistered<MediaServerClient>()) return false;
   return GetIt.instance<MediaServerClient>().serverType == ServerType.jellyfin;
 }

@@ -38,6 +38,10 @@ abstract final class ObMaxFeatures {
   /// opens the user menu).
   static const toolbarLogo = true;
 
+  /// The admin area for Jellyfin admins on Android TV too. Moonfin has no TV
+  /// layout for it, so it is usable but not tuned for the remote.
+  static const adminOnTv = true;
+
   /// Moonfin's first-run wizard asks for what OB Max fixes.
   static const setupWizard = false;
 

@@ -309,7 +309,7 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
     // Every admin API throws on Emby, so the area is Jellyfin only.
     final showAdmin =
         !kidsMode &&
-        !PlatformDetection.isTV &&
+        (!PlatformDetection.isTV || ObMaxFeatures.adminOnTv) && // OBMAX
         ref.watch(isAdminProvider) &&
         _activeServerType() == ServerType.jellyfin;
     final enablePanelAutofocus = !PlatformDetection.useMobileUi;

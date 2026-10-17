@@ -49,6 +49,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/di/modules/app_module.dart` | Fournisseurs Google Cast, AirPlay et DLNA non enregistrés (incompatibles mTLS). « Lire sur » une autre session Jellyfin reste possible. |
 | `lib/ui/screens/detail/detail_buttons.dart`, `lib/ui/screens/detail/item_detail_screen.dart`, `lib/ui/screens/playback/osd_buttons.dart`, `lib/ui/screens/playback/video_player_screen.dart` | Boutons Cast masqués (fiche et lecteur). |
 | `lib/playback/mpv_client_certificate.dart` | Bug n°3 du spike : `tls-verify=yes` (+ `tls-ca-file` construit depuis le magasin Android) quand un certificat client est présenté. Non testé : mpv est désactivé sur Android. |
+| `lib/ui/navigation/app_router.dart`, `lib/ui/screens/settings/settings_side_panel.dart` (admin) | Administration ouverte aux admins Jellyfin sur Android TV aussi (`ObMaxFeatures.adminOnTv`) ; Moonfin n'a pas de mise en page TV pour ces écrans. |
 | `lib/ui/screens/settings/settings_side_panel.dart` | `part` du panneau OB Max (`lib/obmax/settings/obmax_settings_panel.dart`) à la place des catégories Moonfin ; recherche des réglages masquée (elle atteignait les réglages cachés). |
 | `lib/ui/widgets/user_menu_dialog.dart` | Plus de « Sélectionner un serveur » ni de « Déconnecter tous les utilisateurs » (qui supprimait le serveur, et avec lui le certificat). |
 | `android/app/src/main/kotlin/org/moonfin/androidtv/MainActivity.kt` | Enregistre `ObMaxInstaller` (canal `obmax/installer`) pour l'OTA. |
