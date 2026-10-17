@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart' show MediaServerClient, ServerType;
+import '../../obmax/obmax_features.dart'; // OBMAX
+import '../../obmax/onboarding/obmax_onboarding_screen.dart'; // OBMAX
 
 import '../../auth/repositories/session_repository.dart';
 import '../../auth/repositories/user_repository.dart';
@@ -230,7 +232,10 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: Destinations.serverSelect,
-      builder: (context, state) => const ServerSelectScreen(),
+      // OBMAX: certificate + fixed server instead of the server list.
+      builder: (context, state) => ObMaxFeatures.serverSwitching
+          ? const ServerSelectScreen()
+          : const ObMaxOnboardingScreen(),
     ),
     GoRoute(
       path: Destinations.setup,
@@ -238,6 +243,8 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: Destinations.embyConnect,
+      redirect: (context, state) => // OBMAX: Jellyfin only
+          ObMaxFeatures.emby ? null : Destinations.serverSelect,
       builder: (context, state) => const EmbyConnectScreen(),
     ),
     GoRoute(

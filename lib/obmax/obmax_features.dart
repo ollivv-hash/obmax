@@ -3,6 +3,9 @@
 // rebase only has to keep the hooks in place.
 
 abstract final class ObMaxFeatures {
+  /// Animated OB Max splash at cold start (see ObMaxBoot).
+  static const splash = true;
+
   /// Firebase push needs Moonfin's Firebase project, which OB Max is not part of.
   static const pushMessaging = false;
 

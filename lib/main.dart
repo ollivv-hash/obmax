@@ -36,6 +36,7 @@ import 'util/scroll_sensitivity_binding.dart';
 import 'util/webview_environment.dart';
 import 'data/services/theme_store_service.dart';
 import 'di/injection.dart';
+import 'obmax/splash/obmax_boot.dart'; // OBMAX
 import 'playback/appletv_audio_now_playing_feeder.dart';
 import 'playback/appletv_backend.dart';
 import 'playback/audio_capability_probe.dart';
@@ -848,6 +849,7 @@ Future<void> autoDownloadBackgroundMain() =>
 void main() async {
   configureHttpOverrides();
   ScrollSensitivityBinding.ensureInitialized();
+  ObMaxBoot.showSplash(); // OBMAX: animated splash while the app initializes
 
   // Pre-warms the liquid_glass_widgets shader programs so the first glass
   // pane doesn't white-flash. Cheap no-op on tiers where the package
@@ -1032,7 +1034,7 @@ void main() async {
     GetIt.instance<AirPlayCommandBridge>().start();
   } catch (_) {}
 
-  runApp(const MoonfinApp());
+  ObMaxBoot.finish(const MoonfinApp()); // OBMAX: was runApp(const MoonfinApp())
 }
 
 /// Startup work that runs after the first frame. The internal order matters:

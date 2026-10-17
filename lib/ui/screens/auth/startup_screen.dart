@@ -12,6 +12,8 @@ import '../../../auth/store/authentication_preferences.dart';
 import '../../../auth/store/credential_store.dart';
 import '../../../data/services/connectivity_service.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../obmax/obmax_features.dart'; // OBMAX
+import '../../../obmax/splash/obmax_splash.dart'; // OBMAX
 import '../../../util/pin_code_util.dart';
 import '../../../preference/preference_constants.dart';
 import '../../navigation/destinations.dart';
@@ -165,7 +167,10 @@ class _StartupScreenState extends State<StartupScreen>
       if (mounted) context.go(Destinations.home);
     } else {
       if (mounted) {
-        if (targetServerId != null && targetServerId.isNotEmpty) {
+        // OBMAX: always through the OB Max gate (certificate, then server).
+        if (ObMaxFeatures.serverSwitching &&
+            targetServerId != null &&
+            targetServerId.isNotEmpty) {
           // A previously-used server is known — go straight to user selection
           // for that server rather than the Add Server page.
           context.go('${Destinations.server}?serverId=$targetServerId');
@@ -204,8 +209,12 @@ class _StartupScreenState extends State<StartupScreen>
   }
 
   @override
-  Widget build(BuildContext context) =>
-      RequestInitialFocus(child: _buildContent(context));
+  Widget build(BuildContext context) => RequestInitialFocus(
+    // OBMAX: the splash's last frame stays up while the session restores.
+    child: ObMaxFeatures.splash
+        ? const ObMaxSplash(holdFinalFrame: true)
+        : _buildContent(context),
+  );
 
   Widget _buildContent(BuildContext context) {
     final gradientColors = [

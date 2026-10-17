@@ -5,6 +5,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../auth/models/login_state.dart';
 import '../../../auth/models/server.dart';
 import '../../../auth/repositories/auth_repository.dart';
@@ -303,6 +304,8 @@ class _ServerScreenState extends State<ServerScreen> {
                   label: Text(l10n.addUser),
                   style: _focusableButtonStyle(context),
                 ),
+                if (ObMaxFeatures.serverSwitching) // OBMAX
+                ...[
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
                   onPressed: () => context.go(Destinations.serverSelect),
@@ -310,6 +313,7 @@ class _ServerScreenState extends State<ServerScreen> {
                   label: Text(l10n.selectServer),
                   style: _focusableButtonStyle(context),
                 ),
+                ],
               ],
             )
           else
@@ -328,6 +332,8 @@ class _ServerScreenState extends State<ServerScreen> {
                     style: _focusableButtonStyle(context),
                   ),
                 ),
+                if (ObMaxFeatures.serverSwitching) // OBMAX
+                ...[
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
@@ -340,6 +346,7 @@ class _ServerScreenState extends State<ServerScreen> {
                     style: _focusableButtonStyle(context),
                   ),
                 ),
+                ],
               ],
             ),
         ],
