@@ -13,6 +13,7 @@ import '../../../auth/store/credential_store.dart';
 import '../../../data/services/connectivity_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../obmax/obmax_features.dart'; // OBMAX
+import '../../../obmax/onboarding/obmax_onboarding_screen.dart'; // OBMAX
 import '../../../obmax/splash/obmax_splash.dart'; // OBMAX
 import '../../../util/pin_code_util.dart';
 import '../../../preference/preference_constants.dart';
@@ -79,6 +80,11 @@ class _StartupScreenState extends State<StartupScreen>
   }
 
   Future<void> _initialize() async {
+    // OBMAX: no usable client certificate, nothing can load: go to the gate.
+    if (await ObMaxOnboardingScreen.needsCertificate()) {
+      if (mounted) context.go(Destinations.serverSelect);
+      return;
+    }
     final session = GetIt.instance<SessionRepository>();
     final serverRepo = GetIt.instance<ServerRepository>();
     final credentialStore = GetIt.instance<CredentialStore>();

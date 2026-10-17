@@ -34,7 +34,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/l10n/app_fr.arb`, `app_en.arb`, `app_en_GB.arb` | « Moonfin » → « OB Max » dans les textes visibles (sauf URL et chemins `Téléchargements/Moonfin`, qui désignent un vrai dossier). |
 | `lib/l10n/app_localizations*.dart` | Générés depuis les `.arb`. Ne jamais les fusionner à la main : régénérer. |
 | `lib/main.dart` | `ObMaxBoot.showSplash()` juste après l'init du binding, et `ObMaxBoot.finish(app)` à la place du `runApp` final : le splash animé tourne pendant toute l'initialisation. |
-| `lib/ui/screens/auth/startup_screen.dart` | Affiche la dernière image du splash pendant la restauration de session ; passe toujours par la porte OB Max (jamais par l'écran utilisateurs d'un serveur mémorisé). |
+| `lib/ui/screens/auth/startup_screen.dart` | Affiche la dernière image du splash pendant la restauration de session ; sans certificat valide (supprimé, expiré), va directement à la porte OB Max ; passe toujours par la porte OB Max (jamais par l'écran utilisateurs d'un serveur mémorisé). |
 | `lib/ui/navigation/app_router.dart` | La route `serverSelect` ouvre `ObMaxOnboardingScreen` (certificat → test → serveur) : tous les flux upstream qui renvoient vers la sélection de serveur (reconnexion, session expirée, PIN oublié) arrivent sur la porte OB Max. Route Emby Connect redirigée. |
 | `lib/ui/screens/auth/server_screen.dart` | Bouton « Sélectionner un serveur » masqué. |
 | `pubspec.yaml` (assets) | Déclare `assets/obmax/` et `assets/obmax/splash/`. |

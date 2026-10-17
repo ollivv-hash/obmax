@@ -30,6 +30,15 @@ import '../theme/obmax_colors.dart';
 class ObMaxOnboardingScreen extends StatefulWidget {
   const ObMaxOnboardingScreen({super.key});
 
+  /// Whether this device lacks a usable certificate for the OB Max server
+  /// (never imported, removed in Settings, or expired). Without one nothing
+  /// works, so startup goes straight to this screen.
+  static Future<bool> needsCertificate() async {
+    final host = normalizeCertificateHost(Uri.parse(kObMaxServerUrl).host);
+    final stored = await GetIt.instance<ClientCertificateStore>().get(host);
+    return stored == null || stored.notAfter.isBefore(DateTime.now());
+  }
+
   @override
   State<ObMaxOnboardingScreen> createState() => _ObMaxOnboardingScreenState();
 }
