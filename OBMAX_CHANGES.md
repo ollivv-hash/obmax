@@ -25,6 +25,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `packages/server_core/lib/src/network/client_certificates_io.dart` | Correctif WebSocket port 0 (PR `upstream-pr/ws-port0`). |
 | `lib/ui/screens/auth/server_select_screen.dart` | Import du certificat proposé pour le premier candidat https (PR `upstream-pr/mtls-onboarding`). |
 | `android/app/build.gradle.kts` | `applicationId` `com.example.obmax` et nom « OB Max » pour les deux flavors ; plugin `google-services` désactivé (push Firebase coupé). |
+| `android/app/build.gradle.kts` (bis) | `storeFile=` dans `keystore.properties` peut désigner un keystore hors du dépôt. |
 | `pubspec.yaml` | Version OB Max `1.0.0+1` (et `android_tv_version` / `android_tv_build_number`, lus par Gradle pour la flavor TV). Mise à jour par `tools/release.ps1`. |
 | `lib/di/injection.dart` | Nom de client envoyé à Jellyfin (`X-Emby-Authorization`) = « OB Max ». |
 | `packages/server_core/lib/src/network/server_user_agent.dart` | User-agent `OBMax/<version>` dans les logs serveur. |

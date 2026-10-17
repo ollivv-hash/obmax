@@ -52,7 +52,11 @@ val keystoreStoreType = keystoreProperties
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
 
-val hasReleaseKeystore = rootProject.file("app/release.keystore").exists() &&
+// OBMAX: keystore.properties may point at a keystore outside the repo (storeFile=).
+val releaseStoreFile = keystoreProperties.getProperty("storeFile")?.trim()
+    ?.takeIf { it.isNotEmpty() }?.let { File(it) }
+    ?: rootProject.file("app/release.keystore")
+val hasReleaseKeystore = releaseStoreFile.exists() &&
     (keystoreProperties.getProperty("keyAlias")?.isNotBlank() == true)
 
 android {
@@ -139,7 +143,7 @@ android {
     signingConfigs {
         create("release") {
             if (hasReleaseKeystore) {
-                storeFile = file("release.keystore")
+                storeFile = releaseStoreFile // OBMAX
                 storeType = keystoreStoreType
                 storePassword = keystoreProperties["storePassword"] as String?
                 keyAlias = keystoreProperties["keyAlias"] as String?

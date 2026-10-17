@@ -1,4 +1,4 @@
-# OB Max: build environment for this Windows machine. Dot-source it:
+﻿# OB Max: build environment for this Windows machine. Dot-source it:
 #   . .\tools\obmax_env.ps1
 # Process-scoped only, nothing global is changed.
 #  - JDK 17: :file_picker fails with JDK 21 (Java 17 / Kotlin 21 target mismatch).
