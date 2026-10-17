@@ -95,7 +95,7 @@ Written with the help of an AI assistant (Claude Code); I ran and verified the c
 
 **Opened:** https://github.com/Moonfin-Client/Moonfin-Core/pull/1894 (2026-10-17)
 
-**History:** CodeRabbit pointed out that the first https candidate can be the wrong one (an earlier port refused, a later one asking for the certificate). Fixed in a second commit (`adde59f`, also cherry-picked into `obmax/main`), reply posted in the review thread, title and body updated (below).
+**History:** CodeRabbit pointed out that the first https candidate can be the wrong one (an earlier port refused, a later one asking for the certificate). Fixed in a second commit (`adde59f`, also cherry-picked into `obmax/main`), reply posted in the review thread, title and body updated (below). A second CodeRabbit review then noted ENETDOWN (network down) was missing from the errno list: fixed in `b0e969e` with a test, also in `obmax/main`, reply posted. The first thread was resolved by CodeRabbit.
 
 **Title:**
 
