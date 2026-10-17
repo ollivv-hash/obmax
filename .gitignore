@@ -1,3 +1,16 @@
+# OBMAX: secrets never go to git (client certificates, keys, keystores, signing config)
+assets/secrets/
+*.p12
+*.pfx
+*.key
+*.pem
+*.keystore
+*.jks
+key.properties
+keystore.properties
+# OBMAX: release outputs produced by tools/release.ps1
+/dist/
+
 # Miscellaneous
 *.class
 *.log
