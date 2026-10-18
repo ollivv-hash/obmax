@@ -8,6 +8,8 @@ assets/secrets/
 *.jks
 key.properties
 keystore.properties
+# OBMAX: obmax-enroll state and intermediate CA key, wherever it runs
+server/enroll/data/
 # OBMAX: release outputs produced by tools/release.ps1
 /dist/
 
