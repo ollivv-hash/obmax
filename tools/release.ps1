@@ -5,6 +5,8 @@
 .DESCRIPTION
   1. Bumps the version in pubspec.yaml (versionCode = previous + 1, shared by both flavors).
   2. Builds the signed release APKs (arm64; -Armv7 adds 32-bit ARM to the same APKs).
+     Once tools\rotate_signing_key.ps1 has run, re-signs them with the previous
+     key, the new key and the rotation lineage, then checks both fingerprints.
   3. Renames them, computes their SHA-256 and writes version.json into dist\v<Version>\.
   4. Shows a summary and asks before `gh release create` on the public releases repo.
 
@@ -38,6 +40,7 @@ $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 . "$PSScriptRoot\obmax_env.ps1"
+. "$PSScriptRoot\obmax_signing.ps1"
 
 # --- 0. Preconditions ---------------------------------------------------------
 if (-not $AllowDebugSigning -and -not (Test-Path 'android\keystore.properties')) {
@@ -45,6 +48,17 @@ if (-not $AllowDebugSigning -and -not (Test-Path 'android\keystore.properties'))
 }
 if ((Test-Path 'android\keystore.properties') -and (Select-String -Path 'android\keystore.properties' -Pattern 'A_REMPLACER' -Quiet)) {
     throw "android\keystore.properties contient encore A_REMPLACER : renseignez les mots de passe du keystore."
+}
+$signing = Read-ObMaxProperties
+$rotation = Test-ObMaxRotation $signing
+if ($rotation) {
+    foreach ($f in 'previousStoreFile', 'lineageFile', 'storeFile') {
+        if (-not (Test-Path $signing[$f])) { throw "$f introuvable : $($signing[$f])" }
+    }
+    $newSha = Get-CertSha256 $signing['storeFile'] $signing['keyAlias'] $signing['storePassword']
+    $oldSha = Get-CertSha256 $signing['previousStoreFile'] $signing['previousKeyAlias'] $signing['previousStorePassword']
+    if (-not $newSha -or -not $oldSha) { throw 'Impossible de lire les certificats de signature (mot de passe ?).' }
+    Write-Host "Signature : rotation $(Format-Fingerprint $oldSha) -> $(Format-Fingerprint $newSha)" -ForegroundColor Cyan
 }
 $dirty = git status --porcelain --untracked-files=no
 if ($dirty) { Write-Warning "Le dépôt a des modifications non commitées :`n$dirty" }
@@ -83,7 +97,13 @@ foreach ($b in $builds) {
     if ($LASTEXITCODE -ne 0) { throw "Build $($b.Flavor) en échec" }
     $apk = Join-Path $root "build\app\outputs\flutter-apk\$($b.Out)"
     if (-not (Test-Path $apk)) { throw "APK introuvable : $apk" }
-    Copy-Item $apk (Join-Path $dist $b.Name) -ErrorAction Stop
+    $target = Join-Path $dist $b.Name
+    if ($rotation) {
+        Invoke-ObMaxRotationSign $signing $apk $target
+        Assert-ObMaxRotationSignature $target $oldSha $newSha
+    } else {
+        Copy-Item $apk $target -ErrorAction Stop
+    }
 }
 
 # --- 3. Checksums and version.json -------------------------------------------
@@ -109,6 +129,7 @@ Write-Host ''
 Write-Host '=== Récapitulatif de la release ===' -ForegroundColor Yellow
 Write-Host "Version      : $Version (versionCode $versionCode)"
 Write-Host "Obligatoire  : $([bool]$Mandatory)"
+Write-Host "Signature    : $(if ($rotation) { 'rotation vers ' + (Format-Fingerprint $newSha) } else { 'clé unique (keystore.properties)' })"
 Write-Host "Notes        : $Notes"
 Write-Host "Dépôt        : $ReleasesRepo (public)"
 foreach ($b in $builds) {

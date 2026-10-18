@@ -24,6 +24,17 @@ Toutes les versions doivent être signées avec **la même clé**. Sinon Android
 
 3. Sauvegarder le keystore et ses mots de passe ailleurs (gestionnaire de mots de passe, clé USB). **Sans lui, plus aucune mise à jour OTA n'est possible.**
 
+## Changement de clé de signature (rotation)
+
+Depuis la 2.0.1, OB Max est signé avec la clé enregistrée dans l'Android Developer Console (`D:\secrets\obmax-release.jks`, empreinte `26:58:2F:…:71:D2`). Les versions 1.0.0 à 2.0.0 étaient signées avec `E:\obmax-keys\obmax-release.p12` (`B4:6E:F4:…:8D:0C`).
+
+Pour que les appareils déjà installés acceptent la mise à jour sans désinstaller, on utilise la rotation de clé d'Android (APK Signature Scheme v3) :
+
+1. `.\tools\rotate_signing_key.ps1` (une seule fois) : demande le mot de passe du nouveau keystore, vérifie les deux empreintes, crée la lignée `D:\secrets\obmax-rotation.lineage` (l'ancienne clé « signe » la nouvelle) et réécrit `android\keystore.properties` (nouvelle clé + `previous*` + `lineageFile`). L'ancien fichier est copié dans `E:\obmax-keys\keystore.properties.avant-rotation`. Relancé plus tard, le script ne fait que vérifier.
+2. `release.ps1` détecte la rotation : après le build Gradle, il re-signe chaque APK avec `apksigner` (ancienne clé en v2 pour Android 7 à 8.1, nouvelle clé + lignée en v3 pour Android 9 et plus), puis vérifie les deux empreintes.
+
+**À conserver pour toujours, ensemble** : les deux keystores, leurs mots de passe et le fichier `.lineage`. Un APK construit sans `release.ps1` (Gradle seul) n'est signé qu'avec la nouvelle clé : il ne peut pas mettre à jour une installation antérieure à la 2.0.1.
+
 ## Une seule fois : la CLI GitHub
 
 ```powershell
