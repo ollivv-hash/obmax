@@ -12,7 +12,7 @@ services:
     volumes:
       - ./data:/data
     environment:
-      JELLYFIN_URL: http://127.0.0.1:8096
+      JELLYFIN_URL: http://192.168.0.206:8096   # Jellyfin does not listen on 127.0.0.1
       PUBLIC_SERVER_URL: https://jellyfin.example.com
       ENROLL_TRUSTED_PROXIES: 192.168.0.101/32
       ENROLL_PUBLIC_ADDR: ":8787"
