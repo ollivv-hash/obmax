@@ -1,0 +1,10 @@
+{{template "head" .}}
+<section class="card">
+  <h2>Invitation créée</h2>
+  <p>Pour <strong>{{.Invitation.JellyfinUserName}}</strong>{{if .Invitation.Label}} · {{.Invitation.Label}}{{end}}, valable une seule fois jusqu'au <strong>{{date .Invitation.ExpiresAt}}</strong>.</p>
+  <p class="code">{{.Code}}</p>
+  <p class="muted">Ce code ne sera plus jamais affiché. Envoyez-le maintenant, par exemple avec ce message :</p>
+  <textarea readonly rows="6">{{.Message}}</textarea>
+  <p><a class="button" href="{{.Base}}/">Retour</a></p>
+</section>
+{{template "foot" .}}

@@ -1,0 +1,77 @@
+{{template "head" .}}
+{{if .CAWarning}}<p class="msg error">La CA d'activation expire le {{day .CAExpires}} : préparez une nouvelle CA intermédiaire (voir le guide).</p>{{end}}
+
+<section class="card">
+  <h2>Inviter un appareil</h2>
+  {{if .UsersError}}<p class="msg error">{{.UsersError}}</p>{{end}}
+  <form method="post" action="{{.Base}}/invitations" class="row">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Compte Jellyfin
+      <select name="user" required>
+        <option value="">Choisir…</option>
+        {{range .Users}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+      </select>
+    </label>
+    <label>Appareil (facultatif) <input name="label" maxlength="60" placeholder="Shield du salon"></label>
+    <button class="primary">Créer le code</button>
+  </form>
+  <p class="muted">Un code active un seul appareil et expire au bout de 48 heures.</p>
+</section>
+
+<section class="card">
+  <h2>Invitations en attente</h2>
+  {{if .Invitations}}
+  <table>
+    <thead><tr><th>Compte</th><th>Appareil</th><th>Créée</th><th>Expire</th><th></th></tr></thead>
+    <tbody>
+    {{range .Invitations}}
+      <tr>
+        <td>{{.JellyfinUserName}}</td><td>{{.Label}}</td><td>{{date .CreatedAt}}</td><td>{{date .ExpiresAt}}</td>
+        <td><form method="post" action="{{$.Base}}/invitations/{{.ID}}/cancel"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link danger">Annuler</button></form></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Aucune.</p>{{end}}
+</section>
+
+<section class="card">
+  <h2>Appareils</h2>
+  {{if .Devices}}
+  <table>
+    <thead><tr><th>Compte</th><th>Appareil</th><th>Inscrit</th><th>Renouvelé</th><th>Certificat</th><th>État</th><th></th></tr></thead>
+    <tbody>
+    {{range .Devices}}
+      <tr{{if .RevokedAt}} class="revoked"{{end}}>
+        <td>{{.JellyfinUserName}}</td>
+        <td>{{.Name}}{{if .Label}} <span class="muted">· {{.Label}}</span>{{end}}<br><span class="muted">{{platform .Platform}} · OB Max {{.AppVersion}}</span></td>
+        <td>{{date .EnrolledAt}}</td>
+        <td>{{datep .LastRenewedAt}}</td>
+        <td>jusqu'au {{day .NotAfter}}<br><span class="muted">{{daysLeft .NotAfter $.Now}} j</span></td>
+        <td>{{if .RevokedAt}}Révoqué{{else}}Actif{{end}}</td>
+        <td>
+          {{if .RevokedAt}}
+          <form method="post" action="{{$.Base}}/devices/{{.ID}}/restore"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link">Réactiver</button></form>
+          {{else}}
+          <form method="post" action="{{$.Base}}/devices/{{.ID}}/revoke"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link danger">Révoquer</button></form>
+          {{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <p class="muted">Révoquer bloque le renouvellement du certificat, qui expire ensuite. Pour couper l'accès immédiatement, supprimez aussi l'appareil dans Jellyfin : Tableau de bord &gt; Appareils.</p>
+  {{else}}<p class="muted">Aucun appareil inscrit.</p>{{end}}
+</section>
+
+<section class="card">
+  <h2>Journal</h2>
+  {{if .Events}}
+  <table class="log">
+    <tbody>
+    {{range .Events}}<tr><td>{{date .At}}</td><td>{{.Kind}}</td><td>{{.Detail}}</td><td class="muted">{{.IP}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Vide.</p>{{end}}
+</section>
+{{template "foot" .}}

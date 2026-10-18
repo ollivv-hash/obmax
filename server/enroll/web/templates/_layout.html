@@ -1,0 +1,30 @@
+{{define "head"}}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>OB Max · Activation</title>
+<link rel="stylesheet" href="{{.Base}}/static/admin.css">
+</head>
+<body>
+<header class="top">
+  <img src="{{.Base}}/static/logo.png" alt="" class="logo">
+  <h1>Activation des appareils</h1>
+  {{if .User}}
+  <form method="post" action="{{.Base}}/logout" class="who">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <span>{{.User}}</span>
+    <button class="link">Se déconnecter</button>
+  </form>
+  {{end}}
+</header>
+<main>
+{{if .Error}}<p class="msg error">{{.Error}}</p>{{end}}
+{{if .Notice}}<p class="msg">{{.Notice}}</p>{{end}}
+{{end}}
+
+{{define "foot"}}</main>
+</body>
+</html>
+{{end}}

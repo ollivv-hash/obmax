@@ -1,0 +1,11 @@
+{{template "head" .}}
+<section class="card narrow">
+  <h2>Connexion</h2>
+  <p class="muted">Compte administrateur Jellyfin.</p>
+  <form method="post" action="{{.Base}}/login" class="stack">
+    <label>Identifiant <input name="username" autocomplete="username" required autofocus></label>
+    <label>Mot de passe <input name="password" type="password" autocomplete="current-password"></label>
+    <button class="primary">Se connecter</button>
+  </form>
+</section>
+{{template "foot" .}}
