@@ -25,6 +25,8 @@ param(
     [int]$VersionCode = 0,
     # Build, checksums and version.json only: no publication, pubspec.yaml restored afterwards.
     [switch]$NoPublish,
+    # Publish without the confirmation prompt (the summary is still printed).
+    [switch]$Yes,
     # Only for a throwaway test build: a debug-signed APK cannot update a release-signed install.
     [switch]$AllowDebugSigning
 )
@@ -125,15 +127,18 @@ $files = @($builds | ForEach-Object { Join-Path $dist $_.Name }) + (Join-Path $d
 $ghArgs = @('release', 'create', "v$Version") + $files + @('--repo', $ReleasesRepo, '--title', "OB Max $Version", '--notes', $Notes)
 Write-Host "Commande : gh $($ghArgs -join ' ')" -ForegroundColor DarkGray
 
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+# gh may be installed but missing from the PATH of a shell opened before it.
+$gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
+if (-not $gh -and (Test-Path "$env:ProgramFiles\GitHub CLI\gh.exe")) { $gh = "$env:ProgramFiles\GitHub CLI\gh.exe" }
+if (-not $gh) {
     Write-Warning "La CLI GitHub (gh) n'est pas installée : winget install GitHub.cli, puis gh auth login. Relancez ensuite la commande ci-dessus."
     exit 0
 }
-$answer = Read-Host 'Publier cette release ? (o/N)'
+$answer = if ($Yes) { 'o' } else { Read-Host 'Publier cette release ? (o/N)' }
 if ($answer -notmatch '^(o|oui|y|yes)$') {
     Write-Host 'Publication annulée. Les fichiers restent dans dist\.' -ForegroundColor Yellow
     exit 0
 }
-& gh @ghArgs
+& $gh @ghArgs
 if ($LASTEXITCODE -ne 0) { throw 'gh release create a échoué' }
 Write-Host "Publié. Pensez à commiter pubspec.yaml : git commit -am 'release: OB Max $Version'" -ForegroundColor Green

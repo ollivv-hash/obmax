@@ -44,7 +44,7 @@ Le script :
 3. copie `obmax-mobile-1.0.1.apk`, `obmax-tv-1.0.1.apk` et `version.json` (avec les SHA-256) dans `dist\v1.0.1\` ;
 4. affiche le récapitulatif et **demande confirmation** avant `gh release create v1.0.1 … --repo ollivv-hash/obmax-releases`.
 
-Options : `-NoPublish` (build, empreintes et `version.json` seulement, `pubspec.yaml` restauré), `-VersionCode N` (forcer le versionCode, par exemple `1` pour la toute première release), `-Mandatory` (pas de bouton « Plus tard »), `-ReleasesRepo` (autre dépôt), `-AllowDebugSigning` (build de test uniquement, jamais publié).
+Options : `-NoPublish` (build, empreintes et `version.json` seulement, `pubspec.yaml` restauré), `-VersionCode N` (forcer le versionCode, par exemple `1` pour la toute première release), `-Yes` (publier sans la question de confirmation, le récapitulatif reste affiché), `-Mandatory` (pas de bouton « Plus tard »), `-ReleasesRepo` (autre dépôt), `-AllowDebugSigning` (build de test uniquement, jamais publié).
 
 Après publication, commiter le changement de version :
 
