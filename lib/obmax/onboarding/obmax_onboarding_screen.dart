@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -17,6 +18,8 @@ import '../../data/services/client_certificate_service.dart';
 import '../../ui/navigation/destinations.dart';
 import '../../util/pkcs12_decoder.dart';
 import '../../util/platform_detection.dart';
+import '../enroll/obmax_code_server.dart';
+import '../enroll/obmax_enrollment.dart';
 import '../obmax_config.dart';
 import '../theme/obmax_colors.dart';
 
@@ -67,6 +70,14 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
   List<String> _uploadUrls = const [];
   Timer? _uploadExpiry;
 
+  // V2: invitation code (the main path); the .p12 import stays as a fallback.
+  bool _p12Mode = false;
+  final _code = TextEditingController();
+  final _codeFocus = FocusNode();
+  ObMaxCodeServer? _codeServer;
+  List<String> _codeUrls = const [];
+  String? _enrolledUsername;
+
   bool get _fromPhone => PlatformDetection.isTV;
 
   @override
@@ -79,6 +90,9 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
   void dispose() {
     _uploadExpiry?.cancel();
     _upload?.close();
+    _codeServer?.close();
+    _code.dispose();
+    _codeFocus.dispose();
     _password.dispose();
     _passwordFocus.dispose();
     super.dispose();
@@ -102,7 +116,84 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
       _error = error;
       _busy = false;
     });
-    if (_fromPhone && _upload == null) unawaited(_startUpload());
+    if (!_fromPhone) return;
+    if (_p12Mode) {
+      _stopCodeServer();
+      if (_upload == null) unawaited(_startUpload());
+    } else {
+      if (_upload != null) _stopUpload();
+      if (_codeServer == null) unawaited(_startCodeServer());
+    }
+  }
+
+  void _switchMode() {
+    setState(() => _p12Mode = !_p12Mode);
+    _askForCertificate();
+  }
+
+  // ------------------------------------------------------- invitation code
+
+  Future<void> _enrollWithCode(String code) async {
+    if (_busy || code.trim().isEmpty) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final enrollment = await ObMaxEnroller.enroll(code);
+      if (!mounted) return;
+      _enrolledUsername = enrollment.jellyfinUsername;
+      _code.clear();
+      _stopCodeServer();
+      await _testConnection();
+    } on ObMaxEnrollException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = e.message;
+      });
+      if (!_fromPhone) _codeFocus.requestFocus();
+    }
+  }
+
+  Future<void> _startCodeServer() async {
+    final server = ObMaxCodeServer(
+      onCode: (code) {
+        if (!mounted) return;
+        _code.text = _CodeFormatter.format(code);
+        unawaited(_enrollWithCode(code));
+      },
+    );
+    try {
+      await server.start();
+      final urls = await _lanUrls(server.port!, server.path);
+      if (urls.isEmpty || !mounted) throw StateError('no LAN address');
+      setState(() {
+        _codeServer = server;
+        _codeUrls = urls;
+      });
+    } catch (_) {
+      server.close();
+    }
+  }
+
+  void _stopCodeServer() {
+    final server = _codeServer;
+    if (server == null) return;
+    server.close();
+    if (mounted) setState(() => _codeServer = null);
+  }
+
+  static Future<List<String>> _lanUrls(int port, String path) async {
+    final interfaces = await NetworkInterface.list(
+      type: InternetAddressType.IPv4,
+    );
+    return [
+      for (final interface in interfaces)
+        for (final address in interface.addresses)
+          if (_isPrivate(address.rawAddress))
+            'http://${address.address}:$port$path',
+    ];
   }
 
   // ---------------------------------------------------------------- import
@@ -235,6 +326,8 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
       return;
     }
     await installClientCertificates(_store);
+    await ObMaxEnroller.forget(); // an imported certificate does not renew
+    _enrolledUsername = null;
     _password.clear();
     _file = null;
     _fileName = null;
@@ -263,7 +356,14 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
           });
           return;
         }
-        context.go('${Destinations.server}?serverId=${server.id}');
+        final username = _enrolledUsername;
+        context.go(
+          username == null || username.isEmpty
+              ? '${Destinations.server}?serverId=${server.id}'
+              // Activated with a code: straight to sign-in, name filled in.
+              : '${Destinations.login}?serverId=${server.id}'
+                    '&username=${Uri.encodeQueryComponent(username)}',
+        );
       case _ProbeFailure.certificate:
         _askForCertificate(
           error: 'Le serveur a refusé ce certificat. Vérifiez que c’est le bon '
@@ -409,21 +509,131 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
         ];
       case _Step.certificate:
         return [
-          _title('Installer votre certificat'),
+          _title(_p12Mode ? 'Installer votre certificat' : 'Activer OB Max'),
           const SizedBox(height: 12),
           _message(
-            'OB Max est un service privé. Pour y accéder, cet appareil a besoin '
-            'du certificat personnel (fichier .p12) que vous avez reçu, et de '
-            'son mot de passe.',
+            _p12Mode
+                ? 'Choisissez le certificat personnel (fichier .p12) que vous '
+                      'avez reçu, et saisissez son mot de passe.'
+                : 'OB Max est un service privé. Saisissez le code d’invitation '
+                      'que vous avez reçu (12 caractères).',
           ),
           const SizedBox(height: 24),
-          if (_fromPhone) ..._tvImport(context) else ..._phoneImport(context),
+          if (!_p12Mode)
+            ..._codeEntry(context)
+          else if (_fromPhone)
+            ..._tvImport(context)
+          else
+            ..._phoneImport(context),
           if (_error != null) ...[
             const SizedBox(height: 16),
             _message(_error!, error: true),
           ],
+          const SizedBox(height: 20),
+          Center(
+            child: TextButton(
+              onPressed: _busy ? null : _switchMode,
+              child: Text(
+                _p12Mode
+                    ? 'J’ai un code d’invitation'
+                    : 'J’ai un fichier de certificat (.p12)',
+              ),
+            ),
+          ),
         ];
     }
+  }
+
+  List<Widget> _codeEntry(BuildContext context) {
+    final isTv = PlatformDetection.isTV;
+    final codeServer = _codeServer;
+    return [
+      TextField(
+        controller: _code,
+        focusNode: _codeFocus,
+        autofocus: !isTv,
+        enabled: !_busy,
+        textAlign: TextAlign.center,
+        textCapitalization: TextCapitalization.characters,
+        autocorrect: false,
+        enableSuggestions: false,
+        keyboardType: TextInputType.visiblePassword,
+        inputFormatters: [_CodeFormatter()],
+        style: const TextStyle(
+          color: ObMaxColors.textPrimary,
+          fontSize: 24,
+          letterSpacing: 3,
+          fontWeight: FontWeight.w600,
+        ),
+        decoration: const InputDecoration(
+          hintText: 'XXXX-XXXX-XXXX',
+          border: OutlineInputBorder(),
+        ),
+        onSubmitted: (v) => unawaited(_enrollWithCode(v)),
+      ),
+      const SizedBox(height: 16),
+      FilledButton(
+        autofocus: isTv,
+        style: FilledButton.styleFrom(
+          backgroundColor: ObMaxColors.primary,
+          foregroundColor: ObMaxColors.onPrimary,
+        ),
+        onPressed: _busy ? null : () => unawaited(_enrollWithCode(_code.text)),
+        child: _busy
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text('Activer'),
+      ),
+      if (isTv && codeServer != null) ...[
+        const SizedBox(height: 28),
+        Row(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: QrImageView(
+                  data: _codeUrls.first,
+                  size: 150,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Plus simple : scannez ce QR code avec un téléphone connecté '
+                    'au même Wi-Fi, et tapez-y le code.',
+                    style: TextStyle(
+                      color: ObMaxColors.textPrimary,
+                      fontSize: 16,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final url in _codeUrls)
+                    Text(
+                      url,
+                      style: const TextStyle(
+                        color: ObMaxColors.highlight,
+                        fontSize: 14,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    ];
   }
 
   List<Widget> _phoneImport(BuildContext context) {
@@ -581,3 +791,35 @@ class _ObMaxOnboardingScreenState extends State<ObMaxOnboardingScreen> {
 }
 
 enum _ProbeFailure { certificate, network }
+
+/// Uppercase, letters and digits only, dashes every four: XXXX-XXXX-XXXX.
+class _CodeFormatter extends TextInputFormatter {
+  static final _allowed = RegExp(r'[0-9A-Z]');
+
+  static String format(String raw) {
+    final chars = raw
+        .toUpperCase()
+        .split('')
+        .where(_allowed.hasMatch)
+        .take(12)
+        .toList();
+    final b = StringBuffer();
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 4 == 0) b.write('-');
+      b.write(chars[i]);
+    }
+    return b.toString();
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = format(newValue.text);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}

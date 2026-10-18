@@ -122,6 +122,7 @@ type certResponse struct {
 	CertificateChain string    `json:"certificateChain"`
 	DeviceID         string    `json:"deviceId"`
 	JellyfinUserName string    `json:"jellyfinUsername"`
+	Subject          string    `json:"subject"`
 	ServerURL        string    `json:"serverUrl"`
 	NotAfter         time.Time `json:"notAfter"`
 }
@@ -189,6 +190,7 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 			CertificateChain: s.ca.ChainPEM(leaf),
 			DeviceID:         d.ID,
 			JellyfinUserName: d.JellyfinUserName,
+			Subject:          leaf.Subject.CommonName,
 			ServerURL:        s.cfg.PublicServerURL,
 			NotAfter:         leaf.NotAfter,
 		}
@@ -285,6 +287,7 @@ func (s *Server) handleRenew(w http.ResponseWriter, r *http.Request) {
 			CertificateChain: s.ca.ChainPEM(newLeaf),
 			DeviceID:         d.ID,
 			JellyfinUserName: d.JellyfinUserName,
+			Subject:          newLeaf.Subject.CommonName,
 			ServerURL:        s.cfg.PublicServerURL,
 			NotAfter:         newLeaf.NotAfter,
 		}

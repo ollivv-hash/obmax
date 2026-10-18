@@ -1,6 +1,6 @@
 # OB Max V2 — Inscription automatique par code d'invitation
 
-> Brouillon à valider. Suite de `OBMAX_SPEC.md` (V1, recette validée le 18/10/2026).
+> Validée le 18/10/2026 (service en Go, code dans `server/enroll/`, retrait de la racine du `trust_pool` en fin de migration). Implémentée : voir « Écarts de mise en œuvre » en fin de document. Suite de `OBMAX_SPEC.md` (V1, recette validée le 18/10/2026).
 > Objectif : un ami installe OB Max, saisit un code reçu de l'administrateur, et l'appareil obtient son propre certificat client sans fichier `.p12` ni mot de passe.
 
 ## 0. Décisions prises
@@ -31,7 +31,7 @@ Appareil OB Max ──mTLS──────────────────
 
 - **`enroll.example.com`** : nouveau CNAME vers `dyn.example.com`, site Caddy **sans** `client_auth`. Il n'expose que l'API d'inscription (`/v1/*`, tout le reste en 404), vers le port 8787.
 - **Page d'admin** : servie sous `https://jellyfin.example.com/obmax-admin/`, donc derrière le mTLS existant. Seul un appareil déjà certifié peut l'atteindre. Elle demande ensuite une connexion avec un **compte administrateur Jellyfin**, vérifiée auprès de Jellyfin. Elle tourne sur un port distinct (8788), jamais exposé via `enroll.*`.
-- **Service `obmax-enroll`** : un seul binaire, deux ports. Il contient la CA intermédiaire, une base SQLite (invitations, appareils, journal) et les règles de limitation des tentatives.
+- **Service `obmax-enroll`** : un seul binaire, deux ports. Il contient la CA intermédiaire, un fichier d'état JSON (invitations, appareils, journal) et les règles de limitation des tentatives.
 
 ## 2. Chaîne de certificats
 
@@ -192,8 +192,24 @@ Création automatique des comptes Jellyfin, iOS et iPadOS, bascule LAN/WAN, supe
 | V9 | Redémarrage du Pi et du NAS : service relancé, données conservées |
 | V10 | Mise à jour de l'app par OTA depuis la 1.0.1 : données et certificat V1 conservés |
 
-## 10. Points à valider par l'administrateur
+## 10. Décisions validées (18/10/2026)
 
-1. **Langage du service** : je propose **Go**. Un seul binaire statique, une image Docker de quelques Mo, une bibliothèque `crypto/x509` complète dans le standard, peu de mémoire sur le Pi. L'alternative est Python (FastAPI) : plus lisible, mais une image plus lourde et plus de dépendances.
-2. **Emplacement du code serveur** : je propose un dossier `server/enroll/` dans le dépôt `obmax`. C'est un seul dépôt, sans impact sur les rebases Moonfin (nouveau dossier), et le code sera public avec le reste, sans aucun secret dedans.
-3. **Fin de la racine dans le `trust_pool`** (§2.1) : d'accord pour que l'ancien `.p12` cesse de fonctionner une fois la migration finie ?
+1. Service en **Go**, uniquement la bibliothèque standard.
+2. Code dans `server/enroll/` du dépôt `obmax`.
+3. Retrait de la racine du `trust_pool` à la fin de la migration : l'ancien `.p12` cessera alors de fonctionner.
+
+## 11. Écarts de mise en œuvre
+
+- **Stockage** : un fichier `state.json`, réécrit de façon atomique, au lieu de SQLite. Pour quelques dizaines d'appareils, une base n'apporte rien, et ce choix évite toute dépendance externe.
+- **Page d'admin** : pas de QR code. Le message prêt à copier (lien de l'APK et code) suffit, et on évite une bibliothèque de génération de QR code.
+- **Ajout de sécurité** : le service refuse toute requête qui ne vient pas de Caddy (`ENROLL_TRUSTED_PROXIES`). Sans ce filtre, un appareil du réseau local pourrait joindre directement les ports du Pi et contourner le mTLS qui protège la page d'admin.
+- **Réponse de l'API** : elle contient aussi `subject`, pour que l'app n'ait pas à décoder le X.509.
+- **Renouvellement** : un appareil qui n'a pas reçu la réponse d'un renouvellement peut renouveler à nouveau avec le certificat précédent. Le service conserve le numéro de série précédent pour cela.
+
+## 12. Vérifications faites avant déploiement
+
+- 13 tests Go : codes, inscription, codes refusés, limites, CSR faibles, renouvellement, révocation, persistance, filtre proxy, page d'admin avec un faux Jellyfin.
+- Cérémonie testée avec une racine jetable : l'intermédiaire produit par openssl est chargé par le service.
+- Bout en bout (`test/obmax/obmax_enroll_e2e_test.dart`) : clé et CSR Dart, inscription auprès du service Go, mTLS depuis `dart:io` vers un serveur Go configuré comme Caddy (intermédiaire seul comme ancre), renouvellement, puis mTLS avec le nouveau certificat. Un code déjà utilisé et une clé étrangère sont refusés.
+- Clé PKCS#8 produite en Dart lue et utilisée par Java (`KeyFactory("EC")`, comme le lecteur Media3) et par openssl.
+- Page d'admin vérifiée dans un navigateur : connexion, tableau de bord, création d'invitation.

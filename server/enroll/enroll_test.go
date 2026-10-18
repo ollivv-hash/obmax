@@ -225,7 +225,7 @@ func TestEnrollIssuesADeviceCertificate(t *testing.T) {
 	if status != http.StatusOK {
 		t.Fatalf("enroll: %d %v", status, body)
 	}
-	if body["jellyfinUsername"] != "paul" || body["serverUrl"] != "https://jellyfin.example.com" {
+	if body["jellyfinUsername"] != "paul" || body["serverUrl"] != "https://jellyfin.example.com" || body["subject"] != "paul/SHIELD Android TV" {
 		t.Fatalf("unexpected body %v", body)
 	}
 	chain := body["certificateChain"].(string)

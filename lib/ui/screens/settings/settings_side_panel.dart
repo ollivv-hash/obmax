@@ -15,6 +15,7 @@ import 'package:server_core/server_core.dart' hide ImageType;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../obmax/obmax_config.dart'; // OBMAX
+import '../../../obmax/enroll/obmax_enrollment.dart'; // OBMAX
 import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../obmax/ota/obmax_updater.dart'; // OBMAX
 import '../../navigation/app_router.dart' show appRouter; // OBMAX

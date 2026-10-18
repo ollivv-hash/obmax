@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../../ui/navigation/app_router.dart' show appRouter;
+import '../enroll/obmax_enrollment.dart';
 import '../ota/obmax_updater.dart';
 
 import '../theme/obmax_theme.dart';
@@ -31,6 +32,13 @@ abstract final class ObMaxBoot {
           () => appRouter.routerDelegate.navigatorKey.currentContext,
         ),
       );
+    });
+    // V2: the device certificate renews itself well before it expires.
+    Timer(const Duration(seconds: 20), () {
+      unawaited(ObMaxEnroller.renewIfDue());
+    });
+    Timer.periodic(const Duration(hours: 24), (_) {
+      unawaited(ObMaxEnroller.renewIfDue());
     });
   }
 }

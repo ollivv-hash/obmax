@@ -101,7 +101,7 @@ class _ObMaxAccountScreen extends StatelessWidget {
                   'Sujet et date d’expiration, remplacement, suppression',
                 ),
                 onTap: () => context.pushSettingsScreen(
-                  const _ClientCertificatesScreen(),
+                  const _ObMaxCertificateScreen(),
                 ),
               ),
               _TvSettingsListTile(
@@ -379,6 +379,181 @@ class _ObMaxCheckForUpdatesTileState extends State<_ObMaxCheckForUpdatesTile> {
       title: const Text('Rechercher une mise à jour'),
       subtitle: const Text('Vérifie si une nouvelle version d’OB Max existe'),
       onTap: _checking ? null : _check,
+    );
+  }
+}
+
+/// The OB Max server's certificate: where it comes from, its expiry, and the
+/// V2 actions (renew now, activate with a new code). The upstream screen
+/// stays one tap away for .p12 imports and removal.
+class _ObMaxCertificateScreen extends StatefulWidget {
+  const _ObMaxCertificateScreen();
+
+  @override
+  State<_ObMaxCertificateScreen> createState() =>
+      _ObMaxCertificateScreenState();
+}
+
+class _ObMaxCertificateScreenState extends State<_ObMaxCertificateScreen> {
+  StoredClientCertificate? _certificate;
+  ObMaxEnrollment? _enrollment;
+  bool _loading = true;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final cert = await GetIt.instance<ClientCertificateStore>().get(
+      ObMaxEnroller.host,
+    );
+    final enrollment = await ObMaxEnroller.current();
+    if (!mounted) return;
+    setState(() {
+      _certificate = cert;
+      _enrollment = enrollment;
+      _loading = false;
+    });
+  }
+
+  void _snack(String text) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(content: Text(text)),
+    );
+  }
+
+  Future<void> _renew() async {
+    setState(() => _busy = true);
+    try {
+      await ObMaxEnroller.renewIfDue(force: true);
+      _snack('Certificat renouvelé.');
+    } on ObMaxEnrollException catch (e) {
+      _snack(e.message);
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    await _load();
+  }
+
+  Future<void> _activateWithCode() async {
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Activer avec un code'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'Code d’invitation',
+            hintText: 'XXXX-XXXX-XXXX',
+          ),
+          onSubmitted: (v) => Navigator.of(context).pop(v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text('Activer'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (code == null || code.trim().isEmpty || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ObMaxEnroller.enroll(code);
+      _snack('Cet appareil a un nouveau certificat OB Max.');
+    } on ObMaxEnrollException catch (e) {
+      _snack(e.message);
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    await _load();
+  }
+
+  String _date(DateTime d) {
+    final l = d.toLocal();
+    return '${l.day.toString().padLeft(2, '0')}/'
+        '${l.month.toString().padLeft(2, '0')}/${l.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cert = _certificate;
+    final enrollment = _enrollment;
+    return Scaffold(
+      appBar: buildSettingsAppBar(context, const Text('Certificat')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                _SectionHeader('Certificat de cet appareil'),
+                adaptiveListSection(
+                  children: [
+                    _TvSettingsListTile(
+                      autofocus: true,
+                      leading: const Icon(Icons.verified_user),
+                      title: Text(
+                        cert == null ? 'Aucun certificat' : cert.subject,
+                      ),
+                      subtitle: Text(
+                        cert == null
+                            ? 'OB Max demandera un code au prochain démarrage.'
+                            : 'Expire le ${_date(cert.notAfter)} · '
+                                  '${enrollment != null ? 'délivré par OB Max, renouvelé automatiquement' : 'importé depuis un fichier .p12'}',
+                      ),
+                      trailing: const SizedBox.shrink(),
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                _SectionHeader('Actions'),
+                adaptiveListSection(
+                  children: [
+                    if (enrollment != null)
+                      _TvSettingsListTile(
+                        leading: const Icon(Icons.autorenew),
+                        title: const Text('Renouveler maintenant'),
+                        subtitle: const Text(
+                          'Normalement automatique, 60 jours avant l’expiration',
+                        ),
+                        onTap: _busy ? null : () => unawaited(_renew()),
+                      ),
+                    _TvSettingsListTile(
+                      leading: const Icon(Icons.key),
+                      title: const Text('Activer avec un nouveau code'),
+                      subtitle: const Text(
+                        'Remplace le certificat par un nouveau, délivré par OB Max',
+                      ),
+                      onTap: _busy ? null : () => unawaited(_activateWithCode()),
+                    ),
+                    _TvSettingsListTile(
+                      leading: const Icon(Icons.folder_open),
+                      title: const Text('Gérer les certificats (avancé)'),
+                      subtitle: const Text(
+                        'Importer un fichier .p12, supprimer un certificat',
+                      ),
+                      onTap: () async {
+                        await context.pushSettingsScreen(
+                          const _ClientCertificatesScreen(),
+                        );
+                        if (mounted) await _load();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }

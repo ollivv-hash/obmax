@@ -23,3 +23,10 @@ const kObMaxSourceUrl = String.fromEnvironment(
   'OBMAX_SOURCE_URL',
   defaultValue: 'https://github.com/ollivv-hash/obmax',
 );
+
+/// V2 activation service (invitation codes, certificate renewal). Served
+/// without mTLS on its own host; see server/enroll.
+const kObMaxEnrollUrl = String.fromEnvironment(
+  'OBMAX_ENROLL_URL',
+  defaultValue: 'https://enroll.example.com',
+);

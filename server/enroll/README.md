@@ -133,3 +133,14 @@ cd server\enroll
 go vet ./...
 go test ./...
 ```
+
+Test de bout en bout côté app (`test/obmax/obmax_enroll_e2e_test.dart`). Il faut un service lancé en local (`ENROLL_ALLOW_DIRECT=1`) avec une invitation, et éventuellement un serveur TLS qui exige un certificat client de l'intermédiaire. Indique-les par des variables d'environnement :
+
+```powershell
+$env:OBMAX_E2E_ENROLL = "http://127.0.0.1:18787"
+$env:OBMAX_E2E_CODE = "<code d'une invitation en attente>"
+$env:OBMAX_E2E_TLS = "127.0.0.1:18443"   # facultatif
+flutter test test/obmax/obmax_enroll_e2e_test.dart
+```
+
+Sans `OBMAX_E2E_ENROLL`, le test est ignoré.
