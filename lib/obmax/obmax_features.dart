@@ -42,6 +42,10 @@ abstract final class ObMaxFeatures {
   /// layout for it, so it is usable but not tuned for the remote.
   static const adminOnTv = true;
 
+  /// The player's loading overlay shows the spinning OB Max logo and a French
+  /// label (see ObMaxLoadingOverlay).
+  static const loadingOverlay = true;
+
   /// Moonfin's first-run wizard asks for what OB Max fixes.
   static const setupWizard = false;
 

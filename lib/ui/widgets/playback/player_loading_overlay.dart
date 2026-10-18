@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../../obmax/obmax_features.dart'; // OBMAX
+import '../../../obmax/playback/obmax_loading_overlay.dart'; // OBMAX
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import 'loading_animation_widget.dart';
@@ -91,6 +93,14 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay>
     final effectiveSpeed = widget.customSpeed ??
         prefs?.get(UserPreferences.loadingAnimationSpeed) ??
         LoadingAnimationSpeed.fast;
+
+    // OBMAX: spinning OB Max logo and a French label instead of Moonfin's.
+    if (ObMaxFeatures.loadingOverlay) {
+      return ObMaxLoadingOverlay(
+        label: showText ? widget.label : null,
+        size: effectiveSize,
+      );
+    }
 
     final label = widget.label?.trim();
     final hasLabel = showText && label != null && label.isNotEmpty;

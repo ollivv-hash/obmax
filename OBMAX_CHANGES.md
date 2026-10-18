@@ -52,6 +52,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/ui/navigation/app_router.dart`, `lib/ui/screens/settings/settings_side_panel.dart` (admin) | Administration ouverte aux admins Jellyfin sur Android TV aussi (`ObMaxFeatures.adminOnTv`) ; Moonfin n'a pas de mise en page TV pour ces écrans. |
 | `lib/ui/screens/settings/settings_side_panel.dart` | `part` du panneau OB Max (`lib/obmax/settings/obmax_settings_panel.dart`) à la place des catégories Moonfin ; recherche des réglages masquée (elle atteignait les réglages cachés). |
 | `lib/ui/widgets/user_menu_dialog.dart` | Plus de « Sélectionner un serveur » ni de « Déconnecter tous les utilisateurs » (qui supprimait le serveur, et avec lui le certificat). |
+| `lib/ui/widgets/playback/player_loading_overlay.dart` | Chargement de la lecture : logo OB Max qui tourne sur lui-même avec un halo doré, et libellé en français (« Chargement… ») au lieu du texte anglais en dégradé Moonfin (`ObMaxLoadingOverlay`). |
 | `android/app/src/main/kotlin/org/moonfin/androidtv/MainActivity.kt` | Enregistre `ObMaxInstaller` (canal `obmax/installer`) pour l'OTA. |
 | `android/app/src/main/AndroidManifest.xml` | Permission `REQUEST_INSTALL_PACKAGES` (OTA). |
 | `assets/images/logo_and_text.png` | Remplacé par le logo OB Max (même format 1179×266) : il est affiché par les écrans de connexion, l'économiseur d'écran et l'À propos upstream. En cas de conflit au rebase, garder la version OB Max. |
