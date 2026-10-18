@@ -1,0 +1,22 @@
+# obmax-enroll on the Raspberry Pi, next to Jellyfin.
+# Host networking keeps the caller's real address (Caddy on the NAS), which
+# the service checks: only 192.168.0.101 gets through.
+services:
+  obmax-enroll:
+    build: .
+    image: obmax-enroll:local
+    container_name: obmax-enroll
+    restart: unless-stopped
+    network_mode: host
+    user: "65532:65532"
+    volumes:
+      - ./data:/data
+    environment:
+      JELLYFIN_URL: http://127.0.0.1:8096
+      PUBLIC_SERVER_URL: https://jellyfin.example.com
+      ENROLL_TRUSTED_PROXIES: 192.168.0.101/32
+      ENROLL_PUBLIC_ADDR: ":8787"
+      ENROLL_ADMIN_ADDR: ":8788"
+      ENROLL_CERT_VALIDITY: 4320h   # 180 days
+      ENROLL_INVITE_VALIDITY: 48h
+      ENROLL_APK_URL: https://github.com/ollivv-hash/obmax-releases/releases/latest

@@ -22,6 +22,10 @@ type Config struct {
 	TrustedProxies  []*net.IPNet
 	// SecureCookies is off only for local tests over plain HTTP.
 	SecureCookies bool
+	// RequireProxy refuses any request that did not come through a trusted
+	// proxy: on the LAN, the Pi's ports would otherwise bypass Caddy and
+	// with it the mTLS in front of the admin page.
+	RequireProxy bool
 }
 
 func env(key, def string) string {
@@ -40,6 +44,7 @@ func LoadConfig() (Config, error) {
 		JellyfinURL:     strings.TrimRight(env("JELLYFIN_URL", "http://192.168.0.206:8096"), "/"),
 		PublicServerURL: strings.TrimRight(env("PUBLIC_SERVER_URL", "https://jellyfin.example.com"), "/"),
 		SecureCookies:   env("ENROLL_INSECURE_COOKIES", "") == "",
+		RequireProxy:    env("ENROLL_ALLOW_DIRECT", "") == "",
 	}
 	var err error
 	if cfg.CertValidity, err = time.ParseDuration(env("ENROLL_CERT_VALIDITY", "4320h")); err != nil {

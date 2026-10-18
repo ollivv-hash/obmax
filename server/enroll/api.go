@@ -50,7 +50,23 @@ func (s *Server) PublicHandler() http.Handler {
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
-	return securityHeaders(mux)
+	return s.proxyOnly(securityHeaders(mux))
+}
+
+// proxyOnly turns away requests that did not come from a trusted proxy.
+func (s *Server) proxyOnly(next http.Handler) http.Handler {
+	if !s.cfg.RequireProxy {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		local := host == "127.0.0.1" || host == "::1"
+		if err != nil || !(s.cfg.trustsProxy(host) || local && r.URL.Path == "/v1/health") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 type apiError struct {

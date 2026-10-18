@@ -153,7 +153,7 @@ func (s *Server) AdminHandler() http.Handler {
 	mux.HandleFunc("GET "+b, func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, b+"/", http.StatusSeeOther)
 	})
-	return adminHeaders(mux)
+	return s.proxyOnly(adminHeaders(mux))
 }
 
 func adminHeaders(next http.Handler) http.Handler {

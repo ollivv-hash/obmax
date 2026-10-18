@@ -10,12 +10,34 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
 
+func healthcheck() int {
+	addr := env("ENROLL_PUBLIC_ADDR", ":8787")
+	if strings.HasPrefix(addr, ":") {
+		addr = "127.0.0.1" + addr
+	}
+	c := &http.Client{Timeout: 3 * time.Second}
+	resp, err := c.Get("http://" + addr + "/v1/health")
+	if err != nil {
+		return 1
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 1
+	}
+	return 0
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.LUTC)
+	// The image has no shell or curl: the container healthcheck runs this.
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(healthcheck())
+	}
 	cfg, err := LoadConfig()
 	if err != nil {
 		log.Fatal(err)

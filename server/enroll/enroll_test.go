@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"io"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -577,5 +578,30 @@ func TestAdminLoginRateLimit(t *testing.T) {
 	_, loc, _ := postForm(t, c, base+"/login", url.Values{"username": {"admin"}, "password": {"secret"}})
 	if !strings.Contains(loc, "e=rate") {
 		t.Fatalf("6th login: %q", loc)
+	}
+}
+
+func TestOnlyTheProxyGetsThrough(t *testing.T) {
+	_, n, _ := net.ParseCIDR("192.168.0.101/32")
+	s := &Server{cfg: Config{RequireProxy: true, TrustedProxies: []*net.IPNet{n}}}
+	h := s.proxyOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	cases := []struct {
+		remote, path string
+		want         int
+	}{
+		{"192.168.0.101:5000", "/v1/enroll", 200},
+		{"192.168.0.50:5000", "/v1/enroll", 403},    // another LAN device
+		{"192.168.0.50:5000", "/obmax-admin/", 403}, // bypassing the mTLS
+		{"127.0.0.1:5000", "/v1/health", 200},       // container healthcheck
+		{"127.0.0.1:5000", "/v1/enroll", 403},
+	}
+	for _, c := range cases {
+		r := httptest.NewRequest("GET", c.path, nil)
+		r.RemoteAddr = c.remote
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != c.want {
+			t.Errorf("%s %s: %d, want %d", c.remote, c.path, w.Code, c.want)
+		}
 	}
 }

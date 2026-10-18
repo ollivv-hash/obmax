@@ -9,14 +9,14 @@ import (
 // overall. A key over its limit is refused until its oldest failure leaves
 // the window; past the global limit everything is refused for a cool-down.
 type FailureLimiter struct {
-	mu           sync.Mutex
-	window       time.Duration
-	perKey       int
-	global       int
-	globalPause  time.Duration
-	failures     map[string][]time.Time
-	all          []time.Time
-	pausedUntil  time.Time
+	mu          sync.Mutex
+	window      time.Duration
+	perKey      int
+	global      int
+	globalPause time.Duration
+	failures    map[string][]time.Time
+	all         []time.Time
+	pausedUntil time.Time
 }
 
 func NewFailureLimiter(window time.Duration, perKey, global int, globalPause time.Duration) *FailureLimiter {
