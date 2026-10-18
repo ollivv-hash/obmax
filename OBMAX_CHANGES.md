@@ -15,7 +15,7 @@ git checkout --theirs lib/l10n/app_localizations*.dart   # pendant le rebase, "t
 . .\tools\obmax_env.ps1; & $script:Flutter gen-l10n
 ```
 
-Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-pr/*`. S'ils sont acceptés upstream, le rebase les élimine.
+Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-pr/*`. Ils ont été fusionnés upstream le 18/10/2026 (#1893 et #1894) : la prochaine synchronisation avec `upstream/main` les rendra redondants, puis ces deux lignes pourront sortir du tableau.
 
 ## Fichiers upstream modifiés
 

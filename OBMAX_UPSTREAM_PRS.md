@@ -16,6 +16,7 @@ Upstream asks contributors to say when an AI assistant helped, and to have run t
 ## PR 1: `upstream-pr/ws-port0`
 
 **Opened:** https://github.com/Moonfin-Client/Moonfin-Core/pull/1893 (2026-10-17)
+**Merged:** 2026-10-18 by RadicalMuffinMan (merge commit `c9315c9dd4`).
 
 **Create PR:** https://github.com/Moonfin-Client/Moonfin-Core/compare/main...ollivv-hash:Moonfin-Core:upstream-pr/ws-port0?expand=1
 
@@ -94,6 +95,7 @@ Written with the help of an AI assistant (Claude Code); I ran and verified the c
 ## PR 2: `upstream-pr/mtls-onboarding`
 
 **Opened:** https://github.com/Moonfin-Client/Moonfin-Core/pull/1894 (2026-10-17)
+**Merged:** 2026-10-18 by RadicalMuffinMan (merge commit `7249761df1`).
 
 **History:** CodeRabbit pointed out that the first https candidate can be the wrong one (an earlier port refused, a later one asking for the certificate). Fixed in a second commit (`adde59f`, also cherry-picked into `obmax/main`), reply posted in the review thread, title and body updated (below). A second CodeRabbit review then noted ENETDOWN (network down) was missing from the errno list: fixed in `b0e969e` with a test, also in `obmax/main`, reply posted. The first thread was resolved by CodeRabbit.
 
