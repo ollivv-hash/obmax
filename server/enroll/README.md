@@ -117,7 +117,7 @@ Ensuite, retirer l'intermédiaire du pool coupe tous les appareils V2 d'un coup.
 
 - **Sauvegarde** : copie `~/obmax-enroll/data/` vers le NAS, par exemple chaque nuit avec `rsync`. La clé de l'intermédiaire est aussi dans le coffre.
 - **Révoquer un appareil** : bouton **Révoquer** dans la page d'admin (plus de renouvellement, donc expiration au plus tard en 180 jours). Pour une coupure **immédiate** : *Jellyfin > Tableau de bord > Appareils > Supprimer* (l'appareil seul) ou désactiver le compte (tous ses appareils).
-- **Mettre à jour le service** : remplace les fichiers dans `~/obmax-enroll`, puis `docker compose up -d --build`. Les données sont conservées.
+- **Mettre à jour le service** : copie ce dossier, **sans `data/`**, sur le Pi (par exemple dans `~/obmax-enroll-update`), puis `sudo sh ./update.sh` depuis ce dossier. Le script sauvegarde l'ancien code, remplace les fichiers de `~/obmax-enroll`, reconstruit le conteneur et vérifie la santé. `data/` (CA, appareils, journal) n'est jamais touché.
 - **Renouveler l'intermédiaire** (la page d'admin prévient 6 mois avant) : refaire l'étape 1 dans un nouveau dossier, placer le nouveau fichier dans `data/ca/` et l'ajouter au `trust_pool` à côté de l'ancien, redémarrer le service. Les appareils obtiennent un certificat du nouvel intermédiaire à leur prochain renouvellement. Retire l'ancien du pool quand il a expiré.
 
 ## Variables d'environnement

@@ -76,7 +76,8 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
 .top-link{display:inline-block;margin-top:14px;font-size:14px;color:var(--muted);text-decoration:none}
 
 @media (max-width:520px){
-  nav.jump a{padding:8px 10px;font-size:14px}
+  nav.jump .in{gap:6px;padding:10px 12px}
+  nav.jump a{padding:8px 8px;font-size:13.5px}
   header.hero h1{font-size:25px}
   .card{padding:16px}
   ol.steps>li{padding-left:42px}
@@ -104,7 +105,8 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
   <div class="in">
     <a href="#smartphone">📱 Téléphone</a>
     <a href="#tv">📺 TV</a>
-    <a href="#web">💻 Web</a>
+    <a href="#ordinateur">💻 Mac / PC</a>
+    <a href="#web">🌐 Web</a>
   </div>
 </nav>
 
@@ -120,7 +122,7 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
   </ul>
   <div class="codebox" aria-label="Exemple de code"><span>7K3Q</span>–<span>M9TA</span>–<span>2XWE</span></div>
   <div class="warn"><b>Garde ton code et ton certificat pour toi.</b> Ils sont liés à ton compte et à ton appareil. Pour un nouvel appareil, demande simplement un nouveau code à l'administrateur.</div>
-  <div class="tip"><b>iPhone, iPad, Apple TV ?</b> Il n'y a pas encore d'appli OB Max pour Apple. Demande à l'administrateur ce qui est possible pour toi.</div>
+  <div class="tip"><b>iPhone, iPad, Apple TV ?</b> Il n'y a pas d'appli OB Max pour ces appareils. Demande à l'administrateur ce qui est possible pour toi. Les <b>Mac</b> ont, eux, leur appli : voir la partie Mac / PC.</div>
 </section>
 
 <!-- ============================ SMARTPHONE ============================ -->
@@ -200,10 +202,50 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
   <a class="top-link" href="#haut">↑ Retour en haut</a>
 </section>
 
+<!-- ============================ ORDINATEUR ============================ -->
+<section class="card" id="ordinateur">
+  <h2><span class="ico">💻</span>Ordinateur : Mac et PC Windows</h2>
+  <p class="sub">Environ 5 minutes. Comme sur téléphone, l'appli s'active avec un code d'invitation.</p>
+
+  <h3>Mac (macOS 15 Sequoia ou plus récent)</h3>
+  <ol class="steps">
+    <li><strong>Télécharger</strong>
+      <p>Ouvre ce lien sur le Mac :</p>
+      <a class="url mono" href="https://github.com/ollivv-hash/obmax-releases/releases/latest">github.com/ollivv-hash/obmax-releases/releases/latest</a>
+      <p>Dans <span class="ui">Assets</span>, clique sur <code>obmax-macos-…dmg</code>.</p>
+    </li>
+    <li><strong>Installer</strong>
+      <p>Ouvre le fichier téléchargé, puis glisse l'icône <b>OB Max</b> sur le dossier <span class="ui">Applications</span>. Tu peux ensuite éjecter le disque « OB Max ».</p>
+    </li>
+    <li><strong>Premier lancement</strong>
+      <p>Ouvre OB Max depuis <span class="ui">Applications</span>. La première fois, macOS refuse de l'ouvrir car l'appli ne vient pas de l'App Store : clique sur <span class="ui">Terminé</span>.</p>
+      <p>Va dans <span class="path">Réglages Système &gt; Confidentialité et sécurité</span>, descends jusqu'au message sur OB Max et clique sur <span class="ui">Ouvrir quand même</span>, puis confirme avec ton mot de passe ou Touch ID. Ce n'est à faire qu'une fois.</p>
+    </li>
+    <li><strong>Activer et te connecter</strong>
+      <p>Tape ton code d'invitation, puis ton mot de passe (l'identifiant est déjà rempli).</p>
+    </li>
+  </ol>
+
+  <h3>PC Windows 10 ou 11</h3>
+  <ol class="steps">
+    <li><strong>Télécharger</strong>
+      <p>Ouvre le même lien sur le PC et clique sur <code>obmax-windows-…exe</code> dans <span class="ui">Assets</span>. Si le navigateur trouve ce fichier « peu téléchargé », choisis <span class="ui">Conserver</span>.</p>
+    </li>
+    <li><strong>Installer</strong>
+      <p>Lance le fichier. Windows affiche « Windows a protégé votre ordinateur » : clique sur <span class="ui">Informations complémentaires</span>, puis <span class="ui">Exécuter quand même</span>. Accepte la demande d'autorisation, puis suis l'assistant (<span class="ui">Suivant</span>, <span class="ui">Installer</span>).</p>
+    </li>
+    <li><strong>Activer et te connecter</strong>
+      <p>Ouvre <b>OB Max</b> (menu Démarrer), tape ton code d'invitation, puis ton mot de passe.</p>
+    </li>
+  </ol>
+  <div class="done"><b>C'est prêt !</b> Les avertissements de macOS et de Windows viennent du fait que l'appli n'est pas vendue dans leurs boutiques. Ils n'apparaissent qu'à l'installation.</div>
+  <a class="top-link" href="#haut">↑ Retour en haut</a>
+</section>
+
 <!-- ================================ WEB ================================ -->
 <section class="card" id="web">
-  <h2><span class="ico">💻</span>Navigateur web (PC, Mac)</h2>
-  <p class="sub">Ici, pas de code d'invitation : l'administrateur t'envoie un <b>fichier certificat</b> (<code>prénom.p12</code>) et son <b>mot de passe</b>. Tu l'installes une fois sur l'ordinateur.</p>
+  <h2><span class="ico">🌐</span>Navigateur web (sans appli)</h2>
+  <p class="sub">Pour un ordinateur où tu ne peux pas installer l'appli (par exemple au travail). Ici, pas de code d'invitation : l'administrateur t'envoie un <b>fichier certificat</b> (<code>prénom.p12</code>) et son <b>mot de passe</b>. Tu l'installes une fois sur l'ordinateur.</p>
 
   <h3>1. Installer le certificat</h3>
   <details open>
@@ -273,10 +315,11 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
 <!-- ============================ MISES À JOUR ============================ -->
 <section class="card" id="maj">
   <h2><span class="ico">🔄</span>Mises à jour</h2>
-  <p class="sub">Téléphone et TV : OB Max se met à jour tout seul, sans rien perdre.</p>
+  <p class="sub">OB Max se met à jour depuis l'appli, sans rien perdre.</p>
   <ul class="need">
     <li>Quand une nouvelle version sort, OB Max affiche <span class="ui">OB Max x.y.z est disponible</span> : choisis <span class="ui">Mettre à jour</span> puis confirme l'installation.</li>
     <li>La première fois, Android demande d'autoriser OB Max à installer des applis : touche <span class="ui">Ouvrir les réglages</span>, active <span class="ui">Autoriser depuis cette source</span>, puis reviens dans OB Max.</li>
+    <li>Sur <b>Mac</b>, l'appli propose de télécharger la nouvelle version : ouvre-la et glisse OB Max dans Applications en remplaçant l'ancienne. Sur <b>Windows</b>, elle télécharge et lance le nouvel installateur.</li>
     <li>Pour vérifier toi-même : <span class="path">Réglages &gt; À propos &gt; Rechercher une mise à jour</span>.</li>
     <li>Ton activation se renouvelle toute seule quand tu ouvres l'appli. Si tu ne l'as pas ouverte depuis environ 6 mois, elle te redemandera un code : demande-en simplement un nouveau à l'administrateur.</li>
   </ul>
@@ -290,6 +333,7 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
     <tr><td>« Trop d'essais. Réessayez dans une heure. »</td><td>Trop de codes faux d'affilée. Attends une heure, puis réessaie avec le bon code.</td></tr>
     <tr><td>« Service d'activation injoignable »</td><td>L'appareil n'a pas accès à internet. Vérifie le Wi-Fi ou la 4G, puis réessaie.</td></tr>
     <tr><td>« Cet appareil a été révoqué. »</td><td>L'accès de cet appareil a été coupé. Contacte l'administrateur.</td></tr>
+    <tr><td>« OB Max ne peut pas être ouvert » (Mac) ou « Windows a protégé votre ordinateur »</td><td>Normal au premier lancement : voir la partie Mac / PC (« Ouvrir quand même », « Exécuter quand même »).</td></tr>
     <tr><td>Nouveau téléphone, TV réinitialisée, appli réinstallée</td><td>Il faut un <b>nouveau code</b> : demande-le à l'administrateur, puis suis à nouveau le guide.</td></tr>
     <tr><td>La vidéo saccade en 4G</td><td>Baisse le débit dans <span class="path">Réglages &gt; Lecture &gt; Débit maximal en streaming</span>.</td></tr>
     <tr><td>Mot de passe oublié</td><td>Demande à l'administrateur de le réinitialiser.</td></tr>
