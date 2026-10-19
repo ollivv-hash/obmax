@@ -1,0 +1,86 @@
+# OBMAX: builds the OB Max macOS .dmg (ad-hoc signed, no Apple account).
+# Started by tools/release.ps1 -MacOS, which downloads the artifact and
+# publishes it next to the APKs. Can also be run by hand from the Actions tab.
+name: OB Max macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version name (x.y.z), the same as the APKs
+        required: true
+      version_code:
+        description: Build number (versionCode), the same as the APKs
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obmax-macos-${{ inputs.version }}
+  cancel-in-progress: true
+
+jobs:
+  dmg:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - name: Check the inputs
+        env:
+          VERSION: ${{ inputs.version }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Bad version: $VERSION"; exit 1; }
+          [[ "$VERSION_CODE" =~ ^[0-9]+$ ]] || { echo "Bad version code: $VERSION_CODE"; exit 1; }
+
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      - name: Set the version
+        env:
+          VERSION: ${{ inputs.version }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          sed -i '' -E "s/^version:.*/version: ${VERSION}+${VERSION_CODE}/" pubspec.yaml
+          grep '^version:' pubspec.yaml
+
+      # No TEAM_ID or signing identity: build-macos.sh signs ad hoc. Games are
+      # hidden in OB Max, so the emulator cores are left out.
+      - name: Build the DMG
+        env:
+          BUILD_APPSTORE_PKG: '0'
+          BUILD_DMG_GITHUB: '1'
+          FETCH_CORES: '0'
+          ALLOW_PROVISIONING_UPDATES: '0'
+        run: |
+          chmod +x build-macos.sh
+          ./build-macos.sh
+
+      - name: Name and check the DMG
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p out
+          mv "OB Max_macOS_v${VERSION}.dmg" "out/obmax-macos-${VERSION}.dmg"
+          hdiutil verify "out/obmax-macos-${VERSION}.dmg"
+          mnt="$(mktemp -d)"
+          hdiutil attach "out/obmax-macos-${VERSION}.dmg" -mountpoint "$mnt" -nobrowse -readonly -quiet
+          codesign --verify --deep --strict "$mnt/OB Max.app"
+          codesign -dv "$mnt/OB Max.app" 2>&1 | grep -E "Identifier|Signature|Format"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$mnt/OB Max.app/Contents/Info.plist"
+          lipo -archs "$mnt/OB Max.app/Contents/MacOS/OB Max"
+          hdiutil detach "$mnt" -quiet
+          shasum -a 256 "out/obmax-macos-${VERSION}.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obmax-macos
+          path: out/obmax-macos-*.dmg
+          retention-days: 7
+          if-no-files-found: error

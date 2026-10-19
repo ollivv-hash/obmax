@@ -130,6 +130,8 @@ var adminTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 			return "iPhone / iPad"
 		case "tvos":
 			return "Apple TV"
+		case "macos":
+			return "Mac"
 		}
 		return "Autre"
 	},

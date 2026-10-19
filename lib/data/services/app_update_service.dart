@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../preference/user_preferences.dart';
 import '../../util/app_distribution.dart';
+import '../../obmax/obmax_config.dart'; // OBMAX
 
 enum DesktopUpdateCheckStatus {
   updateAvailable,
@@ -47,7 +48,8 @@ class AppUpdateService {
   AppUpdateService(this._store, this._userPreferences);
 
   static const _latestReleaseHost = 'api.github.com';
-  static const _latestReleasePath = '/repos/Moonfin-Client/Moonfin-Core/releases/latest';
+  // OBMAX: OB Max releases (the macOS .dmg sits next to the APKs).
+  static const _latestReleasePath = '/repos/$kObMaxReleasesRepo/releases/latest';
   static const _checkCooldown = Duration(hours: 24);
 
   static const _lastCheckMsKey = 'app_update_last_check_ms';
@@ -228,7 +230,7 @@ class AppUpdateService {
       }
 
       final htmlUrl = decoded['html_url']?.toString() ??
-          'https://github.com/Moonfin-Client/Moonfin-Core/releases/latest';
+          'https://github.com/$kObMaxReleasesRepo/releases/latest'; // OBMAX
 
       final assetsJson = decoded['assets'];
       final assets = <_ReleaseAsset>[];

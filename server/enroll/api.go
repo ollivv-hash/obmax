@@ -328,7 +328,7 @@ func sanitizeDevice(d deviceInfo) deviceInfo {
 		d.Name = "Appareil"
 	}
 	switch d.Platform {
-	case "mobile", "androidTv", "ios", "tvos":
+	case "mobile", "androidTv", "ios", "tvos", "macos":
 	default:
 		d.Platform = "autre"
 	}

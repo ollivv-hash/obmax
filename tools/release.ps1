@@ -9,6 +9,9 @@
      key, the new key and the rotation lineage, then checks both fingerprints.
   3. Renames them, computes their SHA-256 and writes version.json into dist\v<Version>\.
   4. Shows a summary and asks before `gh release create` on the public releases repo.
+  With -MacOS, the macOS .dmg is built at the same time on GitHub Actions
+  (.github/workflows/obmax-macos.yml, from the pushed code), then downloaded and
+  published with the APKs; version.json lists it under assets.macos.
 
 .EXAMPLE
   .\tools\release.ps1 -Version 1.0.1 -Notes "Corrections et améliorations."
@@ -16,6 +19,8 @@
   .\tools\release.ps1 -Version 1.0.0 -VersionCode 1 -NoPublish
 .EXAMPLE
   .\tools\release.ps1 -Version 1.1.0 -Notes "Nouvelle version obligatoire." -Mandatory
+.EXAMPLE
+  .\tools\release.ps1 -Version 2.1.0 -Notes "Arrivée de la version Mac." -MacOS
 #>
 param(
     [Parameter(Mandatory = $true)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
@@ -30,7 +35,10 @@ param(
     # Publish without the confirmation prompt (the summary is still printed).
     [switch]$Yes,
     # Only for a throwaway test build: a debug-signed APK cannot update a release-signed install.
-    [switch]$AllowDebugSigning
+    [switch]$AllowDebugSigning,
+    # Also build the macOS .dmg on GitHub Actions, from the code pushed to $SourceRepo.
+    [switch]$MacOS,
+    [string]$SourceRepo = 'ollivv-hash/obmax'
 )
 
 # Not 'Stop': Windows PowerShell turns any stderr line of a native command
@@ -63,6 +71,19 @@ if ($rotation) {
 $dirty = git status --porcelain --untracked-files=no
 if ($dirty) { Write-Warning "Le dépôt a des modifications non commitées :`n$dirty" }
 
+# gh may be installed but missing from the PATH of a shell opened before it.
+$gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
+if (-not $gh -and (Test-Path "$env:ProgramFiles\GitHub CLI\gh.exe")) { $gh = "$env:ProgramFiles\GitHub CLI\gh.exe" }
+if ($MacOS) {
+    if (-not $gh) { throw '-MacOS demande la CLI GitHub (gh).' }
+    # GitHub Actions builds what is pushed, not this working copy.
+    $branch = git rev-parse --abbrev-ref HEAD
+    git fetch -q origin $branch
+    if ((git rev-parse HEAD) -ne (git rev-parse "origin/$branch")) {
+        throw "-MacOS construit le code poussé : faites d'abord git push origin $branch."
+    }
+}
+
 # --- 1. Version bump ----------------------------------------------------------
 $pubspecPath = Join-Path $root 'pubspec.yaml'
 $pubspec = [System.IO.File]::ReadAllText($pubspecPath)
@@ -76,6 +97,22 @@ $pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_version:.*$', "`${1}
 $pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_build_number:.*$', "`${1}android_tv_build_number: $versionCode")
 [System.IO.File]::WriteAllText($pubspecPath, $pubspec, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "Version : $previous -> $Version+$versionCode" -ForegroundColor Cyan
+
+# --- 1b. macOS build on GitHub Actions, alongside the Android builds ----------
+$macRunId = $null
+$dmgName = "obmax-macos-$Version.dmg"
+if ($MacOS) {
+    $since = (Get-Date).ToUniversalTime().AddSeconds(-30)
+    & $gh workflow run obmax-macos.yml --repo $SourceRepo --ref $branch -f "version=$Version" -f "version_code=$versionCode"
+    if ($LASTEXITCODE -ne 0) { throw 'Impossible de lancer le build macOS sur GitHub Actions.' }
+    for ($i = 0; $i -lt 20 -and -not $macRunId; $i++) {
+        Start-Sleep -Seconds 3
+        $runs = & $gh run list --repo $SourceRepo --workflow obmax-macos.yml --event workflow_dispatch --limit 5 --json databaseId,createdAt | ConvertFrom-Json
+        $macRunId = ($runs | Where-Object { ([datetime]$_.createdAt).ToUniversalTime() -ge $since } | Select-Object -First 1).databaseId
+    }
+    if (-not $macRunId) { throw 'Build macOS lancé, mais introuvable dans GitHub Actions.' }
+    Write-Host "Build macOS lancé : https://github.com/$SourceRepo/actions/runs/$macRunId" -ForegroundColor Cyan
+}
 
 # --- 2. Builds ----------------------------------------------------------------
 $platforms = if ($Armv7) { 'android-arm,android-arm64' } else { 'android-arm64' }
@@ -104,6 +141,15 @@ foreach ($b in $builds) {
     } else {
         Copy-Item $apk $target -ErrorAction Stop
     }
+}
+
+if ($MacOS) {
+    Write-Host 'Attente du build macOS (GitHub Actions, 20 à 40 min)...' -ForegroundColor Cyan
+    & $gh run watch $macRunId --repo $SourceRepo --exit-status --interval 30 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Build macOS en échec : https://github.com/$SourceRepo/actions/runs/$macRunId" }
+    & $gh run download $macRunId --repo $SourceRepo --name obmax-macos --dir $dist
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $dist $dmgName))) { throw "DMG introuvable après téléchargement ($dmgName)." }
+    $builds += @{ Flavor = 'macos'; Key = 'macos'; Name = $dmgName }
 }
 
 # --- 3. Checksums and version.json -------------------------------------------
@@ -148,9 +194,6 @@ $files = @($builds | ForEach-Object { Join-Path $dist $_.Name }) + (Join-Path $d
 $ghArgs = @('release', 'create', "v$Version") + $files + @('--repo', $ReleasesRepo, '--title', "OB Max $Version", '--notes', $Notes)
 Write-Host "Commande : gh $($ghArgs -join ' ')" -ForegroundColor DarkGray
 
-# gh may be installed but missing from the PATH of a shell opened before it.
-$gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
-if (-not $gh -and (Test-Path "$env:ProgramFiles\GitHub CLI\gh.exe")) { $gh = "$env:ProgramFiles\GitHub CLI\gh.exe" }
 if (-not $gh) {
     Write-Warning "La CLI GitHub (gh) n'est pas installée : winget install GitHub.cli, puis gh auth login. Relancez ensuite la commande ci-dessus."
     exit 0

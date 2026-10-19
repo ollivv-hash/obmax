@@ -57,6 +57,8 @@ Le script :
 
 Options : `-NoPublish` (build, empreintes et `version.json` seulement, `pubspec.yaml` restauré), `-VersionCode N` (forcer le versionCode, par exemple `1` pour la toute première release), `-Yes` (publier sans la question de confirmation, le récapitulatif reste affiché), `-Mandatory` (pas de bouton « Plus tard »), `-ReleasesRepo` (autre dépôt), `-AllowDebugSigning` (build de test uniquement, jamais publié).
 
+**Version Mac (`-MacOS`).** Le `.dmg` se construit sur un Mac de GitHub Actions (workflow `.github/workflows/obmax-macos.yml`, signature ad hoc, sans compte Apple). Avec `-MacOS`, `release.ps1` lance ce build au début, à partir du code **poussé** (il refuse si `obmax/main` n'est pas à jour sur GitHub), construit les APK pendant ce temps, attend le `.dmg` (20 à 40 min), le télécharge dans `dist\v<version>\` et le publie avec les APK. `version.json` le liste sous `assets.macos`. Sur Mac, l'app vérifie la dernière release et propose de télécharger le nouveau `.dmg`.
+
 Après publication, commiter le changement de version :
 
 ```powershell

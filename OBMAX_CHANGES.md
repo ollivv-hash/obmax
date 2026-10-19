@@ -58,6 +58,10 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `android/app/src/main/AndroidManifest.xml` | Permission `REQUEST_INSTALL_PACKAGES` (OTA). |
 | `assets/images/logo_and_text.png` | Remplacé par le logo OB Max (même format 1179×266) : il est affiché par les écrans de connexion, l'économiseur d'écran et l'À propos upstream. En cas de conflit au rebase, garder la version OB Max. |
 | `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max (générée depuis `obmax_ipad_1024.png`, sans canal alpha). |
+| `macos/Runner/Configs/AppInfo.xcconfig` | App Mac « OB Max », identifiant `com.example.obmax`, copyright. |
+| `macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max au gabarit macOS (carré arrondi avec ombre, généré depuis l'icône iOS). |
+| `build-macos.sh` | `APP_NAME="OB Max"` (nom du `.app` et du `.dmg`). |
+| `lib/data/services/app_update_service.dart` | Le vérificateur de mises à jour desktop (DMG) lit les releases OB Max (`kObMaxReleasesRepo`) au lieu de celles de Moonfin. |
 
 ## Ressources ajoutées (pas de conflit possible)
 

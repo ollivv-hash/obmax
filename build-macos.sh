@@ -29,7 +29,7 @@ ASC_KEY_ID="${ASC_KEY_ID:-}"
 ASC_ISSUER_ID="${ASC_ISSUER_ID:-}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="Moonfin"
+APP_NAME="OB Max" # OBMAX: product name of the macOS app (AppInfo.xcconfig)
 PKG_OUTPUT=""
 
 if [ "$#" -gt 0 ]; then

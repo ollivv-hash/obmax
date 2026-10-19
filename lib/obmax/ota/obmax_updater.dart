@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../ui/widgets/app_update_dialog.dart';
 import '../../util/platform_detection.dart';
 import '../obmax_config.dart';
 import '../theme/obmax_colors.dart';
@@ -115,7 +116,12 @@ abstract final class ObMaxUpdater {
 
   /// From Settings > About: always checks and always says what it found.
   static Future<void> checkFromSettings(BuildContext context) async {
-    if (!isSupported) return;
+    if (!isSupported) {
+      // macOS: the upstream desktop checker, pointed at the same releases,
+      // offers the .dmg.
+      if (!kIsWeb && Platform.isMacOS) await checkAndShowUpdateResult(context);
+      return;
+    }
     ObMaxRelease? release;
     var failed = false;
     try {
