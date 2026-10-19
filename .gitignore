@@ -160,3 +160,5 @@ tizen/obj/
 
 # Signing-key rotation lineage (kept with the keystores)
 *.lineage
+# Public root certificates handed to mpv (no secret).
+!assets/obmax/tls-roots.pem
