@@ -4,7 +4,7 @@
 
 Conditions : **build release signé** (voir `RELEASE.md`, dans ce dossier), téléphone **en 4G** (Wi-Fi coupé), Shield sur le réseau maison. Avant chaque série sur un appareil branché : `adb -s <device> logcat -c`.
 
-Pour une install neuve, désinstaller d'abord toute version précédente d'OB Max (`adb uninstall com.example.obmax`).
+Pour une install neuve, désinstaller d'abord toute version précédente d'OB Max.
 
 | # | Test | Mobile | Shield | Comment vérifier |
 |---|---|---|---|---|
@@ -25,4 +25,4 @@ Pour une install neuve, désinstaller d'abord toute version précédente d'OB Ma
 
 ## En cas d'échec
 
-Voir les commandes `logcat` de `SPIKE_REPORT.md` §4 (package `com.example.obmax`). Côté serveur, une ligne Caddy `TLS handshake error … client didn't provide a certificate` signe un problème de certificat.
+Voir les commandes `logcat` de `SPIKE_REPORT.md` §4. Côté serveur, une ligne Caddy `TLS handshake error … client didn't provide a certificate` signe un problème de certificat.
