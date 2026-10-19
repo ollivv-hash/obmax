@@ -61,6 +61,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `macos/Runner/Configs/AppInfo.xcconfig` | App Mac « OB Max », identifiant `com.example.obmax`, copyright. |
 | `macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max au gabarit macOS (carré arrondi avec ombre, généré depuis l'icône iOS). |
 | `build-macos.sh` | `APP_NAME="OB Max"` (nom du `.app` et du `.dmg`). |
+| `lib/auth/store/client_certificate_store_io.dart` | Index des hôtes (`mtls_client_cert_hosts`) et relecture un par un quand `readAll` échoue : sur macOS, le trousseau classique refuse `readAll` (errSecParam -50), le certificat était enregistré mais jamais rechargé. Bug Moonfin, candidat à une PR upstream. |
 | `lib/data/services/app_update_service.dart` | Le vérificateur de mises à jour desktop (DMG) lit les releases OB Max (`kObMaxReleasesRepo`) au lieu de celles de Moonfin. |
 
 ## Ressources ajoutées (pas de conflit possible)
