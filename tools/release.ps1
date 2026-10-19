@@ -52,7 +52,7 @@ Set-Location $root
 
 # --- 0. Preconditions ---------------------------------------------------------
 if (-not $AllowDebugSigning -and -not (Test-Path 'android\keystore.properties')) {
-    throw "android\keystore.properties manquant : le build serait signé avec la clé debug et ne pourrait pas mettre à jour une installation existante. Voir RELEASE.md."
+    throw "android\keystore.properties manquant : le build serait signé avec la clé debug et ne pourrait pas mettre à jour une installation existante. Voir docs\obmax\RELEASE.md."
 }
 if ((Test-Path 'android\keystore.properties') -and (Select-String -Path 'android\keystore.properties' -Pattern 'A_REMPLACER' -Quiet)) {
     throw "android\keystore.properties contient encore A_REMPLACER : renseignez les mots de passe du keystore."

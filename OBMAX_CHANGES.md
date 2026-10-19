@@ -68,6 +68,10 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 - `android/app/src/mobile/res/`, `android/app/src/androidTv/res/` : icônes OB Max (mipmaps, adaptive icon sur fond `#080A23`). Elles remplacent celles de `main/res` pour les flavors `mobile` et `androidTv`. La bannière TV est copiée sous le nom upstream `drawable-nodpi/moonfin_tv_banner.png` : le manifest (`android:banner="@drawable/moonfin_tv_banner"`) reste inchangé.
 - Le splash natif Android 12+ (`values-v31/styles.xml`) utilise déjà `@color/ic_launcher_background` et `@mipmap/ic_launcher_foreground` : il passe automatiquement à `#080A23` + icône OB Max, sans modifier les styles.
 
+- `.github/README.md` : page d'accueil OB Max du dépôt. GitHub l'affiche à la place du `README.md` de Moonfin, qui reste inchangé.
+- `docs/obmax/` : publication (`RELEASE.md`), conception de l'activation (`V2_SPEC.md`), recette (`TEST_CHECKLIST.md`), guide des invités (`guide-installation.html`).
+- `.github/workflows/obmax-macos.yml` : build du `.dmg` macOS. Les workflows de Moonfin restent dans le dépôt mais sont désactivés dans les réglages GitHub Actions d'`ollivv-hash/obmax`.
+
 ## Code OB Max hors `lib/obmax/`
 
 - `android/app/src/main/kotlin/org/moonfin/androidtv/obmax/ObMaxInstaller.kt` : installation des mises à jour via `PackageInstaller`.

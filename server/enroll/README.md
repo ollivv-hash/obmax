@@ -1,6 +1,6 @@
 # obmax-enroll — service d'activation d'OB Max (V2)
 
-Le service délivre un certificat client à chaque appareil à partir d'un code d'invitation à usage unique. Il renouvelle ensuite ce certificat automatiquement et fournit une page d'administration. La conception est décrite dans `OBMAX_V2_SPEC.md`, à la racine du dépôt.
+Le service délivre un certificat client à chaque appareil à partir d'un code d'invitation à usage unique. Il renouvelle ensuite ce certificat automatiquement et fournit une page d'administration. La conception est décrite dans `docs/obmax/V2_SPEC.md`.
 
 - **API publique** (`:8787`), derrière `https://enroll.example.com` : `POST /v1/enroll`, `POST /v1/renew`, `GET /v1/health`.
 - **Page d'admin** (`:8788`), derrière `https://jellyfin.example.com/obmax-admin/` (mTLS, puis connexion avec un compte administrateur Jellyfin).

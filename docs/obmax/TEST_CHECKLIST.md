@@ -2,7 +2,7 @@
 
 **Résultat (18/10/2026) : recette complète validée**, R1 à R14 sur le téléphone (en 4G) et sur la Shield, en build release signé : v1.0.0, puis v1.0.1 installée par l'OTA (R12). La v1.0.1 a aussi validé le nouvel écran de chargement et l'administration sur la Shield (R13).
 
-Conditions : **build release signé** (voir `RELEASE.md`), téléphone **en 4G** (Wi-Fi coupé), Shield sur le réseau maison. Avant chaque série sur un appareil branché : `adb -s <device> logcat -c`.
+Conditions : **build release signé** (voir `RELEASE.md`, dans ce dossier), téléphone **en 4G** (Wi-Fi coupé), Shield sur le réseau maison. Avant chaque série sur un appareil branché : `adb -s <device> logcat -c`.
 
 Pour une install neuve, désinstaller d'abord toute version précédente d'OB Max (`adb uninstall com.example.obmax`).
 

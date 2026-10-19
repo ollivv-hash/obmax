@@ -1,6 +1,6 @@
 // obmax-enroll: issues OB Max device certificates from one-time invitation
 // codes, renews them, and gives the administrator a page to manage both.
-// See OBMAX_V2_SPEC.md and server/enroll/README.md.
+// See docs/obmax/V2_SPEC.md and server/enroll/README.md.
 package main
 
 import (

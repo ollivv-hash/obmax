@@ -49,7 +49,7 @@ class ObMaxEnrollment {
 }
 
 /// V2 activation: an invitation code turns into this device's own client
-/// certificate, which then renews itself (see OBMAX_V2_SPEC.md §5).
+/// certificate, which then renews itself (see docs/obmax/V2_SPEC.md §5).
 abstract final class ObMaxEnroller {
   static const _kDeviceId = 'obmax_enroll_device_id';
   static const _kUsername = 'obmax_enroll_username';
