@@ -20,6 +20,7 @@ Les versions publiées sont sur **[ollivv-hash/obmax-releases](https://github.co
 | Téléphone ou tablette Android | `obmax-mobile-x.y.z.apk` |
 | Android TV, Google TV, Nvidia Shield | `obmax-tv-x.y.z.apk` |
 | Mac (macOS 15 ou plus récent) | `obmax-macos-x.y.z.dmg` (en préparation) |
+| PC Windows 10 ou 11 (x64) | `obmax-windows-x.y.z.exe` (en préparation) |
 
 Le pas-à-pas pour les invités (téléphone, TV, navigateur web) se trouve dans [`docs/obmax/guide-installation.html`](../docs/obmax/guide-installation.html) : téléchargez le fichier, puis ouvrez-le dans un navigateur. Les mises à jour arrivent ensuite directement dans l'app.
 
@@ -29,7 +30,7 @@ Le pas-à-pas pour les invités (téléphone, TV, navigateur web) se trouve dans
 - **Activation par code d'invitation** : l'appareil crée sa clé, obtient un certificat valable 180 jours et le renouvelle tout seul. Une page d'administration sert à inviter et révoquer les appareils.
 - **Interface allégée** : pas de musique, de livres, de Live TV, de jeux, de Seerr, de Cast ni de lecteur externe ; réglages réduits à l'essentiel.
 - **Identité OB Max** : nom, icônes, thème, écran de démarrage animé, interface en français.
-- **Mises à jour intégrées** : sur Android, l'APK s'installe depuis l'app ; sur Mac, l'app propose le nouveau `.dmg`.
+- **Mises à jour intégrées** : sur Android, l'APK s'installe depuis l'app ; sur Mac et Windows, l'app propose la nouvelle version.
 
 ## Organisation du dépôt
 
@@ -42,7 +43,7 @@ Le dépôt suit Moonfin et en diverge le moins possible :
 | `server/enroll/` | Service d'activation (Go) : codes d'invitation, émission et renouvellement des certificats, page d'administration. |
 | `tools/` | Scripts de publication (`release.ps1`) et de gestion des clés de signature. |
 | `docs/obmax/` | Publication ([`RELEASE.md`](../docs/obmax/RELEASE.md)), conception de l'activation ([`V2_SPEC.md`](../docs/obmax/V2_SPEC.md)), recette ([`TEST_CHECKLIST.md`](../docs/obmax/TEST_CHECKLIST.md)), guide des invités. |
-| `.github/workflows/obmax-macos.yml` | Construction du `.dmg` macOS sur GitHub Actions. |
+| `.github/workflows/obmax-macos.yml`, `obmax-windows.yml` | Construction du `.dmg` macOS et de l'installateur Windows sur GitHub Actions. |
 
 Les autres fichiers (README de Moonfin, scripts de build des autres plateformes, modèles d'issues…) viennent de Moonfin et restent tels quels, pour faciliter les mises à jour.
 

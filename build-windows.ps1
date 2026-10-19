@@ -301,17 +301,17 @@ function New-InnoScript {
   }
 
   $iss = @"
-#define MyAppName "Moonfin"
+#define MyAppName "OB Max"
 #define MyAppVersion "$AppVersion"
-#define MyAppPublisher "Moonfin"
+#define MyAppPublisher "OB Max"
 #define MyAppExeName "moonfin.exe"
 
 [Setup]
-AppId={{2B684544-2B56-47BE-B52F-6F7A94BCA4E1}
+AppId={{69928B2C-31DD-48C5-B57A-112C2FB6A9E7}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\Moonfin
+DefaultDirName={autopf}\OB Max
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=$OutputDir
@@ -327,10 +327,10 @@ ArchitecturesAllowed=$archesAllowed
 ArchitecturesInstallIn64BitMode=$archesInstallIn64Bit
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Additional icons:"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
 Source: "$ReleaseDir\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -343,7 +343,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Root: HKCU; Subkey: "Software\Classes\moonfin"; Flags: dontcreatekey uninsdeletekey
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 "@
 
   Set-Content -Path $IssPath -Value $iss -Encoding UTF8
@@ -361,7 +361,7 @@ $appVersion = Get-AppVersion
 if ($Architecture -eq 'arm64') {
   $installerBaseName = "Moonfin_WindowsARM64_v$appVersion"
 } else {
-  $installerBaseName = "Moonfin_Windows_v$appVersion"
+  $installerBaseName = "obmax-windows-$appVersion" # OBMAX: OB Max installer (AppId, name, French wizard above)
 }
 # Named outside Moonfin_* so the release job doesn't attach it, since an
 # unsigned MSIX only installs through the Store.

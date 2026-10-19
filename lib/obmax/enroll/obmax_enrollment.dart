@@ -155,6 +155,8 @@ abstract final class ObMaxEnroller {
         ? 'ios'
         : PlatformDetection.isMacOS
         ? 'macos'
+        : PlatformDetection.isWindows
+        ? 'windows'
         : 'autre';
     return {'name': name, 'platform': platform, 'appVersion': version};
   }

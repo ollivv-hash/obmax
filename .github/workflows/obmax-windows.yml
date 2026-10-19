@@ -1,0 +1,81 @@
+# OBMAX: builds the OB Max Windows installer (x64, unsigned).
+# Started by tools/release.ps1 -Windows, which downloads the artifact and
+# publishes it next to the APKs. Can also be run by hand from the Actions tab.
+name: OB Max Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version name (x.y.z), the same as the APKs
+        required: true
+      version_code:
+        description: Build number (versionCode), the same as the APKs
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obmax-windows-${{ inputs.version }}
+  cancel-in-progress: true
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check the inputs
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          if ($env:VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "Bad version: $env:VERSION" }
+          if ($env:VERSION_CODE -notmatch '^\d+$') { throw "Bad version code: $env:VERSION_CODE" }
+
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Set the version
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          $p = 'pubspec.yaml'
+          $text = [IO.File]::ReadAllText($p) -replace '(?m)^version:.*$', "version: $env:VERSION+$env:VERSION_CODE"
+          [IO.File]::WriteAllText($p, $text)
+          Select-String -Path $p -Pattern '^version:'
+
+      - name: Build the installer
+        shell: pwsh
+        run: .\build-windows.ps1
+
+      - name: Check the installer
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          $exe = "obmax-windows-$env:VERSION.exe"
+          if (-not (Test-Path $exe)) { throw "Installer not found: $exe" }
+          $app = 'build\windows\x64\runner\Release\moonfin.exe'
+          $info = (Get-Item $app).VersionInfo
+          "ProductName=$($info.ProductName) FileDescription=$($info.FileDescription) ProductVersion=$($info.ProductVersion)"
+          if ($info.ProductName -ne 'OB Max') { throw 'The app is not branded OB Max' }
+          "{0:N1} Mo" -f ((Get-Item $exe).Length / 1MB)
+          (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLower()
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obmax-windows
+          path: obmax-windows-*.exe
+          retention-days: 7
+          if-no-files-found: error

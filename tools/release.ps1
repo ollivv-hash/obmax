@@ -9,9 +9,10 @@
      key, the new key and the rotation lineage, then checks both fingerprints.
   3. Renames them, computes their SHA-256 and writes version.json into dist\v<Version>\.
   4. Shows a summary and asks before `gh release create` on the public releases repo.
-  With -MacOS, the macOS .dmg is built at the same time on GitHub Actions
-  (.github/workflows/obmax-macos.yml, from the pushed code), then downloaded and
-  published with the APKs; version.json lists it under assets.macos.
+  With -MacOS and/or -Windows, the macOS .dmg and the Windows installer are
+  built at the same time on GitHub Actions (.github/workflows/obmax-macos.yml,
+  obmax-windows.yml, from the pushed code), then downloaded and published with
+  the APKs; version.json lists them under assets.macos and assets.windows.
 
 .EXAMPLE
   .\tools\release.ps1 -Version 1.0.1 -Notes "Corrections et améliorations."
@@ -20,7 +21,7 @@
 .EXAMPLE
   .\tools\release.ps1 -Version 1.1.0 -Notes "Nouvelle version obligatoire." -Mandatory
 .EXAMPLE
-  .\tools\release.ps1 -Version 2.1.0 -Notes "Arrivée de la version Mac." -MacOS
+  .\tools\release.ps1 -Version 2.1.0 -Notes "Arrivée des versions Mac et Windows." -MacOS -Windows
 #>
 param(
     [Parameter(Mandatory = $true)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
@@ -36,8 +37,10 @@ param(
     [switch]$Yes,
     # Only for a throwaway test build: a debug-signed APK cannot update a release-signed install.
     [switch]$AllowDebugSigning,
-    # Also build the macOS .dmg on GitHub Actions, from the code pushed to $SourceRepo.
+    # Also build the macOS .dmg / the Windows installer on GitHub Actions, from
+    # the code pushed to $SourceRepo.
     [switch]$MacOS,
+    [switch]$Windows,
     [string]$SourceRepo = 'ollivv-hash/obmax'
 )
 
@@ -74,13 +77,16 @@ if ($dirty) { Write-Warning "Le dépôt a des modifications non commitées :`n$d
 # gh may be installed but missing from the PATH of a shell opened before it.
 $gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
 if (-not $gh -and (Test-Path "$env:ProgramFiles\GitHub CLI\gh.exe")) { $gh = "$env:ProgramFiles\GitHub CLI\gh.exe" }
-if ($MacOS) {
-    if (-not $gh) { throw '-MacOS demande la CLI GitHub (gh).' }
+$desktop = @()
+if ($MacOS) { $desktop += @{ Label = 'macOS'; Workflow = 'obmax-macos.yml'; Artifact = 'obmax-macos'; Key = 'macos'; Name = "obmax-macos-$Version.dmg" } }
+if ($Windows) { $desktop += @{ Label = 'Windows'; Workflow = 'obmax-windows.yml'; Artifact = 'obmax-windows'; Key = 'windows'; Name = "obmax-windows-$Version.exe" } }
+if ($desktop) {
+    if (-not $gh) { throw '-MacOS et -Windows demandent la CLI GitHub (gh).' }
     # GitHub Actions builds what is pushed, not this working copy.
     $branch = git rev-parse --abbrev-ref HEAD
     git fetch -q origin $branch
     if ((git rev-parse HEAD) -ne (git rev-parse "origin/$branch")) {
-        throw "-MacOS construit le code poussé : faites d'abord git push origin $branch."
+        throw "-MacOS et -Windows construisent le code poussé : faites d'abord git push origin $branch."
     }
 }
 
@@ -98,20 +104,18 @@ $pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_build_number:.*$', "
 [System.IO.File]::WriteAllText($pubspecPath, $pubspec, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "Version : $previous -> $Version+$versionCode" -ForegroundColor Cyan
 
-# --- 1b. macOS build on GitHub Actions, alongside the Android builds ----------
-$macRunId = $null
-$dmgName = "obmax-macos-$Version.dmg"
-if ($MacOS) {
+# --- 1b. Desktop builds on GitHub Actions, alongside the Android builds -------
+foreach ($d in $desktop) {
     $since = (Get-Date).ToUniversalTime().AddSeconds(-30)
-    & $gh workflow run obmax-macos.yml --repo $SourceRepo --ref $branch -f "version=$Version" -f "version_code=$versionCode"
-    if ($LASTEXITCODE -ne 0) { throw 'Impossible de lancer le build macOS sur GitHub Actions.' }
-    for ($i = 0; $i -lt 20 -and -not $macRunId; $i++) {
+    & $gh workflow run $d.Workflow --repo $SourceRepo --ref $branch -f "version=$Version" -f "version_code=$versionCode"
+    if ($LASTEXITCODE -ne 0) { throw "Impossible de lancer le build $($d.Label) sur GitHub Actions." }
+    for ($i = 0; $i -lt 20 -and -not $d.RunId; $i++) {
         Start-Sleep -Seconds 3
-        $runs = & $gh run list --repo $SourceRepo --workflow obmax-macos.yml --event workflow_dispatch --limit 5 --json databaseId,createdAt | ConvertFrom-Json
-        $macRunId = ($runs | Where-Object { ([datetime]$_.createdAt).ToUniversalTime() -ge $since } | Select-Object -First 1).databaseId
+        $runs = & $gh run list --repo $SourceRepo --workflow $d.Workflow --event workflow_dispatch --limit 5 --json databaseId,createdAt | ConvertFrom-Json
+        $d.RunId = ($runs | Where-Object { ([datetime]$_.createdAt).ToUniversalTime() -ge $since } | Select-Object -First 1).databaseId
     }
-    if (-not $macRunId) { throw 'Build macOS lancé, mais introuvable dans GitHub Actions.' }
-    Write-Host "Build macOS lancé : https://github.com/$SourceRepo/actions/runs/$macRunId" -ForegroundColor Cyan
+    if (-not $d.RunId) { throw "Build $($d.Label) lancé, mais introuvable dans GitHub Actions." }
+    Write-Host "Build $($d.Label) lancé : https://github.com/$SourceRepo/actions/runs/$($d.RunId)" -ForegroundColor Cyan
 }
 
 # --- 2. Builds ----------------------------------------------------------------
@@ -143,13 +147,13 @@ foreach ($b in $builds) {
     }
 }
 
-if ($MacOS) {
-    Write-Host 'Attente du build macOS (GitHub Actions, 20 à 40 min)...' -ForegroundColor Cyan
-    & $gh run watch $macRunId --repo $SourceRepo --exit-status --interval 30 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Build macOS en échec : https://github.com/$SourceRepo/actions/runs/$macRunId" }
-    & $gh run download $macRunId --repo $SourceRepo --name obmax-macos --dir $dist
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $dist $dmgName))) { throw "DMG introuvable après téléchargement ($dmgName)." }
-    $builds += @{ Flavor = 'macos'; Key = 'macos'; Name = $dmgName }
+foreach ($d in $desktop) {
+    Write-Host "Attente du build $($d.Label) (GitHub Actions, 20 à 45 min)..." -ForegroundColor Cyan
+    & $gh run watch $d.RunId --repo $SourceRepo --exit-status --interval 30 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Build $($d.Label) en échec : https://github.com/$SourceRepo/actions/runs/$($d.RunId)" }
+    & $gh run download $d.RunId --repo $SourceRepo --name $d.Artifact --dir $dist
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $dist $d.Name))) { throw "$($d.Name) introuvable après téléchargement." }
+    $builds += @{ Flavor = $d.Key; Key = $d.Key; Name = $d.Name }
 }
 
 # --- 3. Checksums and version.json -------------------------------------------
