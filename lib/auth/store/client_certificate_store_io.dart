@@ -12,10 +12,12 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
   );
   bool _unavailable = false;
 
-  // OBMAX: the file based keychain rejects readAll (a match-all query that
-  // returns data fails with errSecParam), so the hosts are also listed under
-  // their own key and getAll falls back to reading them one by one. The key
-  // sits outside keyPrefix, so readAll elsewhere never parses it.
+  // OBMAX: same as upstream PR Moonfin-Client/Moonfin-Core#1930; take
+  // upstream's version once it is merged.
+  // The file based keychain rejects readAll (a match-all query that returns
+  // data fails with errSecParam), so the hosts are also listed under their
+  // own key and getAll falls back to reading them one by one. The key sits
+  // outside keyPrefix, so getAll never takes it for a certificate.
   static const _hostsKey = 'mtls_client_cert_hosts';
 
   @override
@@ -26,6 +28,16 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
   }
 
   String _key(String host) => '${ClientCertificateStore.keyPrefix}$host';
+
+  // Saves and removals update the index by read-modify-write, so they run one
+  // at a time or one could drop a host another just added.
+  static Future<void> _pending = Future.value();
+
+  Future<void> _serialized(Future<void> Function() action) {
+    final result = _pending.then((_) => action());
+    _pending = result.catchError((Object _) {});
+    return result;
+  }
 
   Future<List<String>> _readHosts() async {
     final raw = await _storage.read(key: _hostsKey);
@@ -40,11 +52,15 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
   @override
   Future<void> save(StoredClientCertificate certificate) async {
     try {
-      await _storage.write(
-        key: _key(certificate.host),
-        value: jsonEncode(certificate.toJson()),
-      );
-      await _writeHosts({...await _readHosts(), certificate.host});
+      // The index is written first: a host listed without a certificate is
+      // skipped by getAll, a certificate missing from the index is lost.
+      await _serialized(() async {
+        await _writeHosts({...await _readHosts(), certificate.host});
+        await _storage.write(
+          key: _key(certificate.host),
+          value: jsonEncode(certificate.toJson()),
+        );
+      });
     } on Exception {
       _unavailable = true;
     }
@@ -83,9 +99,7 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
 
   Future<List<StoredClientCertificate>> _getAllFromIndex() async {
     try {
-      return [
-        for (final host in await _readHosts()) ?await get(host),
-      ];
+      return [for (final host in await _readHosts()) ?await get(host)];
     } on Exception {
       return const [];
     }
@@ -94,8 +108,10 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
   @override
   Future<void> remove(String host) async {
     try {
-      await _storage.delete(key: _key(host));
-      await _writeHosts({...await _readHosts()}..remove(host));
+      await _serialized(() async {
+        await _storage.delete(key: _key(host));
+        await _writeHosts({...await _readHosts()}..remove(host));
+      });
     } on Exception {
       _unavailable = true;
     }
