@@ -203,7 +203,7 @@ Création automatique des comptes Jellyfin, iOS et iPadOS, bascule LAN/WAN, supe
 | V5 | Partiel | « Renouveler maintenant » : renouvellement accepté, lecture OK. Reste : renouvellement automatique (validité courte). |
 | V6 | Partiel | Révocation : renouvellement refusé, puis réactivation et renouvellement OK. Reste : retour à l'activation après expiration. |
 | V7 | À faire | |
-| V8 | Partiel | `.p12` V1 (Chrome) et certificats V2 acceptés ensemble. Reste : retrait de la racine. |
+| V8 | OK | Transition : `.p12` V1 et certificats V2 acceptés ensemble. Racine retirée le 19/10/2026 (`nas-finish-migration.sh`) : certificat signé par la racine refusé par Caddy (`unknown ca`), certificat signé par l'intermédiaire accepté (`200`). Chrome passe au certificat navigateur `make-browser-cert.ps1`. |
 | V9 | À faire | |
 | V10 | — | Remplacé dans les faits par la mise à jour 2.0.0 → 2.0.1 avec rotation de clé (`adb install -r`, données et certificat conservés). |
 
