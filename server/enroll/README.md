@@ -100,7 +100,18 @@ Dans la page d'admin, choisis le compte Jellyfin et le libellé de l'appareil, p
 
 ### 7. Fin de la migration (retrait de la racine)
 
-Quand **tous** tes appareils fonctionnent avec un certificat V2 (visible dans la page d'admin), retire `ca.crt` du `trust_pool` et recharge Caddy. L'ancien `.p12` cesse alors de fonctionner. Désormais, il suffira de retirer l'intermédiaire du pool pour couper tous les appareils V2 d'un coup.
+Tant que la racine reste dans le `trust_pool`, l'ancien `.p12` fonctionne. Révoquer l'intermédiaire ne couperait alors rien. Dans l'ordre :
+
+1. **Appareils OB Max** : tous ceux qui servent apparaissent dans la page d'admin (certificat V2).
+2. **Navigateurs** : l'ancien `.p12` donne aussi accès à la page d'admin et à l'interface web de Jellyfin. Il faut le remplacer par un certificat émis par l'intermédiaire :
+   ```powershell
+   .\server\enroll\tools\make-browser-cert.ps1 -Name ollivv-navigateur
+   ```
+   Le script crée `E:\obmax-keys\browser\ollivv-navigateur.p12` (RSA 2048, valable 2 ans au plus et jamais au-delà de l'intermédiaire). Le mot de passe se saisit à l'invite d'openssl. Importe ce fichier dans Chrome sur chaque appareil, puis vérifie la page d'admin en choisissant ce certificat. Un tel certificat n'apparaît pas dans la page d'admin et ne peut pas y être révoqué.
+3. **Caddy** : copie `tools/nas-finish-migration.sh` sur le NAS, puis lance `sudo sh ./nas-finish-migration.sh`. Le script sauvegarde le Caddyfile, retire `ca.crt` du `trust_pool`, valide la configuration et redémarre Caddy, ou restaure tout si la validation échoue. Il affiche la commande de retour arrière.
+4. **Vérifications** : les apps et Chrome (nouveau certificat) fonctionnent, et l'ancien `.p12` est refusé.
+
+Ensuite, retirer l'intermédiaire du pool coupe tous les appareils V2 d'un coup. La clé racine ne sert plus qu'à signer le prochain intermédiaire (2029) : garde-la chiffrée, dans le coffre de mots de passe uniquement.
 
 ## Exploitation
 
