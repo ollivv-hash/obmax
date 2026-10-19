@@ -19,8 +19,8 @@ Les versions publiées sont sur **[ollivv-hash/obmax-releases](https://github.co
 |---|---|
 | Téléphone ou tablette Android | `obmax-mobile-x.y.z.apk` |
 | Android TV, Google TV, Nvidia Shield | `obmax-tv-x.y.z.apk` |
-| Mac (macOS 15 ou plus récent) | `obmax-macos-x.y.z.dmg` (en préparation) |
-| PC Windows 10 ou 11 (x64) | `obmax-windows-x.y.z.exe` (en préparation) |
+| Mac (macOS 15 ou plus récent) | `obmax-macos-x.y.z.dmg` |
+| PC Windows 10 ou 11 (x64) | `obmax-windows-x.y.z.exe` |
 
 Le pas-à-pas pour les invités (téléphone, TV, navigateur web) se trouve dans [`docs/obmax/guide-installation.html`](../docs/obmax/guide-installation.html) : téléchargez le fichier, puis ouvrez-le dans un navigateur. Les mises à jour arrivent ensuite directement dans l'app.
 
