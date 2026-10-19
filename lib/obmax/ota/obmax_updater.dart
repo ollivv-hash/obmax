@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../ui/widgets/app_update_dialog.dart';
+import '../../util/app_distribution.dart';
 import '../../util/platform_detection.dart';
 import '../obmax_config.dart';
 import '../theme/obmax_colors.dart';
@@ -88,6 +89,11 @@ abstract final class ObMaxUpdater {
   /// No OTA on iOS (TestFlight later) or anywhere but Android.
   static bool get isSupported => !kIsWeb && Platform.isAndroid;
 
+  /// Whether About shows « Rechercher une mise à jour »: the OB Max OTA on
+  /// Android, the upstream desktop checker on the .dmg and Windows builds.
+  static bool get canCheckFromSettings =>
+      isSupported || AppDistribution.supportsInAppUpdates;
+
   static String get flavor => _flavorDefine.isNotEmpty
       ? _flavorDefine
       : (PlatformDetection.isTV ? 'androidTv' : 'mobile');
@@ -117,9 +123,11 @@ abstract final class ObMaxUpdater {
   /// From Settings > About: always checks and always says what it found.
   static Future<void> checkFromSettings(BuildContext context) async {
     if (!isSupported) {
-      // macOS: the upstream desktop checker, pointed at the same releases,
-      // offers the .dmg.
-      if (!kIsWeb && Platform.isMacOS) await checkAndShowUpdateResult(context);
+      // macOS and Windows: the upstream desktop checker, pointed at the same
+      // releases, offers the .dmg or runs the new installer.
+      if (AppDistribution.supportsInAppUpdates) {
+        await checkAndShowUpdateResult(context);
+      }
       return;
     }
     ObMaxRelease? release;

@@ -302,7 +302,7 @@ class _ObMaxAboutScreen extends StatelessWidget {
                 trailing: const SizedBox.shrink(),
                 onTap: () {},
               ),
-              if (ObMaxUpdater.isSupported) const _ObMaxCheckForUpdatesTile(),
+              if (ObMaxUpdater.canCheckFromSettings) const _ObMaxCheckForUpdatesTile(),
             ],
           ),
           _SectionHeader(l10n.settingsLegal),
