@@ -192,6 +192,21 @@ Création automatique des comptes Jellyfin, iOS et iPadOS, bascule LAN/WAN, supe
 | V9 | Redémarrage du Pi et du NAS : service relancé, données conservées |
 | V10 | Mise à jour de l'app par OTA depuis la 1.0.1 : données et certificat V1 conservés |
 
+### Résultats au 19/10/2026 (production, app 2.0.1)
+
+| # | État | Constaté |
+|---|---|---|
+| V1 | Partiel | Téléphone (Xiaomi, en 4G après relance) et Shield réactivés par code depuis *Réglages > Certificat*. Reste : installation neuve avec identifiant pré-rempli. |
+| V2 | À faire | QR code de la Shield. |
+| V3 | Partiel | Faux code refusé en production (`invalid_code`). Reste : code déjà utilisé dans l'app, limite de 5 essais. |
+| V4 | Partiel | Admin refusée sans certificat (Chrome : `ERR_BAD_SSL_CLIENT_AUTH_CERT`), connexion admin, invitations, liste des appareils. Reste : compte non administrateur, annulation d'une invitation. |
+| V5 | Partiel | « Renouveler maintenant » : renouvellement accepté, lecture OK. Reste : renouvellement automatique (validité courte). |
+| V6 | Partiel | Révocation : renouvellement refusé, puis réactivation et renouvellement OK. Reste : retour à l'activation après expiration. |
+| V7 | À faire | |
+| V8 | Partiel | `.p12` V1 (Chrome) et certificats V2 acceptés ensemble. Reste : retrait de la racine. |
+| V9 | À faire | |
+| V10 | — | Remplacé dans les faits par la mise à jour 2.0.0 → 2.0.1 avec rotation de clé (`adb install -r`, données et certificat conservés). |
+
 ## 10. Décisions validées (18/10/2026)
 
 1. Service en **Go**, uniquement la bibliothèque standard.
