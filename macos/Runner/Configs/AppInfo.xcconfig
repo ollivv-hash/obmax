@@ -1,4 +1,6 @@
-// OBMAX: OB Max identity (same bundle id as the Android app)
+// OBMAX: OB Max identity. The bundle id (the same as the Android app) is
+// private: ObMaxPrivate.xcconfig, ignored by git, overrides the default.
 PRODUCT_NAME = OB Max
-PRODUCT_BUNDLE_IDENTIFIER = com.example.obmax
+PRODUCT_BUNDLE_IDENTIFIER = app.obmax.client
 PRODUCT_COPYRIGHT = OB Max, basé sur Moonfin (GNU GPL v2)
+#include? "ObMaxPrivate.xcconfig"

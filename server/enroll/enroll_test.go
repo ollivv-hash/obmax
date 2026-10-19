@@ -414,7 +414,15 @@ func TestStatePersists(t *testing.T) {
 	}
 }
 
+func TestPublicServerURLRequired(t *testing.T) {
+	t.Setenv("PUBLIC_SERVER_URL", "")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("LoadConfig accepted an empty PUBLIC_SERVER_URL")
+	}
+}
+
 func TestForwardedIPOnlyFromTrustedProxy(t *testing.T) {
+	t.Setenv("PUBLIC_SERVER_URL", "https://jellyfin.example.com")
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatal(err)

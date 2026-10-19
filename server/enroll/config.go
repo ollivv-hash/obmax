@@ -42,7 +42,7 @@ func LoadConfig() (Config, error) {
 		AdminAddr:       env("ENROLL_ADMIN_ADDR", ":8788"),
 		AdminBasePath:   strings.TrimRight(env("ENROLL_ADMIN_BASE_PATH", "/obmax-admin"), "/"),
 		JellyfinURL:     strings.TrimRight(env("JELLYFIN_URL", "http://192.168.0.206:8096"), "/"),
-		PublicServerURL: strings.TrimRight(env("PUBLIC_SERVER_URL", "https://jellyfin.example.com"), "/"),
+		PublicServerURL: strings.TrimRight(env("PUBLIC_SERVER_URL", ""), "/"),
 		SecureCookies:   env("ENROLL_INSECURE_COOKIES", "") == "",
 		RequireProxy:    env("ENROLL_ALLOW_DIRECT", "") == "",
 	}
@@ -66,6 +66,9 @@ func LoadConfig() (Config, error) {
 			return cfg, fmt.Errorf("ENROLL_TRUSTED_PROXIES: %w", err)
 		}
 		cfg.TrustedProxies = append(cfg.TrustedProxies, n)
+	}
+	if cfg.PublicServerURL == "" {
+		return cfg, fmt.Errorf("PUBLIC_SERVER_URL is required (set it in .env next to docker-compose.yml)")
 	}
 	return cfg, nil
 }

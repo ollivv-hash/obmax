@@ -128,7 +128,7 @@ Ensuite, retirer l'intermédiaire du pool coupe tous les appareils V2 d'un coup.
 | `ENROLL_PUBLIC_ADDR` / `ENROLL_ADMIN_ADDR` | `:8787` / `:8788` | Ports d'écoute |
 | `ENROLL_ADMIN_BASE_PATH` | `/obmax-admin` | Chemin de la page d'admin |
 | `JELLYFIN_URL` | `http://192.168.0.206:8096` | Jellyfin, pour la connexion admin et la liste des comptes |
-| `PUBLIC_SERVER_URL` | `https://jellyfin.example.com` | Renvoyé à l'app après l'inscription |
+| `PUBLIC_SERVER_URL` | — (obligatoire) | Renvoyé à l'app après l'inscription. À mettre dans `.env`, à côté de `docker-compose.yml` (ignoré par git) : `PUBLIC_SERVER_URL=https://jellyfin.<domaine>` |
 | `ENROLL_TRUSTED_PROXIES` | `192.168.0.101/32,127.0.0.1/32` | Seules adresses acceptées (Caddy) |
 | `ENROLL_CERT_VALIDITY` | `4320h` (180 jours) | Durée des certificats d'appareil (raccourcir pour tester le renouvellement) |
 | `ENROLL_INVITE_VALIDITY` | `48h` | Durée de validité d'un code |

@@ -43,6 +43,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// OBMAX: the application id is private, in android/obmax.properties (ignored
+// by git, written by tools/obmax_private.ps1).
+val obmaxProperties = Properties().apply {
+    val file = rootProject.file("obmax.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("keystore.properties")
     if (file.exists()) file.inputStream().use { load(it) }
@@ -85,7 +92,11 @@ android {
     flavorDimensions += "device"
     productFlavors {
         // OBMAX: one application id for both flavors, a device installs only one.
-        val baseAppId = "com.example.obmax"
+        val baseAppId = obmaxProperties.getProperty("applicationId")?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: throw GradleException(
+                "android/obmax.properties (applicationId=...) is missing: run tools/obmax_private.ps1",
+            )
         val baseAppName = "OB Max"
         // Optional application-id suffix for on-device testing, set through the
         // environment so an unset build is byte-identical to before:

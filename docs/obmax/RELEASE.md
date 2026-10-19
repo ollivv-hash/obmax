@@ -2,6 +2,16 @@
 
 Les APK et `version.json` sont publiés en GitHub Releases sur le dépôt **public** `ollivv-hash/obmax-releases`. Le code source reste dans le dépôt privé `ollivv-hash/obmax`. L'app vérifie `https://github.com/ollivv-hash/obmax-releases/releases/latest/download/version.json` au démarrage (une fois par 24 h) et depuis *Réglages > À propos*.
 
+## Une seule fois : les valeurs privées
+
+Le domaine du serveur et l'identifiant d'app ne sont pas dans le dépôt. Sur un PC neuf (ou après un clone), écris-les une fois :
+
+```powershell
+.\tools\obmax_private.ps1 -ServerUrl https://jellyfin.<domaine> -EnrollUrl https://enroll.<domaine> -AppId <identifiant d'app>
+```
+
+Sans eux, le build s'arrête (`obmax_private.dart` ou `obmax.properties` manquant). Les builds Mac et Windows les reçoivent des secrets GitHub `OBMAX_SERVER_URL`, `OBMAX_ENROLL_URL` et `OBMAX_APP_ID`.
+
 ## Une seule fois : la clé de signature
 
 Toutes les versions doivent être signées avec **la même clé**. Sinon Android refuse la mise à jour et il faudrait désinstaller, ce qui efface les données et le certificat.

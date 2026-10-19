@@ -1,0 +1,4 @@
+// Copy of lib/obmax/obmax_private.dart as tools/obmax_private.ps1 writes it.
+// That file is ignored by git: the real addresses never go to the repository.
+const kObMaxPrivateServerUrl = 'https://jellyfin.example.com';
+const kObMaxPrivateEnrollUrl = 'https://enroll.example.com';

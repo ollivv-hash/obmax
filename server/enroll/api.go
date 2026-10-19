@@ -42,7 +42,7 @@ func NewServer(cfg Config, ca *CA, store *Store) *Server {
 	}
 }
 
-// PublicHandler serves enroll.example.com.
+// PublicHandler serves the public enrollment host.
 func (s *Server) PublicHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/enroll", s.handleEnroll)

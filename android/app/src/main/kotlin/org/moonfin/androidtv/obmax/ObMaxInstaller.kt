@@ -28,9 +28,10 @@ class ObMaxInstaller private constructor(
     private val activity: Activity,
     private val channel: MethodChannel,
 ) {
+    private val actionStatus = "${activity.packageName}.INSTALL_STATUS"
+
     companion object {
         private const val CHANNEL = "obmax/installer"
-        private const val ACTION_STATUS = "com.example.obmax.INSTALL_STATUS"
 
         fun register(engine: FlutterEngine, activity: Activity) {
             val channel = MethodChannel(engine.dartExecutor.binaryMessenger, CHANNEL)
@@ -135,7 +136,7 @@ class ObMaxInstaller private constructor(
                         session.fsync(out)
                     }
                 }
-                val intent = Intent(ACTION_STATUS).setPackage(activity.packageName)
+                val intent = Intent(actionStatus).setPackage(activity.packageName)
                 val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                     (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                 val pending = PendingIntent.getBroadcast(activity, sessionId, intent, flags)
@@ -149,7 +150,7 @@ class ObMaxInstaller private constructor(
 
     private fun ensureReceiver() {
         if (receiverRegistered) return
-        val filter = IntentFilter(ACTION_STATUS)
+        val filter = IntentFilter(actionStatus)
         if (Build.VERSION.SDK_INT >= 33) {
             activity.applicationContext.registerReceiver(
                 statusReceiver,

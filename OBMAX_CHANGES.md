@@ -24,7 +24,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `.gitignore` | Certificats, clés, keystores et `key.properties` jamais dans git ; sorties de `tools/release.ps1` (`/dist/`). |
 | `packages/server_core/lib/src/network/client_certificates_io.dart` | Correctif WebSocket port 0 (PR `upstream-pr/ws-port0`). |
 | `lib/ui/screens/auth/server_select_screen.dart` | Import du certificat proposé pour le premier candidat https (PR `upstream-pr/mtls-onboarding`). |
-| `android/app/build.gradle.kts` | `applicationId` `com.example.obmax` et nom « OB Max » pour les deux flavors ; plugin `google-services` désactivé (push Firebase coupé). |
+| `android/app/build.gradle.kts` | `applicationId` privé, lu dans `android/obmax.properties` (écrit par `tools/obmax_private.ps1`, ignoré par git), et nom « OB Max » pour les deux flavors ; plugin `google-services` désactivé (push Firebase coupé). |
 | `android/app/build.gradle.kts` (bis) | `storeFile=` dans `keystore.properties` peut désigner un keystore hors du dépôt. |
 | `pubspec.yaml` | Version OB Max `1.0.0+1` (et `android_tv_version` / `android_tv_build_number`, lus par Gradle pour la flavor TV). Mise à jour par `tools/release.ps1`. |
 | `lib/di/injection.dart` | Nom de client envoyé à Jellyfin (`X-Emby-Authorization`) = « OB Max ». |
@@ -58,7 +58,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `android/app/src/main/AndroidManifest.xml` | Permission `REQUEST_INSTALL_PACKAGES` (OTA). |
 | `assets/images/logo_and_text.png` | Remplacé par le logo OB Max (même format 1179×266) : il est affiché par les écrans de connexion, l'économiseur d'écran et l'À propos upstream. En cas de conflit au rebase, garder la version OB Max. |
 | `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max (générée depuis `obmax_ipad_1024.png`, sans canal alpha). |
-| `macos/Runner/Configs/AppInfo.xcconfig` | App Mac « OB Max », identifiant `com.example.obmax`, copyright. |
+| `macos/Runner/Configs/AppInfo.xcconfig` | App Mac « OB Max », copyright ; l'identifiant vient de `ObMaxPrivate.xcconfig` (privé, ignoré par git). |
 | `macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max au gabarit macOS (carré arrondi avec ombre, généré depuis l'icône iOS). |
 | `build-macos.sh` | `APP_NAME="OB Max"` (nom du `.app` et du `.dmg`). |
 | `lib/auth/store/client_certificate_store_io.dart` | Index des hôtes (`mtls_client_cert_hosts`) et relecture un par un quand `readAll` échoue : sur macOS, le trousseau classique refuse `readAll` (errSecParam -50), le certificat était enregistré mais jamais rechargé. Mises à jour de l'index sérialisées, index écrit avant le certificat (remarques CodeRabbit). Proposé à Moonfin : PR #1930 ; une fois fusionnée, reprendre la version upstream. |
@@ -75,6 +75,10 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 - `.github/README.md` : page d'accueil OB Max du dépôt. GitHub l'affiche à la place du `README.md` de Moonfin, qui reste inchangé.
 - `docs/obmax/` : publication (`RELEASE.md`), conception de l'activation (`V2_SPEC.md`), recette (`TEST_CHECKLIST.md`), guide des invités (`guide-installation.html`).
 - `.github/workflows/obmax-macos.yml` : build du `.dmg` macOS. Les workflows de Moonfin restent dans le dépôt mais sont désactivés dans les réglages GitHub Actions d'`ollivv-hash/obmax`.
+
+## Valeurs privées (hors dépôt)
+
+Le domaine du serveur et l'identifiant d'app désignent le propriétaire : ils ne sont pas dans git. `tools/obmax_private.ps1 -ServerUrl … -EnrollUrl … -AppId …` écrit `lib/obmax/obmax_private.dart`, `android/obmax.properties` et `macos/Runner/Configs/ObMaxPrivate.xcconfig` (modèle : `tools/obmax_private.dart.example`). Les workflows macOS et Windows font de même à partir des secrets `OBMAX_SERVER_URL`, `OBMAX_ENROLL_URL` et `OBMAX_APP_ID` d'`ollivv-hash/obmax`. Le service d'activation lit `PUBLIC_SERVER_URL` dans `server/enroll/.env`, également ignoré.
 
 ## Code OB Max hors `lib/obmax/`
 

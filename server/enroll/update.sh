@@ -12,6 +12,16 @@ fi
 STAMP=$(date +%Y%m%d-%H%M%S)
 tar -C "$TARGET" --exclude=./data -czf "$TARGET/../obmax-enroll-code-avant-$STAMP.tgz" .
 echo "Sauvegarde du code : $(dirname "$TARGET")/obmax-enroll-code-avant-$STAMP.tgz"
+# PUBLIC_SERVER_URL moved from docker-compose.yml to .env: keep the value.
+if [ ! -f "$TARGET/.env" ]; then
+  url=$(sed -n 's/^ *PUBLIC_SERVER_URL: *\(https:[^ ]*\).*/\1/p' "$TARGET/docker-compose.yml" | head -n 1)
+  if [ -z "$url" ]; then
+    echo "PUBLIC_SERVER_URL introuvable : crée $TARGET/.env (PUBLIC_SERVER_URL=https://...) puis relance." >&2
+    exit 1
+  fi
+  printf 'PUBLIC_SERVER_URL=%s\n' "$url" > "$TARGET/.env"
+  echo "Créé : $TARGET/.env"
+fi
 for f in *.go go.mod Dockerfile docker-compose.yml README.md; do cp -f "$f" "$TARGET/"; done
 rm -rf "$TARGET/web" && cp -R web "$TARGET/web"
 cd "$TARGET"

@@ -162,3 +162,9 @@ tizen/obj/
 *.lineage
 # Public root certificates handed to mpv (no secret).
 !assets/obmax/tls-roots.pem
+
+# OB Max private build values (owner domain, application id): tools/obmax_private.ps1
+lib/obmax/obmax_private.dart
+android/obmax.properties
+macos/Runner/Configs/ObMaxPrivate.xcconfig
+server/enroll/.env

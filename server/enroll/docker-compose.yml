@@ -13,7 +13,9 @@ services:
       - ./data:/data
     environment:
       JELLYFIN_URL: http://192.168.0.206:8096   # Jellyfin does not listen on 127.0.0.1
-      PUBLIC_SERVER_URL: https://jellyfin.example.com
+      # Private, from .env next to this file (ignored by git):
+      #   PUBLIC_SERVER_URL=https://jellyfin.example.com
+      PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:?set PUBLIC_SERVER_URL in .env}
       ENROLL_TRUSTED_PROXIES: 192.168.0.101/32
       ENROLL_PUBLIC_ADDR: ":8787"
       ENROLL_ADMIN_ADDR: ":8788"
