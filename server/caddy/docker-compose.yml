@@ -8,6 +8,9 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
+      # The file alone: after editing it, recreate the container
+      # (docker compose up -d --force-recreate). A reload keeps reading the
+      # old file, since editors replace it rather than rewrite it.
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./ca:/etc/caddy/ca:ro
       - ./data:/data
