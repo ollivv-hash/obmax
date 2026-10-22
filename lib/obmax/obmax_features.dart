@@ -21,7 +21,10 @@ abstract final class ObMaxFeatures {
   static const music = false;
   static const liveTv = false;
   static const games = false;
-  static const seerr = false;
+
+  /// Requests through Seerr, relayed by the Moonbase plugin inside Jellyfin
+  /// (/Moonfin/Seerr/...), so it rides on the same mTLS host.
+  static const seerr = true;
 
   /// The receiver or external app fetches the stream itself, without the
   /// client certificate, so these can never work behind mTLS.
@@ -70,7 +73,7 @@ abstract final class ObMaxFeatures {
     '/game/',
     '/game-player/',
     '/live-tv',
-    '/seerr',
+    if (!seerr) '/seerr',
     '/player/external',
   ];
 

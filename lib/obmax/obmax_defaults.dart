@@ -53,7 +53,7 @@ abstract final class ObMaxDefaults {
 
     // Navigation buttons of the features OB Max leaves out.
     await force(UserPreferences.showLiveTvButton, false);
-    await force(UserPreferences.showSeerrButton, false);
+    await force(UserPreferences.showSeerrButton, ObMaxFeatures.seerr);
     await force(UserPreferences.showFriendsButton, false);
 
     // One server, played in-app only.

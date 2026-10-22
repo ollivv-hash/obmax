@@ -32,6 +32,13 @@ List<_PanelEntry> _obMaxPanelEntries(
       subtitle: 'Langues, sous-titres, qualité, épisode suivant, SyncPlay',
       onTap: () => context.pushSettingsScreen(const _ObMaxPlaybackScreen()),
     ),
+    if (ObMaxFeatures.seerr)
+      _PanelEntry(
+        icon: Icons.playlist_add,
+        title: 'Demandes',
+        subtitle: 'Demander des films et des séries (connexion avec ton compte)',
+        onTap: () => context.pushSettingsScreen(const SeerrConfigScreen()),
+      ),
     _PanelEntry(
       icon: Icons.palette,
       title: 'Personnalisation',
