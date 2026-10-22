@@ -76,8 +76,9 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
 .top-link{display:inline-block;margin-top:14px;font-size:14px;color:var(--muted);text-decoration:none}
 
 @media (max-width:520px){
-  nav.jump .in{gap:6px;padding:10px 12px}
-  nav.jump a{padding:8px 8px;font-size:13.5px}
+  html{scroll-padding-top:116px}
+  nav.jump .in{gap:6px;padding:8px 12px;flex-wrap:wrap;justify-content:center;overflow-x:visible}
+  nav.jump a{flex:0 0 auto;padding:7px 10px;font-size:13.5px}
   header.hero h1{font-size:25px}
   .card{padding:16px}
   ol.steps>li{padding-left:42px}
@@ -107,6 +108,7 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
     <a href="#tv">📺 TV</a>
     <a href="#ordinateur">💻 Mac / PC</a>
     <a href="#web">🌐 Web</a>
+    <a href="#demandes">🎬 Demandes</a>
   </div>
 </nav>
 
@@ -312,6 +314,51 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
   <a class="top-link" href="#haut">↑ Retour en haut</a>
 </section>
 
+<!-- ============================== DEMANDES ============================== -->
+<section class="card" id="demandes">
+  <h2><span class="ico">🎬</span>Demander un film ou une série</h2>
+  <p class="sub">Un titre manque au catalogue ? Demande-le depuis l'appli : l'administrateur reçoit ta demande et l'ajoute dès qu'il peut. Ça marche sur téléphone, TV et ordinateur.</p>
+
+  <h3>Une seule fois : te connecter aux demandes</h3>
+  <ol class="steps">
+    <li><strong>Ouvre les réglages</strong>
+      <p>Dans OB Max, va dans <span class="path">Réglages &gt; Demandes</span>.</p>
+    </li>
+    <li><strong>Active les demandes</strong>
+      <p>Active <span class="ui">Activer Seerr</span>.</p>
+    </li>
+    <li><strong>Connecte-toi avec ton compte habituel</strong>
+      <p>Type de compte : <span class="ui">Jellyfin</span>. Tape ton identifiant et ton mot de passe (les mêmes que pour te connecter à OB Max), puis <span class="ui">Se connecter</span>. Le message <span class="ui">Connecté en tant que…</span> confirme que c'est bon.</p>
+    </li>
+  </ol>
+
+  <h3>Faire une demande</h3>
+  <ol class="steps">
+    <li><strong>Trouve le titre</strong>
+      <p>Ouvre <b>Seerr</b> dans la barre de navigation : tu y trouves les tendances, les films populaires et une recherche. Les titres déjà disponibles dans OB Max portent une pastille verte.</p>
+    </li>
+    <li><strong>Demande-le</strong>
+      <p>Ouvre la fiche du film ou de la série, puis <span class="ui">Demander</span>. Pour une série, choisis les saisons qui t'intéressent.</p>
+    </li>
+    <li><strong>Suis ta demande</strong>
+      <p>Le statut s'affiche sur la fiche :</p>
+      <ul>
+        <li><span class="ui">En attente</span> : l'administrateur ne l'a pas encore validée ;</li>
+        <li><span class="ui">Demandé</span> : validée, le titre est en cours d'ajout ;</li>
+        <li><span class="ui">Disponible</span> : il est dans OB Max, bon visionnage !</li>
+      </ul>
+    </li>
+  </ol>
+  <div class="tip"><b>Patience</b> : les demandes sont traitées à la main, compte quelques jours. Le contenu pour adultes n'apparaît pas dans les recherches.</div>
+  <details>
+    <summary>Depuis un navigateur web ?</summary>
+    <div>
+      <p>Avec ton certificat installé (voir la partie Web), ouvre l'adresse du serveur suivie de <code>/Moonfin/Web/</code>. Connecte-toi avec ton compte habituel : l'onglet <b>Seerr</b> fonctionne comme dans l'appli.</p>
+    </div>
+  </details>
+  <a class="top-link" href="#haut">↑ Retour en haut</a>
+</section>
+
 <!-- ============================ MISES À JOUR ============================ -->
 <section class="card" id="maj">
   <h2><span class="ico">🔄</span>Mises à jour</h2>
@@ -336,6 +383,7 @@ footer{color:var(--muted);text-align:center;font-size:13px;margin-top:28px}
     <tr><td>« OB Max ne peut pas être ouvert » (Mac) ou « Windows a protégé votre ordinateur »</td><td>Normal au premier lancement : voir la partie Mac / PC (« Ouvrir quand même », « Exécuter quand même »).</td></tr>
     <tr><td>Nouveau téléphone, TV réinitialisée, appli réinstallée</td><td>Il faut un <b>nouveau code</b> : demande-le à l'administrateur, puis suis à nouveau le guide.</td></tr>
     <tr><td>La vidéo saccade en 4G</td><td>Baisse le débit dans <span class="path">Réglages &gt; Lecture &gt; Débit maximal en streaming</span>.</td></tr>
+    <tr><td>Pas de bouton Seerr dans la navigation</td><td>Connecte-toi d'abord aux demandes : <span class="path">Réglages &gt; Demandes</span> (voir la partie Demandes).</td></tr>
     <tr><td>Mot de passe oublié</td><td>Demande à l'administrateur de le réinitialiser.</td></tr>
   </table>
 </section>
