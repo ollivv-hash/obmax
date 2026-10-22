@@ -4,7 +4,7 @@ set -eu
 cd "$(dirname "$0")"
 
 for port in 80 443; do
-  if ss -ltn "( sport = :$port )" | grep -q ":$port " && ! docker ps --format '{{.Names}}' | grep -qx caddy; then
+  if ss -ltn "( sport = :$port )" | grep -q ":$port " && ! docker ps --format '{{.Names}}' | grep -qx obmax-caddy; then
     echo "Le port $port est déjà utilisé sur ce Pi :" >&2
     ss -ltnp "( sport = :$port )" >&2
     exit 1

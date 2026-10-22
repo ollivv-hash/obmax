@@ -6,8 +6,8 @@ Il était auparavant sur le NAS. Le déplacer a supprimé un aller-retour résea
 
 ## Installation
 
-1. Copier ce dossier sur le Pi (`~/caddy`), avec `Caddyfile` (domaines réels, à partir de `Caddyfile.example`) et `ca/obmax-enroll-ca.crt`.
-2. `cd ~/caddy && sudo sh ./install.sh` : vérifie que 80 et 443 sont libres, valide le Caddyfile et démarre Caddy.
+1. Copier ce dossier sur le Pi (`~/obmax-caddy`), avec `Caddyfile` (domaines réels, à partir de `Caddyfile.example`) et `ca/obmax-enroll-ca.crt`.
+2. `cd ~/obmax-caddy && sudo sh ./install.sh` : vérifie que 80 et 443 sont libres, valide le Caddyfile et démarre Caddy.
 3. Jellyfin, *Réseau > Proxys connus* : ajouter `127.0.0.1` et l'adresse de la passerelle Docker de Jellyfin (souvent `172.18.0.1`), sinon tous les clients semblent locaux.
 4. `obmax-enroll` : `ENROLL_TRUSTED_PROXIES` doit contenir `127.0.0.1/32`.
 5. Box : rediriger TCP 80 et 443 vers le Pi, puis `sudo docker compose restart` pour obtenir tout de suite les certificats Let's Encrypt.
