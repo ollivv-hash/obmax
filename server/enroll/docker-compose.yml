@@ -16,7 +16,8 @@ services:
       # Private, from .env next to this file (ignored by git):
       #   PUBLIC_SERVER_URL=https://jellyfin.example.com
       PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:?set PUBLIC_SERVER_URL in .env}
-      ENROLL_TRUSTED_PROXIES: 192.168.0.101/32
+      # Caddy: on this Pi (127.0.0.1); the NAS entry is the old location.
+      ENROLL_TRUSTED_PROXIES: 127.0.0.1/32,192.168.0.101/32
       ENROLL_PUBLIC_ADDR: ":8787"
       ENROLL_ADMIN_ADDR: ":8788"
       ENROLL_CERT_VALIDITY: 4320h   # 180 days

@@ -1,0 +1,35 @@
+# OB Max: public entry point, on the Raspberry Pi.
+# Jellyfin and the admin page require a client certificate signed by the
+# OB Max enrollment CA; the enrollment API does not (devices get their
+# certificate there).
+
+jellyfin.example.com {
+    tls {
+        client_auth {
+            mode require_and_verify
+            # Only the OB Max intermediate: removing it from this pool
+            # revokes every device at once.
+            trust_pool file /etc/caddy/ca/obmax-enroll-ca.crt
+        }
+    }
+
+    # OB Max admin page (obmax-enroll, same Pi).
+    redir /obmax-admin /obmax-admin/
+    handle /obmax-admin/* {
+        reverse_proxy 127.0.0.1:8788
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:8096
+    }
+}
+
+# OB Max activation: no client certificate, enrollment API only.
+enroll.example.com {
+    handle /v1/* {
+        reverse_proxy 127.0.0.1:8787
+    }
+    handle {
+        respond 404
+    }
+}

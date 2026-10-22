@@ -1,0 +1,14 @@
+# OB Max: Caddy on the Raspberry Pi, in front of Jellyfin, the enrollment
+# service and nothing else. Host networking: it listens on 80/443 of the Pi
+# (the box forwards both here) and reaches the services locally.
+services:
+  caddy:
+    image: caddy:2.11
+    container_name: caddy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ca:/etc/caddy/ca:ro
+      - ./data:/data
+      - ./config:/config
