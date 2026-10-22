@@ -19,8 +19,10 @@ jellyfin.example.com {
         reverse_proxy 127.0.0.1:8788
     }
 
+    # Jellyfin's container publishes 8096 on the LAN address only, not on
+    # 127.0.0.1.
     handle {
-        reverse_proxy 127.0.0.1:8096
+        reverse_proxy 192.168.0.206:8096
     }
 }
 
