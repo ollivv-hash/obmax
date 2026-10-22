@@ -1,6 +1,6 @@
 # obmax-enroll on the Raspberry Pi, next to Jellyfin.
-# Host networking keeps the caller's real address (Caddy on the NAS), which
-# the service checks: only 192.168.0.101 gets through.
+# Host networking keeps the caller's real address (Caddy, on this Pi), which
+# the service checks: only ENROLL_TRUSTED_PROXIES get through.
 services:
   obmax-enroll:
     build: .
