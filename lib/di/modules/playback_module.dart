@@ -46,6 +46,7 @@ import '../../util/season_queue_context.dart';
 import '../../util/audio_track_logic.dart';
 import '../../util/subtitle_track_logic.dart';
 import '../../util/secondary_subtitle_track_selection.dart';
+import '../../obmax/playback/obmax_mac_player.dart'; // OBMAX
 
 final _getIt = GetIt.instance;
 
@@ -329,7 +330,8 @@ void registerPlaybackModule() {
   if (PlatformDetection.isAppleTV) {
     appleTvBackend = AppleTvBackend(prefs);
     _getIt.registerSingleton<AppleTvBackend>(appleTvBackend);
-  } else if (PlatformDetection.isIOS || PlatformDetection.isMacOS) {
+  } else if (ObMaxMacPlayer.usesAether) {
+    // OBMAX: unless the user chose mpv on macOS (ObMaxMacPlayer).
     // AetherEngine serves main playback on iOS and macOS: video, live TV,
     // music, audiobooks and offline. The media_kit backend isn't constructed,
     // though on macOS media_kit itself stays for trailers and theme music.
@@ -358,7 +360,7 @@ void registerPlaybackModule() {
           PlaybackEnginePreference.media3;
   final PlayerBackend initialBackend = PlatformDetection.isAppleTV
       ? appleTvBackend!
-      : (PlatformDetection.isIOS || PlatformDetection.isMacOS)
+      : ObMaxMacPlayer.usesAether // OBMAX
       ? iosBackend!
       : PlatformDetection.isWeb
       ? (htmlBackend ?? backend!)
@@ -478,7 +480,7 @@ void registerPlaybackModule() {
       return _getIt<AppleTvBackend>();
     }
 
-    if (PlatformDetection.isIOS || PlatformDetection.isMacOS) {
+    if (ObMaxMacPlayer.usesAether) { // OBMAX
       if (currentBackend is AetherBackend) return currentBackend;
       return _getIt<AetherBackend>();
     }

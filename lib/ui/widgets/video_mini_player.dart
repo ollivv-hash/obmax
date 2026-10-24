@@ -32,6 +32,7 @@ import '../screens/playback/hdr_overlay_capture.dart';
 import 'adaptive/sf_symbol.dart';
 import '../screensaver/screensaver_controller.dart';
 import 'aether_video_view.dart';
+import '../../obmax/playback/obmax_mac_player.dart'; // OBMAX
 import 'player_volume_control.dart';
 import 'playback/seek_icons.dart';
 import 'playback/track_picker.dart';
@@ -874,7 +875,7 @@ class _VideoThumbnail extends StatelessWidget {
           child: SizedBox(
             height: height,
             width: height * 16 / 9,
-            child: !PlatformDetection.isMacOS
+            child: !ObMaxMacPlayer.usesAether // OBMAX
                 ? const _MpvVideoSurface()
                 : const ColoredBox(
                     color: Colors.black,

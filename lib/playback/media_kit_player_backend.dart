@@ -23,6 +23,7 @@ import 'mpv_frame_sample.dart';
 import 'mpv_frame_sampler.dart';
 import 'pending_subtitle_choice.dart';
 import 'server_transcode_capabilities.dart';
+import '../obmax/playback/obmax_mac_player.dart'; // OBMAX
 
 class _ParsedMpvConfCacheEntry {
   final DateTime modified;
@@ -555,7 +556,10 @@ class MediaKitPlayerBackend extends PlayerBackend
     UserPreferences prefs, {
     Future<void> Function(int handle)? onNativeHandleReady,
   }) {
-    final hwDecodingEnabled = prefs.get(UserPreferences.hardwareDecoding);
+    // OBMAX: the Mac's hardware decoder for mpv too, or a 4K HEVC film
+    // decodes on the CPU (the preference defaults to off on macOS).
+    final hwDecodingEnabled =
+        prefs.get(UserPreferences.hardwareDecoding) || ObMaxMacPlayer.useMpv;
     final String? hwdec = hwDecodingEnabled
         ? (PlatformDetection.isAndroid && PlatformDetection.isTV
               ? 'auto-copy'

@@ -200,6 +200,22 @@ class _ObMaxPlaybackScreen extends StatelessWidget {
                 ),
               ],
             ),
+            if (PlatformDetection.isMacOS) ...[
+              _SectionHeader('Lecteur'),
+              adaptiveListSection(
+                children: [
+                  SwitchPreferenceTile(
+                    preference: ObMaxMacPlayer.preference,
+                    title: 'Lire avec mpv',
+                    subtitle: 'Autre moteur de lecture, avec une plus grande '
+                        'réserve d’avance. À essayer si un film s’interrompt '
+                        'pour charger. Quittez et rouvrez OB Max pour '
+                        'l’appliquer.',
+                    icon: Icons.ondemand_video,
+                  ),
+                ],
+              ),
+            ],
             _SectionHeader('Enchaînement'),
             adaptiveListSection(
               children: [

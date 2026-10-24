@@ -65,6 +65,8 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `windows/runner/Runner.rc`, `windows/runner/main.cpp` | App Windows « OB Max » (ressource de version, titre de fenêtre). L'exécutable garde le nom `moonfin.exe`. |
 | `windows/runner/resources/app_icon.ico` | Icône OB Max (carré arrondi, 16 à 256 px). |
 | `build-windows.ps1` | Installateur OB Max : nom, éditeur, dossier `OB Max`, `AppId` propre (n'écrase ni ne désinstalle jamais Moonfin), assistant en français, fichier `obmax-windows-<version>.exe`. |
+| `lib/di/modules/playback_module.dart`, `lib/ui/screens/playback/video_player_screen.dart`, `lib/ui/widgets/video_mini_player.dart`, `lib/playback/media_kit_player_backend.dart` | Réglage « Lire avec mpv » sur Mac (`ObMaxMacPlayer`, `lib/obmax/playback/obmax_mac_player.dart`) : quand il est actif, macOS lit avec mpv comme Windows au lieu d'AetherEngine (backend, surface vidéo, mini-lecteur), avec le décodage matériel. AetherEngine ne lit que 8 à 16 Mo d'avance et se coupait à distance sur un film à fort débit. Pris en compte au redémarrage. |
+| `lib/ui/screens/settings/settings_side_panel.dart` (lecteur) | Import de `obmax_mac_player.dart` pour l'interrupteur du panneau OB Max. |
 | `lib/data/services/app_update_service.dart` | Le vérificateur de mises à jour desktop (DMG) lit les releases OB Max (`kObMaxReleasesRepo`) au lieu de celles de Moonfin. |
 
 ## Ressources ajoutées (pas de conflit possible)

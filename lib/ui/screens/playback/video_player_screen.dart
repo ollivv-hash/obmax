@@ -39,6 +39,7 @@ import '../../../playback/aether_backend.dart';
 import '../../../playback/media_kit_player_backend.dart';
 import '../../../playback/mpv_letterbox_crop.dart';
 import '../../widgets/aether_video_view.dart';
+import '../../../obmax/playback/obmax_mac_player.dart'; // OBMAX
 import '../../../playback/playback_lifecycle_handler.dart';
 import '../../../playback/playback_profile_diagnostics.dart';
 import '../../../playback/hdr_stream_capability.dart';
@@ -4252,7 +4253,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _prefs.get(UserPreferences.keepVideoClearOfDynamicIsland);
 
   Widget _buildVideoSurface() {
-    if (PlatformDetection.isIOS || PlatformDetection.isMacOS) {
+    if (ObMaxMacPlayer.usesAether) { // OBMAX
       return Positioned.fill(
         child: AetherVideoView(
           key: _videoSurfaceKey,
