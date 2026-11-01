@@ -109,8 +109,11 @@ android {
         // the server, so an uninstall can lose real game progress. A distinct id
         // installs alongside instead and touches nothing.
         val testIdSuffix = System.getenv("MOONFIN_TEST_ID_SUFFIX").orEmpty()
-        val mobileAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
-        val tvAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        // OBMAX: ARM only, the ABIs tools/release.ps1 builds Flutter for. A
+        // plugin's x86_64 libraries alone would make an x86_64 device pick
+        // that folder and crash for want of libflutter.so.
+        val mobileAbis = listOf("arm64-v8a", "armeabi-v7a")
+        val tvAbis = listOf("arm64-v8a", "armeabi-v7a")
         create("mobile") {
             dimension = "device"
             applicationId = baseAppId

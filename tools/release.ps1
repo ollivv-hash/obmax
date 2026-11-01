@@ -4,7 +4,8 @@
 
 .DESCRIPTION
   1. Bumps the version in pubspec.yaml (versionCode = previous + 1, shared by both flavors).
-  2. Builds the signed release APKs (arm64; -Armv7 adds 32-bit ARM to the same APKs).
+  2. Builds the signed release APKs, each holding both arm64-v8a and armeabi-v7a
+     (32-bit TV boxes), and checks every native library exists for both.
      Once tools\rotate_signing_key.ps1 has run, re-signs them with the previous
      key, the new key and the rotation lineage, then checks both fingerprints.
   3. Renames them, computes their SHA-256 and writes version.json into dist\v<Version>\.
@@ -27,7 +28,6 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
     [string]$Notes = 'Corrections et améliorations.',
     [switch]$Mandatory,
-    [switch]$Armv7,
     [string]$ReleasesRepo = 'ollivv-hash/obmax-releases',
     # Explicit versionCode (default: previous + 1), e.g. 1 for the very first release.
     [int]$VersionCode = 0,
@@ -52,6 +52,43 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 . "$PSScriptRoot\obmax_env.ps1"
 . "$PSScriptRoot\obmax_signing.ps1"
+
+# The ABIs every APK carries. A 32-bit box (armeabi-v7a only) crashes at launch
+# on an arm64-only APK: "Could not find 'libflutter.so'".
+$apkAbis = @('arm64-v8a', 'armeabi-v7a')
+
+# Lists lib/<abi>/*.so in an APK. Throws when an ABI is missing, has no
+# libflutter.so / libapp.so, or when another ABI folder is present (a device
+# of that ABI would pick it and find no Flutter engine). Libraries present for
+# one ABI only are returned, for the summary.
+function Get-ObMaxApkAbiReport([string]$Apk) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $libs = @{}
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($Apk)
+    try {
+        foreach ($e in $zip.Entries) {
+            if ($e.FullName -match '^lib/([^/]+)/([^/]+\.so)$') {
+                if (-not $libs.ContainsKey($Matches[1])) { $libs[$Matches[1]] = [System.Collections.Generic.SortedSet[string]]::new() }
+                [void]$libs[$Matches[1]].Add($Matches[2])
+            }
+        }
+    } finally { $zip.Dispose() }
+    $name = Split-Path -Leaf $Apk
+    $extra = @($libs.Keys | Where-Object { $_ -notin $apkAbis })
+    if ($extra) { throw "$name contient une ABI inattendue : $($extra -join ', ')" }
+    foreach ($abi in $apkAbis) {
+        foreach ($so in 'libflutter.so', 'libapp.so') {
+            if (-not $libs.ContainsKey($abi) -or -not $libs[$abi].Contains($so)) { throw "$name : $so absent de lib/$abi" }
+        }
+    }
+    $arm64 = $libs['arm64-v8a']; $armv7 = $libs['armeabi-v7a']
+    [pscustomobject]@{
+        Arm64     = $arm64.Count
+        Armv7     = $armv7.Count
+        Arm64Only = @($arm64 | Where-Object { -not $armv7.Contains($_) })
+        Armv7Only = @($armv7 | Where-Object { -not $arm64.Contains($_) })
+    }
+}
 
 # --- 0. Preconditions ---------------------------------------------------------
 if (-not $AllowDebugSigning -and -not (Test-Path 'android\keystore.properties')) {
@@ -119,7 +156,7 @@ foreach ($d in $desktop) {
 }
 
 # --- 2. Builds ----------------------------------------------------------------
-$platforms = if ($Armv7) { 'android-arm,android-arm64' } else { 'android-arm64' }
+$platforms = 'android-arm,android-arm64'
 & $script:Flutter pub get
 if ($LASTEXITCODE -ne 0) { throw 'flutter pub get a échoué' }
 
@@ -145,6 +182,7 @@ foreach ($b in $builds) {
     } else {
         Copy-Item $apk $target -ErrorAction Stop
     }
+    $b.Abi = Get-ObMaxApkAbiReport $target
 }
 
 foreach ($d in $desktop) {
@@ -184,6 +222,11 @@ Write-Host "Notes        : $Notes"
 Write-Host "Dépôt        : $ReleasesRepo (public)"
 foreach ($b in $builds) {
     Write-Host ("{0,-24} {1,8:N1} Mo  sha256 {2}" -f $b.Name, ($b.Size / 1MB), $b.Sha)
+}
+foreach ($b in $builds | Where-Object { $_.Abi }) {
+    Write-Host ("{0,-24} .so : {1} arm64-v8a, {2} armeabi-v7a" -f $b.Name, $b.Abi.Arm64, $b.Abi.Armv7)
+    if ($b.Abi.Arm64Only) { Write-Warning "$($b.Name) : seulement en arm64-v8a : $($b.Abi.Arm64Only -join ', ')" }
+    if ($b.Abi.Armv7Only) { Write-Warning "$($b.Name) : seulement en armeabi-v7a : $($b.Abi.Armv7Only -join ', ')" }
 }
 Write-Host "version.json : $(Join-Path $dist 'version.json')"
 Write-Host ''

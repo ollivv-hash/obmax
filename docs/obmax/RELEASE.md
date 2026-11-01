@@ -61,7 +61,7 @@ gh auth login
 Le script :
 
 1. passe `pubspec.yaml` à `1.0.1+<versionCode précédent + 1>` (le `versionCode` est commun aux deux flavors, c'est lui que l'OTA compare) ;
-2. construit les APK release signés `mobile` et `androidTv` (arm64 ; ajouter `-Armv7` pour inclure aussi l'ARM 32 bits dans les mêmes APK) ;
+2. construit les APK release signés `mobile` et `androidTv`, chacun avec l'ARM 64 bits (`arm64-v8a`) **et** l'ARM 32 bits (`armeabi-v7a`) : certaines box TV (Xiaomi, Android 11) n'ont que le 32 bits et plantaient au lancement sur un APK arm64 seul (« Could not find 'libflutter.so' »). Le script ouvre ensuite chaque APK et vérifie le contenu de `lib/` : il s'arrête si une des deux ABI manque, si `libflutter.so` ou `libapp.so` n'y est pas, ou si un autre dossier (x86_64…) s'y trouve ; il signale dans le récapitulatif toute bibliothèque `.so` présente pour une seule ABI. Un seul APK par flavor, donc `version.json` et l'OTA ne changent pas ;
 3. copie `obmax-mobile-1.0.1.apk`, `obmax-tv-1.0.1.apk` et `version.json` (avec les SHA-256) dans `dist\v1.0.1\` ;
 4. affiche le récapitulatif et **demande confirmation** avant `gh release create v1.0.1 … --repo ollivv-hash/obmax-releases`.
 
