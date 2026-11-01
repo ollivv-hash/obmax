@@ -207,10 +207,10 @@ class _ObMaxPlaybackScreen extends StatelessWidget {
                   SwitchPreferenceTile(
                     preference: ObMaxMacPlayer.preference,
                     title: 'Lire avec mpv',
-                    subtitle: 'Autre moteur de lecture, avec une plus grande '
-                        'réserve d’avance. À essayer si un film s’interrompt '
-                        'pour charger. Quittez et rouvrez OB Max pour '
-                        'l’appliquer.',
+                    subtitle: 'Moteur de lecture recommandé, avec une grande '
+                        'réserve d’avance. Désactivé, OB Max utilise le lecteur '
+                        'Apple (AetherEngine). Quittez et rouvrez OB Max pour '
+                        'appliquer le changement.',
                     icon: Icons.ondemand_video,
                   ),
                 ],
