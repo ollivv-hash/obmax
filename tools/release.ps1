@@ -245,8 +245,17 @@ if (-not $gh) {
     Write-Warning "La CLI GitHub (gh) n'est pas installée : winget install GitHub.cli, puis gh auth login. Relancez ensuite la commande ci-dessus."
     exit 0
 }
-$answer = if ($Yes) { 'o' } else { Read-Host 'Publier cette release ? (o/N)' }
-if ($answer -notmatch '^(o|oui|y|yes)$') {
+# Without a console (a non-interactive shell) Read-Host fails and leaves
+# $answer null, and `$null -notmatch` is not $true: only an explicit yes
+# publishes.
+$answer = ''
+if ($Yes) {
+    $answer = 'o'
+} else {
+    try { $answer = Read-Host 'Publier cette release ? (o/N)' -ErrorAction Stop }
+    catch { Write-Warning 'Pas de console pour confirmer : relancez la commande ci-dessus, ou le script avec -Yes.' }
+}
+if (-not ("$answer" -match '^(o|oui|y|yes)$')) {
     Write-Host 'Publication annulée. Les fichiers restent dans dist\.' -ForegroundColor Yellow
     exit 0
 }
