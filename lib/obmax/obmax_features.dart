@@ -16,6 +16,9 @@ abstract final class ObMaxFeatures {
   /// Jellyfin only: Emby Connect and Emby detection are off.
   static const emby = false;
 
+  /// Plex sign-in (Moonfin 3.0) talks to plex.tv, outside the OB Max server.
+  static const plex = false;
+
   /// Library kinds removed from navigation and libraries.
   static const books = false;
   static const music = false;
@@ -72,9 +75,11 @@ abstract final class ObMaxFeatures {
     '/games/',
     '/game/',
     '/game-player/',
+    '/romm-account',
     '/live-tv',
     if (!seerr) '/seerr',
     '/player/external',
+    if (!plex) '/plex-sign-in',
   ];
 
   static bool isRouteBlocked(String path) =>
