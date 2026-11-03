@@ -26,9 +26,11 @@ Le pas-à-pas pour les invités (téléphone, TV, navigateur web) se trouve dans
 
 ## Ce qu'OB Max change par rapport à Moonfin
 
-- **Un seul serveur**, fixé à la compilation : pas d'ajout de serveur, pas d'Emby.
+- **Un seul serveur Jellyfin**, fixé à la compilation : pas d'ajout de serveur, ni Emby ni Plex.
 - **Activation par code d'invitation** : l'appareil crée sa clé, obtient un certificat valable 180 jours et le renouvelle tout seul. Une page d'administration sert à inviter et révoquer les appareils.
-- **Interface allégée** : pas de musique, de livres, de Live TV, de jeux, de Seerr, de Cast ni de lecteur externe ; réglages réduits à l'essentiel.
+- **Interface allégée** : pas de musique, de livres, de Live TV, de jeux (ni RomM), de Cast ni de lecteur externe ; réglages réduits à l'essentiel.
+- **Demandes de films et de séries** avec Seerr, relayées par le serveur Jellyfin (plugin Moonbase) : elles passent par le même accès protégé que le reste.
+- **Lecteur** : Media3 sur Android, mpv sur Windows et sur Mac (sur Mac, le lecteur Apple de Moonfin reste disponible dans les réglages).
 - **Identité OB Max** : nom, icônes, thème, écran de démarrage animé, interface en français.
 - **Mises à jour intégrées** : sur Android, l'APK s'installe depuis l'app ; sur Mac et Windows, l'app propose la nouvelle version.
 
@@ -49,7 +51,9 @@ Les autres fichiers (README de Moonfin, scripts de build des autres plateformes,
 
 ## Contributions à Moonfin
 
-Les correctifs utiles à tous sont proposés à Moonfin plutôt que gardés ici. Deux ont été intégrés : [#1893](https://github.com/Moonfin-Client/Moonfin-Core/pull/1893) (WebSocket avec certificat client) et [#1894](https://github.com/Moonfin-Client/Moonfin-Core/pull/1894) (import du certificat sur l'adresse https réellement jointe).
+Les correctifs utiles à tous sont proposés à Moonfin plutôt que gardés ici. Trois ont été intégrés : [#1893](https://github.com/Moonfin-Client/Moonfin-Core/pull/1893) (WebSocket avec certificat client), [#1894](https://github.com/Moonfin-Client/Moonfin-Core/pull/1894) (import du certificat sur l'adresse https réellement jointe) et [#1930](https://github.com/Moonfin-Client/Moonfin-Core/pull/1930) (certificats client dans le trousseau macOS).
+
+OB Max suit les versions stables de Moonfin : il est aujourd'hui basé sur Moonfin 3.0.0.
 
 ## Licence
 

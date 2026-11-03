@@ -1,29 +1,33 @@
-# OB Max — guide de rebase
+# OB Max — suivre Moonfin
 
 Liste des fichiers **upstream** modifiés par OB Max, avec la raison. Tout ce qui est propre à OB Max vit dans `lib/obmax/`, `tools/`, les `res/` des flavors Android et les fichiers `OBMAX_*.md` : ces fichiers ne sont pas listés ici, ils ne peuvent pas entrer en conflit.
 
-Chaque modification dans le code upstream est un point d'accroche court, marqué `// OBMAX:` (ou `# OBMAX:`). Après un rebase, `git grep -n OBMAX` doit retrouver toutes les lignes de ce tableau.
+Chaque modification dans le code upstream est un point d'accroche court, marqué `// OBMAX:` (ou `# OBMAX:`). Après une synchronisation, `git grep -n OBMAX` doit retrouver toutes les lignes de ce tableau.
 
-## Procédure de rebase
+## Procédure de synchronisation (merge)
+
+OB Max suit les **versions stables** de Moonfin (tags), par un **merge** sur une branche dédiée : les conflits se règlent une seule fois, l'historique d'`obmax/main` n'est jamais réécrit (pas de force-push), et la branche s'y fusionne en avance rapide après la recette. Le rebase a été abandonné à la synchronisation 3.0.0 (rapport : `docs/obmax/SYNC_REPORT_3.0.0.md`).
 
 ```powershell
-git fetch upstream
-git rebase upstream/main obmax/main
-# En cas de conflit sur lib/l10n/app_localizations*.dart : prendre la version upstream,
-# puis régénérer (ces fichiers sont produits par `flutter gen-l10n` depuis les .arb).
-git checkout --theirs lib/l10n/app_localizations*.dart   # pendant le rebase, "theirs" = nos commits
+git fetch upstream --tags
+git tag -a backup/<version-obmax>-pre-sync -m "avant synchronisation"; git push origin refs/tags/backup/<version-obmax>-pre-sync
+git switch -c sync/upstream-<tag> obmax/main
+git merge --no-ff --no-commit <tag>
+# lib/l10n/app_localizations*.dart : prendre la version upstream, puis régénérer
+# (ils sont produits par `flutter gen-l10n` depuis les .arb).
+git checkout --theirs lib/l10n/app_localizations*.dart
+# .arb : partir du texte upstream et y réappliquer nos changements clé par clé
+# (« Moonfin » → « OB Max »), plutôt que de fusionner les lignes à la main.
 . .\tools\obmax_env.ps1; & $script:Flutter gen-l10n
 ```
 
-Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-pr/*`. Ils ont été fusionnés upstream le 18/10/2026 (#1893 et #1894) : la prochaine synchronisation avec `upstream/main` les rendra redondants, puis ces deux lignes pourront sortir du tableau.
+Ensuite : traduire en français les nouvelles clés, chercher les nouveaux « Moonfin » visibles, classer les nouveautés visibles (garder, masquer via `ObMaxFeatures`, ou faire arbitrer) et tenir le rapport `docs/obmax/SYNC_REPORT_<tag>.md`.
 
 ## Fichiers upstream modifiés
 
 | Fichier | Raison |
 |---|---|
 | `.gitignore` | Certificats, clés, keystores et `key.properties` jamais dans git ; sorties de `tools/release.ps1` (`/dist/`). |
-| `packages/server_core/lib/src/network/client_certificates_io.dart` | Correctif WebSocket port 0 (PR `upstream-pr/ws-port0`). |
-| `lib/ui/screens/auth/server_select_screen.dart` | Import du certificat proposé pour le premier candidat https (PR `upstream-pr/mtls-onboarding`). |
 | `android/app/build.gradle.kts` | `applicationId` privé, lu dans `android/obmax.properties` (écrit par `tools/obmax_private.ps1`, ignoré par git), et nom « OB Max » pour les deux flavors ; plugin `google-services` désactivé (push Firebase coupé). |
 | `android/app/build.gradle.kts` (ABI) | `abiFilters` réduits à `arm64-v8a` et `armeabi-v7a`, les ABI pour lesquelles `tools/release.ps1` compile Flutter (`--target-platform android-arm,android-arm64`) : un dossier `lib/x86_64` venu d'un plugin ferait planter un appareil x86_64 faute de `libflutter.so`. `android/gradle.properties` : `disable-abi-filtering=true`, sinon le plugin Flutter remet arm, arm64 et x86_64 dans `defaultConfig`, qui s'ajoutent aux filtres des flavors. |
 | `android/app/build.gradle.kts` (bis) | `storeFile=` dans `keystore.properties` peut désigner un keystore hors du dépôt. |
@@ -32,7 +36,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `packages/server_core/lib/src/network/server_user_agent.dart` | User-agent `OBMax/<version>` dans les logs serveur. |
 | `lib/data/services/push_messaging_service.dart` | Push Firebase désactivé (`ObMaxFeatures.pushMessaging`). |
 | `lib/data/services/certificate_upload_server.dart` | Page d'envoi du `.p12` depuis le téléphone : version OB Max en français. |
-| `lib/l10n/app_fr.arb`, `app_en.arb`, `app_en_GB.arb` | « Moonfin » → « OB Max » dans les textes visibles (sauf URL et chemins `Téléchargements/Moonfin`, qui désignent un vrai dossier). |
+| `lib/l10n/app_fr.arb`, `app_en.arb`, `app_en_GB.arb` | « Moonfin » → « OB Max » dans les textes visibles (sauf URL et chemins `Téléchargements/Moonfin`, qui désignent un vrai dossier). `app_fr.arb` : traductions françaises des clés que Moonfin n'a pas encore traduites (272 à la synchronisation 3.0.0). |
 | `lib/l10n/app_localizations*.dart` | Générés depuis les `.arb`. Ne jamais les fusionner à la main : régénérer. |
 | `lib/main.dart` | `ObMaxBoot.showSplash()` juste après l'init du binding, et `ObMaxBoot.finish(app)` à la place du `runApp` final : le splash animé tourne pendant toute l'initialisation. |
 | `lib/ui/screens/auth/startup_screen.dart` | Affiche la dernière image du splash pendant la restauration de session ; sans certificat valide (supprimé, expiré), va directement à la porte OB Max ; passe toujours par la porte OB Max (jamais par l'écran utilisateurs d'un serveur mémorisé). |
@@ -45,12 +49,12 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/main.dart` | `ObMaxDefaults.install()` après `configureDependencies()` : préférences forcées (thème, focus or, Media3, media bar bandes-annonces, sections d'accueil, pas de multi-serveur ni de lecteur externe), réappliquées à chaque session prête. |
 | `packages/server_core/lib/src/api/user_views_api.dart`, `packages/server_jellyfin/lib/src/api/jellyfin_user_views_api.dart` | Filtre global `userViewsFilter` appliqué à chaque réponse `/UserViews` : OB Max y retire les bibliothèques Livres, Musique et Live TV, qui disparaissent partout (navigation, Mes médias, rangées, sélecteurs). |
 | `lib/ui/widgets/top_toolbar.dart` | Logo OB Max à la place de l'avatar en haut à gauche (il ouvre toujours le menu utilisateur) ; focus doré sur TV. |
-| `lib/ui/screens/home/home_screen.dart`, `lib/ui/screens/detail/item_detail_screen.dart` | Voile dégradé `#080A23` 70 % → transparent sur les fonds flous (`ObMaxBackdropVeil`). |
-| `lib/ui/navigation/app_router.dart` (bis) | Garde de routes `ObMaxFeatures.isRouteBlocked` (musique, livres, jeux, Live TV, Seerr, lecteur externe → accueil, liens profonds compris) ; assistant de premier lancement désactivé. |
+| `lib/ui/screens/home/home_screen.dart`, `lib/ui/screens/detail/item_detail_screen.dart` | Voile dégradé `#080A23` 70 % → transparent sur les fonds flous (`ObMaxBackdropVeil`). Sur l'accueil, depuis Moonfin 3.0, il enveloppe le `FullscreenBackdropSwitcher`, avant les styles « Coin » et « Haut ». |
+| `lib/ui/navigation/app_router.dart` (bis) | Garde de routes `ObMaxFeatures.isRouteBlocked` (musique, livres, jeux et compte RomM, Live TV, connexion Plex, lecteur externe → accueil, liens profonds compris) ; assistant de premier lancement désactivé. |
 | `lib/di/modules/app_module.dart` | Fournisseurs Google Cast, AirPlay et DLNA non enregistrés (incompatibles mTLS). « Lire sur » une autre session Jellyfin reste possible. |
 | `lib/ui/screens/detail/detail_buttons.dart`, `lib/ui/screens/detail/item_detail_screen.dart`, `lib/ui/screens/playback/osd_buttons.dart`, `lib/ui/screens/playback/video_player_screen.dart` | Boutons Cast masqués (fiche et lecteur). |
 | `lib/playback/mpv_client_certificate.dart` | Bug n°3 du spike : `tls-verify=yes` + `tls-ca-file` (`lib/obmax/playback/mpv_ca_bundle.dart`) quand un certificat client est présenté. Le fichier d'autorités vient du système (Android, magasin Windows via crypt32, trousseau macOS, bundle Linux), complété par `assets/obmax/tls-roots.pem` (ISRG X1/X2, USERTrust). Sans lui, l'OpenSSL de libmpv sur Windows refuse le serveur (`0A000086`) et aucun film ne se lance. |
-| `lib/ui/navigation/app_router.dart`, `lib/ui/screens/settings/settings_side_panel.dart` (admin) | Administration ouverte aux admins Jellyfin sur Android TV aussi (`ObMaxFeatures.adminOnTv`) ; Moonfin n'a pas de mise en page TV pour ces écrans. |
+| `lib/ui/navigation/app_router.dart`, `lib/ui/screens/settings/settings_side_panel.dart` (admin) | Administration ouverte aux admins sur Android TV aussi (`ObMaxFeatures.adminOnTv`, placé devant `adminServerSupported()` depuis Moonfin 3.0) ; Moonfin n'a pas de mise en page TV pour ces écrans. |
 | `lib/ui/screens/settings/settings_side_panel.dart` (V2) | Import de `obmax_enrollment.dart`, utilisé par l'écran « Certificat » du panneau OB Max (code d'invitation, renouvellement). |
 | `lib/ui/screens/settings/settings_side_panel.dart` | `part` du panneau OB Max (`lib/obmax/settings/obmax_settings_panel.dart`) à la place des catégories Moonfin ; recherche des réglages masquée (elle atteignait les réglages cachés). |
 | `lib/ui/widgets/user_menu_dialog.dart` | Plus de « Sélectionner un serveur » ni de « Déconnecter tous les utilisateurs » (qui supprimait le serveur, et avec lui le certificat). |
@@ -62,11 +66,10 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `macos/Runner/Configs/AppInfo.xcconfig` | App Mac « OB Max », copyright ; l'identifiant vient de `ObMaxPrivate.xcconfig` (privé, ignoré par git). |
 | `macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png` | Icône OB Max au gabarit macOS (carré arrondi avec ombre, généré depuis l'icône iOS). |
 | `build-macos.sh` | `APP_NAME="OB Max"` (nom du `.app` et du `.dmg`). |
-| `lib/auth/store/client_certificate_store_io.dart` | Index des hôtes (`mtls_client_cert_hosts`) et relecture un par un quand `readAll` échoue : sur macOS, le trousseau classique refuse `readAll` (errSecParam -50), le certificat était enregistré mais jamais rechargé. Mises à jour de l'index sérialisées, index écrit avant le certificat (remarques CodeRabbit). Proposé à Moonfin : PR #1930 ; une fois fusionnée, reprendre la version upstream. |
 | `windows/runner/Runner.rc`, `windows/runner/main.cpp` | App Windows « OB Max » (ressource de version, titre de fenêtre). L'exécutable garde le nom `moonfin.exe`. |
 | `windows/runner/resources/app_icon.ico` | Icône OB Max (carré arrondi, 16 à 256 px). |
 | `build-windows.ps1` | Installateur OB Max : nom, éditeur, dossier `OB Max`, `AppId` propre (n'écrase ni ne désinstalle jamais Moonfin), assistant en français, fichier `obmax-windows-<version>.exe`. |
-| `lib/di/modules/playback_module.dart`, `lib/ui/screens/playback/video_player_screen.dart`, `lib/ui/widgets/video_mini_player.dart`, `lib/playback/media_kit_player_backend.dart` | Réglage « Lire avec mpv » sur Mac (`ObMaxMacPlayer`, `lib/obmax/playback/obmax_mac_player.dart`), actif par défaut depuis 2.0.6 : macOS lit avec mpv comme Windows au lieu d'AetherEngine (backend, surface vidéo, mini-lecteur), avec le décodage matériel. AetherEngine ne lit que 8 à 16 Mo d'avance et se coupait à distance sur un film à fort débit. Pris en compte au redémarrage. |
+| `lib/di/modules/playback_module.dart`, `lib/ui/screens/playback/video_player_screen.dart`, `lib/ui/widgets/video_mini_player.dart`, `lib/playback/media_kit_player_backend.dart` | Réglage « Lire avec mpv » sur Mac (`ObMaxMacPlayer`, `lib/obmax/playback/obmax_mac_player.dart`), actif par défaut depuis 2.1.0 : `ObMaxMacPlayer.usesAether` remplace `isIOS || isMacOS` dans le choix du backend et de la surface vidéo (le lecteur Apple natif de Moonfin 3.0 reste réservé à iOS et tvOS) ; macOS lit avec mpv comme Windows au lieu d'AetherEngine (backend, surface vidéo, mini-lecteur), avec le décodage matériel. AetherEngine ne lit que 8 à 16 Mo d'avance et se coupait à distance sur un film à fort débit. Pris en compte au redémarrage. |
 | `lib/ui/screens/settings/settings_side_panel.dart` (lecteur) | Import de `obmax_mac_player.dart` pour l'interrupteur du panneau OB Max. |
 | `lib/data/services/app_update_service.dart` | Le vérificateur de mises à jour desktop (DMG) lit les releases OB Max (`kObMaxReleasesRepo`) au lieu de celles de Moonfin. |
 
@@ -89,4 +92,4 @@ Le domaine du serveur et l'identifiant d'app désignent le propriétaire : ils n
 
 ## Écarts assumés par rapport à la spec
 
-- **OTA** : `lib/data/services/app_update_service.dart` n'est pas modifié. Il ne sait qu'ouvrir une page de release (desktop) et reste inactif dans OB Max (aucun `DISTRIBUTION_CHANNEL` n'est passé au build). Le service OB Max (`lib/obmax/ota/obmax_updater.dart`) lit `version.json`, télécharge, vérifie le SHA-256 et installe : réécrire le service upstream aurait créé un gros diff à chaque rebase.
+- **OTA** : `lib/data/services/app_update_service.dart` n'est modifié que pour lire les releases OB Max (voir le tableau). Il ne sait qu'ouvrir une page de release (desktop) et reste inactif dans OB Max (aucun `DISTRIBUTION_CHANNEL` n'est passé au build). Le service OB Max (`lib/obmax/ota/obmax_updater.dart`) lit `version.json`, télécharge, vérifie le SHA-256 et installe : réécrire le service upstream aurait créé un gros diff à chaque rebase.

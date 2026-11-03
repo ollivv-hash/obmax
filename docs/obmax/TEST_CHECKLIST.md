@@ -26,3 +26,25 @@ Pour une install neuve, désinstaller d'abord toute version précédente d'OB Ma
 ## En cas d'échec
 
 Voir les commandes `logcat` de `SPIKE_REPORT.md` §4. Côté serveur, une ligne Caddy `TLS handshake error … client didn't provide a certificate` signe un problème de certificat.
+
+# OB Max 2.1.0 — recette (rattrapage Moonfin 3.0.0)
+
+À faire en **build release signé** (`tools/release.ps1 -Version 2.1.0 -NoPublish -MacOS -Windows`, depuis la branche `sync/upstream-3.0.0`). Avant de commencer, mettre à jour le plugin **Moonbase en 3.0.0** sur Jellyfin : Moonfin 3.0 le recommande, mais l'app ne l'exige pas. Détail du rattrapage : [`SYNC_REPORT_3.0.0.md`](SYNC_REPORT_3.0.0.md).
+
+**S2 est bloquant** : aucune publication tant qu'il n'est pas validé sur toutes les plateformes.
+
+| # | Test | Android tél. | Shield | Box 32 bits | Windows | Mac | Notes |
+|---|---|---|---|---|---|---|---|
+| S1 | Build OK, contrôle ABI de `release.ps1` passé, signature avec lignage vérifiée | ☐ | ☐ | ☐ | ☐ | ☐ | Récapitulatif de `release.ps1` : deux ABI par APK, aucune `.so` présente pour une seule ABI. |
+| S2 | **Mise à jour OTA depuis la 2.0.5** : certificat conservé, session conservée, pas de réactivation | ☐ | ☐ | ☐ | ☐ | ☐ | Le stockage des certificats est le même qu'en 2.0.5 (même fichier, mêmes clés). |
+| S3 | Installation neuve : activation par code, puis login | ☐ | ☐ | — | ☐ | ☐ | |
+| S4 | Lecture direct play, seek, reprise, sous-titres externes, pistes audio | ☐ | ☐ | ☐ | ☐ | ☐ | Windows : Moonfin 3.0 lit désormais dans la fenêtre native de mpv par défaut. |
+| S5 | 4K Dolby Vision fluide | — | ☐ | — | — | — | |
+| S6 | Lecture à distance (4G / hors LAN) sans coupure « Chargement… » | ☐ | — | — | ☐ | ☐ | |
+| S7 | Contrôle à distance depuis le web Jellyfin (WebSocket) | ☐ | ☐ | ☐ | ☐ | ☐ | |
+| S8 | Seerr : demande depuis un compte non admin | ☐ | ☐ | — | ☐ | ☐ | Statut « En attente » et notification Discord. |
+| S9 | Interface 100 % en français, aucune mention « Moonfin » hors Licences, fonctions masquées toujours absentes | ☐ | ☐ | ☐ | ☐ | ☐ | Absents : musique, livres, Live TV, jeux, RomM, Cast, lecteur externe, Plex, ajout de serveur. |
+| S10 | Nouveautés upstream classées « Garder » : fonctionnent avec le mTLS | ☐ | ☐ | ☐ | ☐ | ☐ | Lecteur : bouton Épisodes, décalages audio et sous-titres, deux sous-titres, nouvel écran Infos de lecture. Mini-lecteur (Mac, Windows). PIN synchronisé, QR Quick Connect. |
+| S11 | Panneau admin : visible pour un admin, masqué sinon | ☐ | ☐ | — | ☐ | ☐ | Panneau refait par Moonfin 3.0. |
+| S12 | Mac : mpv par défaut, choix utilisateur conservé | — | — | — | — | ☐ | Jamais touché → mpv ; désactivé à la main en 2.0.5 → reste désactivé. |
+| S13 | Dashboard Jellyfin : le client apparaît comme « OB Max », version 2.1.0 | ☐ | ☐ | ☐ | ☐ | ☐ | |
