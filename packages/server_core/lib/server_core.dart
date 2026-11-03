@@ -5,12 +5,15 @@
 library;
 
 export 'src/media_server_client.dart';
+export 'src/util/language_codes.dart';
+export 'src/util/server_date.dart';
 export 'src/models/server_type.dart';
 export 'src/models/device_info.dart';
 export 'src/models/enums.dart';
 export 'src/models/server_models.dart';
 export 'src/models/playback_models.dart';
 export 'src/models/system_models.dart';
+export 'src/models/access_schedule.dart';
 export 'src/models/user_policy.dart';
 export 'src/models/websocket_models.dart';
 export 'src/models/syncplay_models.dart';
@@ -41,6 +44,7 @@ export 'src/api/admin_api_keys_api.dart';
 export 'src/api/admin_backup_api.dart';
 export 'src/api/admin_live_tv_api.dart';
 export 'src/api/admin_items_api.dart';
+export 'src/api/emby_admin_api.dart';
 export 'src/api/client_log_api.dart';
 export 'src/models/admin_models.dart';
 export 'src/models/device_models.dart';

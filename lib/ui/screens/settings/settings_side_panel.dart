@@ -28,15 +28,17 @@ import '../../../data/services/topshelf_service.dart';
 import '../../../data/models/media_segment.dart';
 import '../../../data/utils/media_segment_actions.dart';
 import '../../../data/repositories/seerr_repository.dart';
+import '../../../data/repositories/user_views_repository.dart';
 import '../../../data/services/seerr/seerr_discover_sliders.dart';
 import '../../../di/providers.dart';
 import '../../../util/idiom/app_ui_idiom.dart';
-import '../../../util/insecure_certificates.dart';
 import '../../../platform/web_runtime_config.dart';
+import '../../../playback/apple_player_ui.dart';
 import '../../../playback/display_hdr_probe.dart';
 import '../../../util/focus/dpad_keys.dart';
 import '../../../util/focus/gamepad/gamepad_navigation_scope.dart';
 import '../../../util/language_codes.dart';
+import '../../../util/live_tv_library.dart';
 import '../../../util/locale_names.dart';
 import '../../util/home_row_title_localizer.dart';
 import '../../../util/overlay_color_palette.dart';
@@ -61,6 +63,7 @@ import '../../../playback/audio_capability_profile.dart';
 import '../../../playback/audio_capability_probe.dart';
 import '../../../playback/device_profile_builder.dart';
 import '../../../playback/external_player_service.dart';
+import '../../../playback/known_defects.dart';
 import '../../../playback/letterbox_croppers.dart';
 import '../../../preference/bottom_nav_tabs.dart';
 import '../../../preference/preference_constants.dart';
@@ -69,6 +72,7 @@ import '../../../preference/home_section_config.dart';
 import '../../../preference/seerr_preferences.dart';
 import '../../../preference/seerr_row_config.dart';
 import '../../navigation/destinations.dart';
+import '../admin/admin_nav.dart';
 import '../setup/setup_wizard_gate.dart';
 import '../../widgets/adaptive/adaptive_dialog.dart';
 import '../../widgets/adaptive/adaptive_list_section.dart';
@@ -116,6 +120,7 @@ import 'subtitle_settings_screen.dart';
 import '../../../preference/detail_metadata_layout.dart';
 import '../../../preference/detail_section_layout.dart';
 import '../detail/detail_buttons.dart';
+import '../detail/playlist_sort_filter_bar.dart';
 import '../playback/osd_buttons.dart';
 import '../syncplay/syncplay_screen.dart';
 
@@ -308,12 +313,11 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final kidsMode = ref.watch(kidsModeProvider);
-    // Every admin API throws on Emby, so the area is Jellyfin only.
     final showAdmin =
         !kidsMode &&
         (!PlatformDetection.isTV || ObMaxFeatures.adminOnTv) && // OBMAX
         ref.watch(isAdminProvider) &&
-        _activeServerType() == ServerType.jellyfin;
+        adminServerSupported();
     final enablePanelAutofocus = !PlatformDetection.useMobileUi;
 
     // Kids Mode leaves one entry standing. Hiding settings outright would
@@ -497,7 +501,3 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
     );
   }
 }
-
-ServerType? _activeServerType() => GetIt.instance.isRegistered<MediaServerClient>()
-    ? GetIt.instance<MediaServerClient>().serverType
-    : null;

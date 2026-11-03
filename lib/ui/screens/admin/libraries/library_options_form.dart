@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../admin_nav.dart';
 import '../widgets/admin_form_styles.dart';
 import 'admin_library_dialogs.dart';
 import 'library_options_defaults.dart';
@@ -79,6 +80,23 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
   bool get _hasEmbeddedTitles =>
       !const ['books', 'boxsets', 'playlists', 'music'].contains(_type);
 
+  /// Rows only Jellyfin has hide on Emby, and each Emby row shows when the
+  /// options carry its key.
+  bool get _emby => AdminServerScope.isEmby(context);
+
+  bool _has(String key) => _options.containsKey(key);
+
+  bool get _hasResumeOptions =>
+      _type == null ||
+      const [
+        'tvshows',
+        'movies',
+        'homevideos',
+        'musicvideos',
+        'mixed',
+        'audiobooks',
+      ].contains(_type);
+
   // ---- Downloaders ---------------------------------------------------------
 
   bool _anyTypeOffers(String key) => libraryProviders(_available['TypeOptions'])
@@ -136,10 +154,14 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
         ..._globalSection('SubtitleFetchers', 'DisabledSubtitleFetchers',
             'SubtitleFetcherOrder', l10n.adminLibSubtitleDownloaders,
             Icons.subtitles_outlined),
-      if (_type == 'music')
+      if (_type == 'music') ...[
         ..._globalSection('LyricFetchers', 'DisabledLyricFetchers',
             'LyricFetcherOrder', l10n.adminLibLyricDownloaders,
             Icons.lyrics_outlined),
+        ..._globalSection('LyricsFetchers', 'DisabledLyricsFetchers',
+            'LyricsFetcherOrder', l10n.adminLibLyricDownloaders,
+            Icons.lyrics_outlined),
+      ],
       ..._globalSection('MediaSegmentProviders', 'DisabledMediaSegmentProviders',
           'MediaSegmentProviderOrder', l10n.adminLibMediaSegmentProviders,
           Icons.segment),
@@ -335,14 +357,14 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
     final embedded = [
       if (_hasEmbeddedTitles) ...[
         _optionSwitch('EnableEmbeddedTitles', l10n.adminLibEmbeddedTitles),
-        if (embeddedTitles)
+        if (embeddedTitles && !_emby)
           _optionSwitch(
               'EnableEmbeddedExtrasTitles', l10n.adminLibEmbeddedExtrasTitles),
       ],
-      if (type == 'tvshows')
+      if (type == 'tvshows' && !_emby)
         _optionSwitch(
             'EnableEmbeddedEpisodeInfos', l10n.adminLibEmbeddedEpisodeInfos),
-      if (_hasSubtitleOptions) _buildEmbeddedSubtitles(l10n),
+      if (_hasSubtitleOptions && !_emby) _buildEmbeddedSubtitles(l10n),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,8 +374,9 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
           title: l10n.adminLibrarySectionGeneral,
           icon: Icons.tune,
           children: [
-            _optionSwitch('Enabled', l10n.adminLibEnableLibrary,
-                subtitle: l10n.adminLibEnableLibraryHelp, fallback: true),
+            if (!_emby)
+              _optionSwitch('Enabled', l10n.adminLibEnableLibrary,
+                  subtitle: l10n.adminLibEnableLibraryHelp, fallback: true),
             if (type == 'homevideos' || type == 'photos')
               _optionSwitch('EnablePhotos', l10n.adminLibEnablePhotos),
             _optionSwitch('EnableRealtimeMonitor', l10n.adminLibRealtimeMonitor,
@@ -361,6 +384,10 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
             if (_anyTypeOffers('ImageFetchers'))
               _optionSwitch(
                   'SaveLocalMetadata', l10n.adminLibSaveLocalMetadata),
+            if (_has('ImportPlaylists'))
+              _optionSwitch('ImportPlaylists', l10n.adminLibImportPlaylists),
+            if (_has('ExcludeFromSearch'))
+              _optionSwitch('ExcludeFromSearch', l10n.adminLibExcludeFromSearch),
           ],
         ),
         adminSection(
@@ -396,6 +423,9 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
                     l10n.adminLibSkipIfAudioMatches),
                 _optionSwitch('SkipSubtitlesIfEmbeddedSubtitlesPresent',
                     l10n.adminLibSkipIfEmbeddedSubs),
+                if (_has('ForcedSubtitlesOnly'))
+                  _optionSwitch('ForcedSubtitlesOnly',
+                      l10n.adminLibForcedSubtitlesOnly),
               ],
               _optionSwitch('SaveSubtitlesWithMedia',
                   l10n.adminLibSaveSubtitlesWithMedia),
@@ -407,16 +437,49 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
             title: l10n.adminLibrarySectionImages,
             icon: Icons.image_outlined,
             children: [
-              _optionSwitch('EnableTrickplayImageExtraction',
-                  l10n.adminLibTrickplayExtraction),
-              _optionSwitch('ExtractTrickplayImagesDuringLibraryScan',
-                  l10n.adminLibTrickplayDuringScan),
-              _optionSwitch('SaveTrickplayWithMedia',
-                  l10n.adminLibSaveTrickplayWithMedia),
+              for (final (key, label) in [
+                ('EnableTrickplayImageExtraction',
+                    l10n.adminLibTrickplayExtraction),
+                ('ExtractTrickplayImagesDuringLibraryScan',
+                    l10n.adminLibTrickplayDuringScan),
+                ('SaveTrickplayWithMedia', l10n.adminLibSaveTrickplayWithMedia),
+              ])
+                if (_has(key)) _optionSwitch(key, label),
               _optionSwitch('EnableChapterImageExtraction',
                   l10n.adminLibChapterImageExtraction),
               _optionSwitch('ExtractChapterImagesDuringLibraryScan',
                   l10n.adminLibChapterImagesDuringScan),
+              if (_has('ThumbnailImagesIntervalSeconds'))
+                _buildThumbnailInterval(l10n),
+              if (_has('SaveLocalThumbnailSets'))
+                _optionSwitch('SaveLocalThumbnailSets',
+                    l10n.adminLibSaveThumbnailsWithMedia),
+            ],
+          ),
+        if (_has('EnableMarkerDetection') &&
+            (type == null || type == 'tvshows'))
+          adminSection(
+            context,
+            title: l10n.adminLibrarySectionMarkers,
+            icon: Icons.skip_next_outlined,
+            children: [
+              _optionSwitch('EnableMarkerDetection', l10n.adminLibIntroDetection),
+              _optionSwitch('EnableMarkerDetectionDuringLibraryScan',
+                  l10n.adminLibIntroDetectionDuringScan),
+            ],
+          ),
+        if (_has('MinResumePct') && _hasResumeOptions)
+          adminSection(
+            context,
+            title: l10n.adminDrawerResume,
+            icon: Icons.play_circle_outline,
+            children: [
+              _intOption('MinResumePct', l10n.adminResumeMinPct,
+                  l10n.adminResumeMinPctSubtitle),
+              _intOption('MaxResumePct', l10n.adminResumeMaxPct,
+                  l10n.adminResumeMaxPctSubtitle),
+              _intOption('MinResumeDurationSeconds', l10n.adminResumeMinDuration,
+                  l10n.adminResumeMinDurationSubtitle),
             ],
           ),
         if (type == 'tvshows')
@@ -435,45 +498,48 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
             title: l10n.adminLibrarySectionMusic,
             icon: Icons.music_note,
             children: [
-              _optionSwitch('EnableLUFSScan', l10n.adminLibLufsScan),
+              if (_has('EnableLUFSScan'))
+                _optionSwitch('EnableLUFSScan', l10n.adminLibLufsScan),
               _optionSwitch(
                   'SaveLyricsWithMedia', l10n.adminLibSaveLyricsWithMedia),
-              _optionSwitch('PreferNonstandardArtistsTag',
-                  l10n.adminLibPreferNonstandardArtist),
-              _optionSwitch(
-                  'UseCustomTagDelimiters', l10n.adminLibUseCustomTagDelimiters),
-              adminFieldRow(
-                label: l10n.adminLibCustomTagDelimiters,
-                helper: l10n.adminLibCustomTagDelimitersHelp,
-                child: TextFormField(
-                  initialValue:
-                      _strings(_options['CustomTagDelimiters']).join(),
-                  decoration: adminInputDecoration(),
-                  // One delimiter per character.
-                  onChanged: (v) {
-                    _options['CustomTagDelimiters'] = v.split('');
-                    widget.onChanged();
-                  },
+              if (!_emby) ...[
+                _optionSwitch('PreferNonstandardArtistsTag',
+                    l10n.adminLibPreferNonstandardArtist),
+                _optionSwitch(
+                    'UseCustomTagDelimiters', l10n.adminLibUseCustomTagDelimiters),
+                adminFieldRow(
+                  label: l10n.adminLibCustomTagDelimiters,
+                  helper: l10n.adminLibCustomTagDelimitersHelp,
+                  child: TextFormField(
+                    initialValue:
+                        _strings(_options['CustomTagDelimiters']).join(),
+                    decoration: adminInputDecoration(),
+                    // One delimiter per character.
+                    onChanged: (v) {
+                      _options['CustomTagDelimiters'] = v.split('');
+                      widget.onChanged();
+                    },
+                  ),
                 ),
-              ),
-              adminFieldRow(
-                label: l10n.adminLibDelimiterWhitelist,
-                helper: l10n.adminLibDelimiterWhitelistHelp,
-                child: TextFormField(
-                  initialValue:
-                      _strings(_options['DelimiterWhitelist']).join('\n'),
-                  decoration: adminInputDecoration(),
-                  minLines: 2,
-                  maxLines: 6,
-                  onChanged: (v) {
-                    _options['DelimiterWhitelist'] = v
-                        .split('\n')
-                        .where((line) => line.trim().isNotEmpty)
-                        .toList();
-                    widget.onChanged();
-                  },
+                adminFieldRow(
+                  label: l10n.adminLibDelimiterWhitelist,
+                  helper: l10n.adminLibDelimiterWhitelistHelp,
+                  child: TextFormField(
+                    initialValue:
+                        _strings(_options['DelimiterWhitelist']).join('\n'),
+                    decoration: adminInputDecoration(),
+                    minLines: 2,
+                    maxLines: 6,
+                    onChanged: (v) {
+                      _options['DelimiterWhitelist'] = v
+                          .split('\n')
+                          .where((line) => line.trim().isNotEmpty)
+                          .toList();
+                      widget.onChanged();
+                    },
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         if (type == 'movies' || type == 'mixed')
@@ -482,8 +548,11 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
             title: l10n.adminLibrarySectionMovies,
             icon: Icons.movie_outlined,
             children: [
-              _optionSwitch('AutomaticallyAddToCollection',
-                  l10n.adminLibAutoAddToCollection),
+              if (_emby)
+                _optionSwitch('ImportCollections', l10n.adminLibImportCollections)
+              else
+                _optionSwitch('AutomaticallyAddToCollection',
+                    l10n.adminLibAutoAddToCollection),
             ],
           ),
       ],
@@ -497,6 +566,49 @@ class _LibraryOptionsFormState extends State<LibraryOptionsForm> {
       subtitle: subtitle,
       value: _options[key] as bool? ?? fallback,
       onChanged: (v) => _set(key, v),
+    );
+  }
+
+  /// The server needs a number, so a blank or bad entry keeps the stored one.
+  Widget _intOption(String key, String label, String helper) {
+    return adminFieldRow(
+      label: label,
+      helper: helper,
+      child: TextFormField(
+        initialValue: '${_options[key] ?? ''}',
+        decoration: adminInputDecoration(),
+        keyboardType: TextInputType.number,
+        onChanged: (v) {
+          final value = int.tryParse(v.trim());
+          if (value == null) return;
+          _options[key] = value;
+          widget.onChanged();
+        },
+      ),
+    );
+  }
+
+  /// Emby takes seconds between thumbnails, or -1 for one per chapter.
+  Widget _buildThumbnailInterval(AppLocalizations l10n) {
+    final current =
+        (_options['ThumbnailImagesIntervalSeconds'] as num?)?.toInt() ?? -1;
+    return adminFieldRow(
+      label: l10n.adminLibThumbnailInterval,
+      child: DropdownButtonFormField<int>(
+        initialValue: current,
+        isExpanded: true,
+        decoration: adminInputDecoration(),
+        items: [
+          for (final s in {10, -1, current})
+            DropdownMenuItem(
+              value: s,
+              child: Text(s < 0
+                  ? l10n.adminLibThumbnailAtChapters
+                  : l10n.adminLibThumbnailEverySeconds(s)),
+            ),
+        ],
+        onChanged: (v) => _set('ThumbnailImagesIntervalSeconds', v ?? -1),
+      ),
     );
   }
 

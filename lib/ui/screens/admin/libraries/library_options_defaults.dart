@@ -16,6 +16,8 @@ const _typeProviderKeys = [
 const _globalProviderKeys = [
   ('SubtitleFetchers', 'DisabledSubtitleFetchers', 'SubtitleFetcherOrder'),
   ('LyricFetchers', 'DisabledLyricFetchers', 'LyricFetcherOrder'),
+  // Emby spells its lyric keys with "Lyrics".
+  ('LyricsFetchers', 'DisabledLyricsFetchers', 'LyricsFetcherOrder'),
   (
     'MediaSegmentProviders',
     'DisabledMediaSegmentProviders',
@@ -24,9 +26,15 @@ const _globalProviderKeys = [
 ];
 
 /// The options a new library gets when nothing is touched. The server stores
-/// a new library's options as sent, so this is the full set.
+/// a new library's options as sent, so this is the full set. Emby sends its
+/// own in `DefaultLibraryOptions`.
 Map<String, dynamic> newLibraryOptions(Map<String, dynamic> available) =>
-    seedLibraryOptions({
+    seedLibraryOptions(switch (available['DefaultLibraryOptions']) {
+      final Map defaults => Map<String, dynamic>.from(defaults),
+      _ => _jellyfinNewLibraryOptions(),
+    }, available);
+
+Map<String, dynamic> _jellyfinNewLibraryOptions() => {
       'Enabled': true,
       'EnablePhotos': true,
       'EnableRealtimeMonitor': true,
@@ -59,7 +67,7 @@ Map<String, dynamic> newLibraryOptions(Map<String, dynamic> available) =>
       'CustomTagDelimiters': ['/', '|', ';', r'\'],
       'DelimiterWhitelist': <String>[],
       'TypeOptions': <Map<String, dynamic>>[],
-    }, available);
+    };
 
 /// Writes the effective provider lists into [options] (in place) and returns
 /// it. Stored lists win, unset ones take the DefaultEnabled providers, and

@@ -1,10 +1,11 @@
-import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../l10n/current_app_localizations.dart';
+import '../../preference/preference_constants.dart';
 import '../models/aggregated_item.dart';
 import '../models/home_row.dart';
 import '../services/row_data_source.dart';
@@ -13,17 +14,49 @@ import '../services/row_data_source.dart';
 /// mixed libraries; single-format libraries always behave like [all].
 enum BookScope { all, books, audiobooks, comics }
 
-class BookBrowseViewModel extends ChangeNotifier {
+/// What the view model pages in from the server: the titles, which follow the
+/// format filter, or the collections holding books.
+enum BookPane { titles, collections }
+
+/// A library's favorites, split the way the Favorites screen shows them.
+typedef BookFavorites = ({
+  List<AggregatedItem> titles,
+  List<AggregatedItem> series,
+  List<AggregatedItem> authors,
+});
+
+typedef _PanePage = ({List<AggregatedItem> items, int read, bool hasMore});
+
+class BookBrowseViewModel extends ChangeNotifier with BookLibraryHelpers {
   final RowDataSource _dataSource;
   final MediaServerClient _client;
   final String libraryId;
 
-  // shortcut: series past the first 5000 titles go ungrouped, page the query
-  // if a library that large shows up.
-  static const _seriesSourceLimit = 5000;
+  // shortcut: titles past the first 5000 are left out of the counts, series
+  // and authors, page the query if a library that large shows up.
+  static const _titleScanLimit = 5000;
 
-  List<HomeRow> _rows = [];
-  List<HomeRow> get rows => _rows;
+  /// The sorts the title grid offers, in menu order.
+  static const titleSorts = [
+    LibrarySortBy.dateAdded,
+    LibrarySortBy.name,
+    LibrarySortBy.premiereDate,
+    LibrarySortBy.datePlayed,
+    LibrarySortBy.random,
+  ];
+
+  static const _panePageSize = 60;
+  static const _previewSize = 6;
+  // shortcut: a library with more authors or favorites than this shows the
+  // first ones, page these if one shows up.
+  static const _listLimit = 1000;
+  // Each collection costs a request to check that it holds books.
+  static const _collectionPageSize = 20;
+  static const _paneFields =
+      'DateCreated,Type,UserData,RunTimeTicks,ProductionYear,SeriesName,'
+      'ParentId,Path,People,AlbumArtist,Artists,ChildCount,ImageTags,'
+      'SeriesId,SeriesPrimaryImageTag,PrimaryImageAspectRatio';
+  static const _collectionFields = '$_paneFields,Overview';
 
   bool _isLoading = true;
   bool get isLoading => _isLoading;
@@ -34,77 +67,117 @@ class BookBrowseViewModel extends ChangeNotifier {
   String? _collectionType;
   String? get collectionType => _collectionType;
 
+  @override
   bool get isAudiobookLibrary => _collectionType == 'audiobooks';
 
-  BookScope _scope = BookScope.all;
+  BookScope _scope;
+  @override
   BookScope get scope => _scope;
 
   int _bookCount = 0;
+  @override
   int get bookCount => _bookCount;
   int _audiobookCount = 0;
+  @override
   int get audiobookCount => _audiobookCount;
   int _comicCount = 0;
+  @override
   int get comicCount => _comicCount;
 
-  /// True when the library holds 2 or more formats (books, audiobooks, comics),
-  /// which enables the scope filter and the per-format rows.
-  bool get isMixedLibrary {
-    if (isAudiobookLibrary) return false;
-    var count = 0;
-    if (_bookCount > 0) count++;
-    if (_audiobookCount > 0) count++;
-    if (_comicCount > 0) count++;
-    return count >= 2;
-  }
-
-  /// The active formats available in this library.
-  List<BookScope> get availableScopes => [
-    BookScope.all,
-    if (_bookCount > 0) BookScope.books,
-    if (_audiobookCount > 0) BookScope.audiobooks,
-    if (_comicCount > 0) BookScope.comics,
-  ];
-
-  AggregatedItem? _featured;
-  AggregatedItem? get featuredItem => _featured;
-
   int _titleCount = 0;
+  @override
   int get titleCount => _titleCount;
   int _genreCount = 0;
+  @override
   int get genreCount => _genreCount;
-  int _seriesCount = 0;
-  int get seriesCount => _seriesCount;
+  List<AggregatedItem> _genrePreview = const [];
+  List<AggregatedItem> get genrePreview => _genrePreview;
+
+  // The browse entries list the whole library whatever the format filter
+  // says, and so do their counts.
+  List<AggregatedItem> _titles = const [];
+  List<AggregatedItem> _allSeries = const [];
+  List<AggregatedItem> get allSeries => _allSeries;
+  @override
+  int get seriesCount => _allSeries.length;
   int _authorCount = 0;
-  int get authorCount {
-    final scoped = _scopedAuthorsRow();
-    if (scoped != null) {
-      return scoped.totalCount > 0 ? scoped.totalCount : scoped.items.length;
-    }
-    return _authorCount;
+  @override
+  int get authorCount => _authorCount;
+  List<AggregatedItem> _artists = const [];
+  Map<String, int> _authorTitles = const {};
+
+  List<AggregatedItem> get authorPreview =>
+      [..._artists, ..._extraAuthors].take(_previewSize).toList();
+
+  int authorTitleCount(AggregatedItem author) =>
+      _authorTitles[author.name.toLowerCase()] ?? 0;
+
+  List<AggregatedItem> _authors = const [];
+
+  /// Every author once [loadAuthors] is done: the library's artists and the
+  /// people credited as authors on its titles, by name.
+  List<AggregatedItem> get authors => _authors;
+  bool _authorsLoaded = false;
+  bool get authorsLoaded => _authorsLoaded;
+
+  Map<String, List<AggregatedItem>>? _titlesByGenre;
+
+  /// Each genre on the library's titles, with its titles newest first.
+  Map<String, List<AggregatedItem>> get titlesByGenre =>
+      _titlesByGenre ??= _groupByGenre();
+
+  @override
+  int get favoriteCount {
+    final row = _favoritesRow;
+    if (row == null) return 0;
+    return row.totalCount > 0 ? row.totalCount : row.items.length;
   }
 
-  // Source rows kept unfiltered so scope switches recompose without refetch.
+  @override
+  int get collectionCount => _collectionsRow?.items.length ?? 0;
+
+  /// Only the first collections get checked for books at load, so the count
+  /// is a floor while more are left unchecked.
+  bool get collectionCountIsFloor =>
+      (_collectionsRow?.totalCount ?? 0) > _collectionsChecked;
+  int _collectionsChecked = 0;
+
+  HomeRow? get resumeRow => _resumeRow;
+
+  BookPane _pane;
+  BookPane get pane => _pane;
+
+  LibrarySortBy _titleSort;
+  LibrarySortBy get titleSort => _titleSort;
+
+  String? _genre;
+
+  /// The one genre the titles are filtered to, or null for every genre.
+  String? get genre => _genre;
+
+  List<AggregatedItem> _paneItems = const [];
+  List<AggregatedItem> get paneItems => _paneItems;
+  final Set<String> _paneIds = {};
+  bool _paneLoading = false;
+  bool get paneLoading => _paneLoading;
+  bool _paneHasMore = false;
+  bool get paneHasMore => _paneHasMore;
+
+  // Server rows read so far, which is where the next page starts. It runs
+  // ahead of what's shown when a pane drops rows, like comics in the books
+  // scope.
+  int _paneFetched = 0;
+  int _paneGeneration = 0;
+  bool _paneUntyped = false;
+  List<AggregatedItem> _extraAuthors = const [];
+  bool _disposed = false;
+
   HomeRow? _resumeRow;
-  HomeRow? _latestBooksRow;
-  HomeRow? _latestAudiobooksRow;
-  HomeRow? _latestComicsRow;
-  HomeRow? _lastPlayedRow;
-  HomeRow? _authorsRow;
-  HomeRow? _genresRow;
   HomeRow? _collectionsRow;
   HomeRow? _favoritesRow;
-  HomeRow? _allRow;
-  HomeRow? _allBooksRow;
-  HomeRow? _allAudiobooksRow;
-  HomeRow? _allComicsRow;
-  Set<String> _bookAuthorNames = const {};
-  Set<String> _bookAuthorIds = const {};
-  Set<String> _audioAuthorNames = const {};
-  Set<String> _audioAuthorIds = const {};
-  List<AggregatedItem> _seriesSource = const [];
-  List<AggregatedItem> _folders = const [];
 
   String get _serverId => _client.baseUrl;
+  @override
   ImageApi get imageApi => _dataSource.imageApi;
 
   BookBrowseViewModel({
@@ -112,109 +185,15 @@ class BookBrowseViewModel extends ChangeNotifier {
     required RowDataSource dataSource,
     required MediaServerClient client,
     String? collectionType,
+    BookScope scope = BookScope.all,
+    BookPane pane = BookPane.titles,
+    LibrarySortBy titleSort = LibrarySortBy.dateAdded,
   }) : _dataSource = dataSource, // ignore: prefer_initializing_formals
        _client = client, // ignore: prefer_initializing_formals
-       _collectionType = collectionType; // ignore: prefer_initializing_formals
-
-  String get _latestBooksRowId => 'latestBooks_$libraryId';
-  String get _latestAudiobooksRowId => 'latestAudiobooks_$libraryId';
-  String get _latestComicsRowId => 'latestComics_$libraryId';
-  String get _allComicsRowId => 'allComics_$libraryId';
-  String get _lastPlayedRowId => 'lastPlayed_$libraryId';
-  String get _seriesRowId => 'bookSeries_$libraryId';
-  String get _favoritesRowId => 'favorites_$libraryId';
-  String get _allRowId => 'allTitles_$libraryId';
-
-  List<String> get _audiobookTypes =>
-      isAudiobookLibrary ? const ['AudioBook', 'Audio'] : const ['AudioBook'];
-
-  /// Types for whole-library queries. Books libraries include AudioBook so
-  /// audiobooks shelved in a books library are visible. Note: Jellyfin treats
-  /// comics as Book types, so Comic is partitioned client-side.
-  List<String> get combinedTypes =>
-      isAudiobookLibrary
-          ? const ['AudioBook', 'Audio']
-          : const ['Book', 'AudioBook'];
-
-  /// Types matching the active scope, for See-all navigation and genre routes.
-  List<String> get scopedTypes {
-    if (isAudiobookLibrary) return _audiobookTypes;
-    return switch (_scope) {
-      BookScope.books => const ['Book'],
-      BookScope.audiobooks => _audiobookTypes,
-      BookScope.comics => const ['Book'],
-      BookScope.all => combinedTypes,
-    };
-  }
-
-  /// Whether [item] is an audiobook (vs a regular book or comic). Explicit
-  /// server types win; the heuristic only breaks ties for bare audio items.
-  bool isAudiobookItem(AggregatedItem item) {
-    if (item.isComic) return false;
-    final type = item.type;
-    if (type == 'AudioBook' || type == 'Audio') return true;
-    if (type == 'Book') return false;
-    return item.isAudiobook;
-  }
-
-  bool isComicItem(AggregatedItem item) => item.isComic;
-
-  bool isBookItem(AggregatedItem item) => !isAudiobookItem(item) && !item.isComic;
-
-  /// See all on the series row opens the library's folders, where each series
-  /// folder is one entry, rather than a grid of every volume.
-  bool isSeriesRow(HomeRow row) => row.id == _seriesRowId;
-
-  /// Item types the See-all grid should show for [row]. Lives here so the
-  /// mapping sits next to where the row ids are minted.
-  List<String> seeAllTypesFor(HomeRow row) {
-    if (row.id == _latestBooksRowId || row.id.startsWith('allBooks_')) return const ['Book'];
-    if (row.id == _latestAudiobooksRowId ||
-        row.id == _lastPlayedRowId ||
-        row.id.startsWith('allAudiobooks_')) {
-      return _audiobookTypes;
-    }
-    // Comic is not a type the server knows, so asking for it is rejected.
-    // Book is the type comics carry and the nearest the grid can request.
-    if (row.id == _latestComicsRowId || row.id == _allComicsRowId) {
-      return const ['Book'];
-    }
-    return scopedTypes;
-  }
-
-  /// Whether [row] can hold both formats at once, which is when cards show
-  /// the format badge.
-  bool rowCanMixFormats(HomeRow row) {
-    if (!isMixedLibrary || _scope != BookScope.all) return false;
-    return row.rowType == HomeRowType.resume ||
-        row.id == _favoritesRowId ||
-        row.id == _allRowId;
-  }
-
-  static int _bySortName(AggregatedItem a, AggregatedItem b) =>
-      (a.sortName ?? a.name).toLowerCase().compareTo(
-        (b.sortName ?? b.name).toLowerCase(),
-      );
-
-  bool _matchesScope(AggregatedItem item) => switch (_scope) {
-    BookScope.all => true,
-    BookScope.books => isBookItem(item),
-    BookScope.audiobooks => isAudiobookItem(item),
-    BookScope.comics => isComicItem(item),
-  };
-
-  /// Time left in an audiobook (or book with server progress); null without
-  /// runtime or progress.
-  Duration? remainingFor(AggregatedItem item) {
-    final runtime = item.runtime;
-    if (runtime == null) return null;
-    final pct = item.playedPercentage;
-    if (pct == null || pct <= 0) return runtime;
-    if (pct >= 100) return Duration.zero;
-    return Duration(
-      microseconds: (runtime.inMicroseconds * (1.0 - pct / 100.0)).round(),
-    );
-  }
+       _collectionType = collectionType, // ignore: prefer_initializing_formals
+       _scope = scope, // ignore: prefer_initializing_formals
+       _pane = pane, // ignore: prefer_initializing_formals
+       _titleSort = titleSort; // ignore: prefer_initializing_formals
 
   Future<void> load() async {
     _isLoading = true;
@@ -230,502 +209,533 @@ class BookBrowseViewModel extends ChangeNotifier {
       }
     } catch (_) {}
 
+    // The grid asks for the library's types, so it starts once they're known.
+    unawaited(reloadPane());
+
     try {
-      final resumeTitle = isAudiobookLibrary
-          ? l10n.continueListening
-          : l10n.continueReading;
       final resumeF = _dataSource.loadBookResume(
         libraryId,
         _serverId,
         includeItemTypes: combinedTypes,
-        title: resumeTitle,
+        title: isAudiobookLibrary
+            ? l10n.continueListening
+            : l10n.continueReading,
       );
-      final latestBooksF = isAudiobookLibrary
-          ? null
-          : _dataSource.loadLibraryItemsByType(
-              libraryId,
-              _serverId,
-              title: l10n.latestBooks,
-              includeItemTypes: const ['Book'],
-              sortBy: 'DateCreated',
-              sortOrder: 'Descending',
-            );
-      final latestAudiobooksF = _dataSource.loadLibraryItemsByType(
-        libraryId,
-        _serverId,
-        title: l10n.latestAudiobooks,
-        includeItemTypes: _audiobookTypes,
-        sortBy: 'DateCreated',
-        sortOrder: 'Descending',
-      );
-      final lastPlayedF = isAudiobookLibrary
-          ? _dataSource.loadLibraryLastPlayed(
-              libraryId,
-              _serverId,
-              includeItemTypes: _audiobookTypes,
-            )
-          : null;
-      final authorsF = _dataSource.loadBookAuthors(libraryId, _serverId);
+      final artistsF = _dataSource.loadBookAuthors(libraryId, _serverId);
       final favoritesF = _dataSource.loadLibraryFavorites(
         libraryId,
         _serverId,
         includeItemTypes: combinedTypes,
       );
-      final genresF = _dataSource.loadGenres(
-        _serverId,
-        includeItemTypes: combinedTypes,
-        parentId: libraryId,
-      );
       final collectionsF = _loadBookCollections();
-      final allBooksF = isAudiobookLibrary
-          ? null
-          : _dataSource.loadLibraryItemsByType(
-              libraryId,
-              _serverId,
-              title: l10n.books,
-              includeItemTypes: const ['Book'],
-              sortBy: 'SortName',
-            );
-      final allAudiobooksF = _dataSource.loadLibraryItemsByType(
-        libraryId,
-        _serverId,
-        title: l10n.audiobooks,
-        includeItemTypes: _audiobookTypes,
-        sortBy: 'SortName',
-      );
-      final allF = _dataSource.loadLibraryItemsByType(
-        libraryId,
-        _serverId,
-        title: isAudiobookLibrary ? l10n.audiobooks : l10n.books,
-        includeItemTypes: combinedTypes,
-        sortBy: 'SortName',
-      );
-      final seriesSourceF = _loadSeriesSource();
+      final genresF = _loadGenres();
+      final titlesF = _loadTitles();
       final foldersF = _loadFolders();
-      final bookCountF = isAudiobookLibrary
-          ? Future.value(0)
-          : _countOf(const ['Book']);
-      final audiobookCountF = _countOf(_audiobookTypes);
 
       await Future.wait([
         resumeF,
-        ?latestBooksF,
-        latestAudiobooksF,
-        ?lastPlayedF,
-        authorsF,
+        artistsF,
         favoritesF,
-        genresF,
         collectionsF,
-        ?allBooksF,
-        allAudiobooksF,
-        allF,
-        seriesSourceF,
+        genresF,
+        titlesF,
         foldersF,
-        bookCountF,
-        audiobookCountF,
       ]);
 
       _resumeRow = await resumeF;
-      _allRow = (await allF).copyWith(id: _allRowId);
-      final allItems = _allRow?.items ?? const <AggregatedItem>[];
-
-      var latestBooks = await latestBooksF;
-      var allBooks = await allBooksF;
-      // Comics are Book typed on the server, so the book responses already
-      // carry them and no separate request is needed to find them.
-      final comicsByRecency = (latestBooks?.items ?? const <AggregatedItem>[])
-          .where(isComicItem)
-          .toList();
-      if (latestBooks != null) {
-        final filteredBooks = latestBooks.items.where(isBookItem).toList();
-        latestBooks = latestBooks.copyWith(items: filteredBooks);
-        _latestBooksRow = latestBooks.copyWith(id: _latestBooksRowId);
-      } else {
-        _latestBooksRow = null;
-      }
-
-      if (allBooks != null) {
-        final filteredBooks = allBooks.items.where(isBookItem).toList();
-        if (filteredBooks.isEmpty && (latestBooks?.items.isNotEmpty == true)) {
-          allBooks = allBooks.copyWith(items: latestBooks!.items);
-        } else {
-          allBooks = allBooks.copyWith(items: filteredBooks);
-        }
-        _allBooksRow = allBooks.copyWith(id: 'allBooks_$libraryId', title: l10n.books);
-      } else if (latestBooks != null && latestBooks.items.isNotEmpty) {
-        _allBooksRow = latestBooks.copyWith(id: 'allBooks_$libraryId', title: l10n.books);
-      } else {
-        _allBooksRow = null;
-      }
-
-      var latestAudio = await latestAudiobooksF;
-      var allAudio = await allAudiobooksF;
-      final filteredAudio = latestAudio.items.where(isAudiobookItem).toList();
-      latestAudio = latestAudio.copyWith(items: filteredAudio);
-      _latestAudiobooksRow = latestAudio.copyWith(id: _latestAudiobooksRowId);
-
-      final filteredAllAudio = allAudio.items.where(isAudiobookItem).toList();
-      if (filteredAllAudio.isEmpty && latestAudio.items.isNotEmpty) {
-        allAudio = allAudio.copyWith(items: latestAudio.items);
-      } else {
-        allAudio = allAudio.copyWith(items: filteredAllAudio);
-      }
-      _allAudiobooksRow = allAudio.copyWith(id: 'allAudiobooks_$libraryId', title: l10n.audiobooks);
-
-      final booksFromAll = _allBooksRow?.items ?? const <AggregatedItem>[];
-      final audioFromAll = _allAudiobooksRow?.items ?? const <AggregatedItem>[];
-      final comicsFromAll = allItems.where(isComicItem).toList();
-
-      // Comics belong here too, and totalCount stays the server's because
-      // these items are one page of the library rather than all of it.
-      final combinedAllItems = [
-        ...booksFromAll,
-        ...audioFromAll,
-        ...comicsFromAll,
-      ]..sort(_bySortName);
-      if (combinedAllItems.isNotEmpty) {
-        _allRow = _allRow!.copyWith(items: combinedAllItems);
-      }
-
-      final comicsById = <String, AggregatedItem>{
-        for (final comic in [...comicsByRecency, ...comicsFromAll])
-          comic.id: comic,
-      };
-      if (isAudiobookLibrary || comicsById.isEmpty) {
-        _latestComicsRow = null;
-        _allComicsRow = null;
-      } else {
-        _latestComicsRow = HomeRow(
-          id: _latestComicsRowId,
-          title: l10n.latestComics,
-          items: comicsByRecency.isNotEmpty
-              ? comicsByRecency
-              : comicsById.values.toList(),
-          rowType: HomeRowType.latestMedia,
-          totalCount: comicsById.length,
-        );
-        final byName = comicsById.values.toList()..sort(_bySortName);
-        _allComicsRow = HomeRow(
-          id: _allComicsRowId,
-          title: l10n.comics,
-          items: byName,
-          rowType: HomeRowType.latestMedia,
-          totalCount: byName.length,
-        );
-      }
-
-      _lastPlayedRow = lastPlayedF == null ? null : await lastPlayedF;
-
-      final bookAuthorNames = <String>{};
-      final bookAuthorIds = <String>{};
-      for (final book in booksFromAll) {
-        final people = book.rawData['People'] as List?;
-        if (people != null) {
-          for (final p in people) {
-            if (p is Map && (p['Type'] == 'Author' || p['Role'] == 'Author')) {
-              final name = p['Name'] as String?;
-              final id = p['Id'] as String?;
-              if (name != null) bookAuthorNames.add(name.toLowerCase());
-              if (id != null) bookAuthorIds.add(id);
-            }
-          }
-        }
-        final artist = book.rawData['AlbumArtist'] as String?;
-        if (artist != null) bookAuthorNames.add(artist.toLowerCase());
-        final artists = book.rawData['Artists'] as List?;
-        if (artists != null) {
-          for (final a in artists) {
-            if (a is String) bookAuthorNames.add(a.toLowerCase());
-          }
-        }
-      }
-
-      final audioAuthorNames = <String>{};
-      final audioAuthorIds = <String>{};
-      for (final audio in audioFromAll) {
-        final artistItems = audio.rawData['ArtistItems'] as List?;
-        if (artistItems != null) {
-          for (final a in artistItems) {
-            if (a is Map) {
-              final name = a['Name'] as String?;
-              final id = a['Id'] as String?;
-              if (name != null) audioAuthorNames.add(name.toLowerCase());
-              if (id != null) audioAuthorIds.add(id);
-            }
-          }
-        }
-        final artist = audio.rawData['AlbumArtist'] as String?;
-        if (artist != null) audioAuthorNames.add(artist.toLowerCase());
-        final artists = audio.rawData['Artists'] as List?;
-        if (artists != null) {
-          for (final a in artists) {
-            if (a is String) audioAuthorNames.add(a.toLowerCase());
-          }
-        }
-        final people = audio.rawData['People'] as List?;
-        if (people != null) {
-          for (final p in people) {
-            if (p is Map && (p['Type'] == 'Author' || p['Role'] == 'Author')) {
-              final name = p['Name'] as String?;
-              final id = p['Id'] as String?;
-              if (name != null) audioAuthorNames.add(name.toLowerCase());
-              if (id != null) audioAuthorIds.add(id);
-            }
-          }
-        }
-      }
-
-      _bookAuthorNames = bookAuthorNames;
-      _bookAuthorIds = bookAuthorIds;
-      _audioAuthorNames = audioAuthorNames;
-      _audioAuthorIds = audioAuthorIds;
-
-      var authors = await authorsF;
-      final existingAuthorNames =
-          authors.items.map((a) => a.name.toLowerCase()).toSet();
-      final extraAuthors = <AggregatedItem>[];
-      for (final item in [...booksFromAll, ...allItems]) {
-        final people = item.rawData['People'] as List?;
-        if (people == null) continue;
-        for (final p in people) {
-          if (p is Map && (p['Type'] == 'Author' || p['Role'] == 'Author')) {
-            final name = p['Name'] as String?;
-            final id = p['Id'] as String?;
-            if (name != null &&
-                name.isNotEmpty &&
-                !existingAuthorNames.contains(name.toLowerCase())) {
-              existingAuthorNames.add(name.toLowerCase());
-              final primaryTag = p['PrimaryImageTag'] as String?;
-              extraAuthors.add(AggregatedItem(
-                id: id ?? name,
-                serverId: _serverId,
-                rawData: {
-                  'Id': id ?? name,
-                  'Name': name,
-                  'Type': 'Person',
-                  if (primaryTag != null) 'ImageTags': {'Primary': primaryTag},
-                },
-              ));
-            }
-          }
-        }
-      }
-      if (extraAuthors.isNotEmpty) {
-        final combinedAuthors = [...authors.items, ...extraAuthors]
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-        authors = authors.copyWith(
-          items: combinedAuthors,
-          totalCount: combinedAuthors.length,
-        );
-      }
-      _authorsRow = authors;
       _favoritesRow = await favoritesF;
-      _genresRow = await genresF;
       _collectionsRow = await collectionsF;
-      _seriesSource = await seriesSourceF;
-      _folders = await foldersF;
+      final genres = await genresF;
+      _genrePreview = genres.items;
+      _genreCount = genres.total;
 
-      // The server counts comics as books, so a library holding nothing but
-      // comics would otherwise offer a Books tab with nothing behind it.
-      _bookCount = booksFromAll.isEmpty
-          ? 0
-          : math.max(await bookCountF, booksFromAll.length);
-      _audiobookCount = math.max(await audiobookCountF, audioFromAll.length);
-      _comicCount = comicsById.length;
+      final titles = await titlesF;
+      _titles = titles;
+      _titlesByGenre = null;
+      _titleCount = titles.length;
+      _bookCount = titles.where(isBookItem).length;
+      _audiobookCount = titles.where(isAudiobookItem).length;
+      _comicCount = titles.where(isComicItem).length;
+      _allSeries = bookSeriesEntries(books: titles, folders: await foldersF);
 
-      final resume = _resumeRow!;
-      _featured = resume.items.isNotEmpty
-          ? resume.items.first
-          : (_latestBooksRow?.items.firstOrNull ??
-                _latestAudiobooksRow?.items.firstOrNull ??
-                _latestComicsRow?.items.firstOrNull);
-      final all = _allRow!;
-      _titleCount = all.totalCount > 0 ? all.totalCount : all.items.length;
-      _genreCount = _genresRow?.items.length ?? 0;
-      _authorCount = (_authorsRow?.totalCount ?? 0) > 0
-          ? _authorsRow!.totalCount
-          : (_authorsRow?.items.length ?? 0);
+      _authorTitles = _tallyAuthorTitles(titles);
+      final artists = await artistsF;
+      _artists = artists.items;
+      _extraAuthors = _peopleAuthors(
+        titles,
+        known: {for (final artist in artists.items) artist.name.toLowerCase()},
+      );
+      _authorCount =
+          (artists.totalCount > 0 ? artists.totalCount : artists.items.length) +
+          _extraAuthors.length;
+
       // A refresh can drop the format the user was on, and leaving the scope
       // there strands them on a tab the filter no longer offers.
-      if (!availableScopes.contains(_scope)) {
+      if (_scope != BookScope.all &&
+          (!isMixedLibrary || !availableScopes.contains(_scope))) {
         _scope = BookScope.all;
+        if (_pane == BookPane.titles) unawaited(reloadPane());
       }
-      _composeRows();
     } catch (_) {}
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> refresh() async {
-    _rows = [];
-    notifyListeners();
-    await load();
-  }
-
   void setScope(BookScope value) {
     if (_scope == value) return;
     _scope = value;
-    _composeRows();
+    notifyListeners();
+    if (_pane == BookPane.titles) unawaited(reloadPane());
+  }
+
+  void setPane(BookPane value) {
+    if (_pane == value) return;
+    _pane = value;
+    unawaited(reloadPane());
+  }
+
+  void setTitleSort(LibrarySortBy value) {
+    if (_titleSort == value) return;
+    _titleSort = value;
+    if (_pane == BookPane.titles) {
+      unawaited(reloadPane());
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void setGenre(String? value) {
+    if (_genre == value) return;
+    _genre = value;
+    if (_pane == BookPane.titles) {
+      unawaited(reloadPane());
+    } else {
+      notifyListeners();
+    }
+  }
+
+  Future<void> reloadPane() {
+    _paneGeneration++;
+    _paneItems = const [];
+    _paneIds.clear();
+    _paneFetched = 0;
+    _paneHasMore = true;
+    _paneUntyped = false;
+    // A page still loading belongs to the old list and won't clear this.
+    _paneLoading = false;
+    return loadMorePane();
+  }
+
+  Future<void> loadMorePane() async {
+    if (_paneLoading || !_paneHasMore || _disposed) return;
+    final generation = _paneGeneration;
+    _paneLoading = true;
+    notifyListeners();
+    final added = <AggregatedItem>[];
+    try {
+      // A page can hold nothing this pane keeps, like a page of comics in the
+      // books scope, so keep reading until one adds something or the source
+      // runs out.
+      while (added.isEmpty && _paneHasMore) {
+        final page = await _fetchPanePage(_paneFetched);
+        if (_disposed || generation != _paneGeneration) return;
+        _paneFetched += page.read;
+        _paneHasMore = page.hasMore && page.read > 0;
+        for (final item in page.items) {
+          // A random sort reshuffles on every request, so its pages overlap.
+          if (_paneIds.add(item.id)) added.add(item);
+        }
+      }
+    } catch (_) {
+      if (generation == _paneGeneration) _paneHasMore = false;
+    }
+    if (_disposed || generation != _paneGeneration) return;
+    _paneItems = [..._paneItems, ...added];
+    _paneLoading = false;
     notifyListeners();
   }
 
-  void _composeRows() {
-    final seriesRow = _buildSeriesRow();
-    _seriesCount = seriesRow?.items.length ?? 0;
-    final showBooks = _scope == BookScope.all || _scope == BookScope.books;
-    final showAudiobooks =
-        _scope == BookScope.all || _scope == BookScope.audiobooks;
-    final showComics = _scope == BookScope.all || _scope == BookScope.comics;
-
-    final composed = <HomeRow?>[
-      _scopedRow(_resumeRow),
-      if (showBooks && !isAudiobookLibrary) _latestBooksRow,
-      if (showAudiobooks) _latestAudiobooksRow,
-      if (showComics &&
-          !isAudiobookLibrary &&
-          (_latestComicsRow?.items.isNotEmpty == true))
-        _latestComicsRow,
-      if (_scope == BookScope.all && showAudiobooks) _lastPlayedRow,
-      if (_scope == BookScope.all) seriesRow,
-      _scopedAuthorsRow(),
-      if (_scope == BookScope.all) _genresRow,
-      if (_scope == BookScope.all) _collectionsRow,
-      if (_scope == BookScope.all) _scopedRow(_favoritesRow),
-      _scopedAllRow(),
-    ];
-    _rows = composed
-        .whereType<HomeRow>()
-        .where((r) => r.items.isNotEmpty)
-        .toList();
+  /// The books of [series] in reading order, by number and then by name.
+  List<AggregatedItem> seriesBooks(AggregatedItem series) {
+    final ids = {...?(series.rawData['MemberIds'] as List?)};
+    return _titles.where((title) => ids.contains(title.id)).toList()
+      ..sort((a, b) {
+        final (x, y) = (a.indexNumber, b.indexNumber);
+        if (x != null && y != null && x != y) return x.compareTo(y);
+        if ((x == null) != (y == null)) return x == null ? 1 : -1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
   }
 
-  HomeRow? _scopedAuthorsRow() {
-    final base = _authorsRow;
-    if (base == null || base.items.isEmpty) return null;
-    if (_scope == BookScope.all) return base;
+  /// The titles crediting [author].
+  List<AggregatedItem> titlesBy(AggregatedItem author) {
+    final name = author.name.toLowerCase();
+    return [
+      for (final title in _titles)
+        if (_authorNames(title).contains(name)) title,
+    ];
+  }
 
-    final filtered = base.items.where((author) {
-      final name = author.name.toLowerCase();
-      final id = author.id;
-      return switch (_scope) {
-        BookScope.books =>
-          _bookAuthorNames.contains(name) || _bookAuthorIds.contains(id),
-        BookScope.audiobooks =>
-          _audioAuthorNames.contains(name) ||
-          _audioAuthorIds.contains(id) ||
-          (!_bookAuthorNames.contains(name) && !_bookAuthorIds.contains(id)),
-        BookScope.comics => false,
-        BookScope.all => true,
-      };
-    }).toList();
+  Future<void> loadAuthors() async {
+    var artists = const <AggregatedItem>[];
+    try {
+      artists = _pageOf(
+        await _client.itemsApi.getArtists(
+          parentId: libraryId,
+          userId: _client.userId,
+          sortBy: 'SortName',
+          sortOrder: 'Ascending',
+          recursive: true,
+          limit: _listLimit,
+          fields: 'PrimaryImageAspectRatio,SortName',
+        ),
+        0,
+        _listLimit,
+      ).items;
+    } catch (_) {}
+    if (_disposed) return;
+    final names = {for (final artist in artists) artist.name.toLowerCase()};
+    _authors = [
+      ...artists,
+      for (final author in _extraAuthors)
+        if (names.add(author.name.toLowerCase())) author,
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    _authorsLoaded = true;
+    notifyListeners();
+  }
 
-    if (filtered.isEmpty) return null;
-    return base.copyWith(
-      items: filtered,
-      totalCount: filtered.length,
+  /// The favorite titles, series folders and artists.
+  Future<BookFavorites> loadFavorites() async {
+    Future<List<AggregatedItem>> listOf(
+      Future<Map<String, dynamic>> request,
+    ) async {
+      try {
+        return _pageOf(await request, 0, _listLimit).items;
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    Future<Map<String, dynamic>> titlesRequest({required bool typed}) =>
+        _client.itemsApi.getItems(
+          parentId: libraryId,
+          includeItemTypes: typed ? combinedTypes : null,
+          excludeItemTypes: typed
+              ? null
+              : const ['Folder', 'CollectionFolder', 'UserView'],
+          recursive: true,
+          isFavorite: true,
+          sortBy: 'SortName',
+          sortOrder: 'Ascending',
+          limit: _listLimit,
+          fields: _paneFields,
+          enableImageTypes: 'Primary',
+          imageTypeLimit: 1,
+        );
+
+    // Some servers return nothing when the query names book types, so an
+    // empty answer asks again without them.
+    Future<List<AggregatedItem>> favoriteTitles() async {
+      final typed = await listOf(titlesRequest(typed: true));
+      if (typed.isNotEmpty) return typed;
+      return listOf(titlesRequest(typed: false));
+    }
+
+    final titles = favoriteTitles();
+    final authors = listOf(
+      _client.itemsApi.getArtists(
+        parentId: libraryId,
+        userId: _client.userId,
+        isFavorite: true,
+        recursive: true,
+        sortBy: 'SortName',
+        sortOrder: 'Ascending',
+        limit: _listLimit,
+        fields: 'PrimaryImageAspectRatio,SortName',
+      ),
+    );
+    return (
+      titles: [
+        for (final title in await titles)
+          if (combinedTypes.contains(title.type)) title,
+      ],
+      series: [
+        for (final series in _allSeries)
+          if (series.isFavorite) series,
+      ],
+      authors: await authors,
     );
   }
 
-  HomeRow? _scopedAllRow() {
-    final l10n = currentAppLocalizations();
-    switch (_scope) {
-      case BookScope.books:
-        return _allBooksRow?.copyWith(title: l10n.books);
-      case BookScope.audiobooks:
-        return _allAudiobooksRow?.copyWith(title: l10n.audiobooks);
-      case BookScope.comics:
-        // Its own row rather than the latest one retitled, which would put
-        // the same id on two shelves and collide their keys.
-        return _allComicsRow;
-      case BookScope.all:
-        return isMixedLibrary
-            ? _allRow?.copyWith(title: l10n.allTitles)
-            : _allRow;
+  Map<String, List<AggregatedItem>> _groupByGenre() {
+    final byGenre = <String, List<AggregatedItem>>{};
+    for (final title in _titles) {
+      for (final genre in (title.rawData['Genres'] as List? ?? const [])
+          .whereType<String>()) {
+        byGenre.putIfAbsent(genre, () => []).add(title);
+      }
+    }
+    String added(AggregatedItem item) =>
+        item.rawData['DateCreated'] as String? ?? '';
+    for (final titles in byGenre.values) {
+      titles.sort((a, b) => added(b).compareTo(added(a)));
+    }
+    return byGenre;
+  }
+
+  Future<_PanePage> _fetchPanePage(int start) async {
+    switch (_pane) {
+      case BookPane.titles:
+        return _titlesPage(start);
+      case BookPane.collections:
+        final page = _pageOf(
+          await _client.itemsApi.getItems(
+            parentId: libraryId,
+            includeItemTypes: const ['BoxSet'],
+            recursive: true,
+            sortBy: 'SortName',
+            sortOrder: 'Ascending',
+            startIndex: start,
+            limit: _collectionPageSize,
+            fields: _collectionFields,
+            enableImageTypes: 'Primary',
+            imageTypeLimit: 1,
+          ),
+          start,
+          _collectionPageSize,
+        );
+        return (
+          items: await _holdingBooks(page.items),
+          read: page.read,
+          hasMore: page.hasMore,
+        );
     }
   }
 
-  HomeRow? _scopedRow(HomeRow? row) {
-    if (row == null) return null;
-    if (_scope == BookScope.all) return row;
-    return row.copyWith(items: row.items.where(_matchesScope).toList());
-  }
-
-  Future<int> _countOf(List<String> types) async {
-    try {
-      final resp = await _client.itemsApi.getItems(
-        parentId: libraryId,
-        includeItemTypes: types,
-        recursive: true,
-        limit: 1,
-        enableTotalRecordCount: true,
-      );
-      final count = resp['TotalRecordCount'] as int? ?? 0;
-      // The wide sweep only earns its size when the typed count came back
-      // empty, which is what this counts around.
-      if (count > 0) return count;
-      final fallbackResp = await _client.itemsApi.getItems(
-        parentId: libraryId,
-        excludeItemTypes: const ['Folder', 'CollectionFolder', 'UserView'],
-        recursive: true,
-        limit: 500,
-      );
-      final items =
-          (fallbackResp['Items'] as List? ?? const []).whereType<Map>();
-      return items.where((it) {
-        final t = it['Type']?.toString();
-        return t != null && types.contains(t);
-      }).length;
-    } catch (_) {
-      return 0;
+  Future<_PanePage> _titlesPage(int start) async {
+    final types = scopedTypes;
+    final sort = _titleSort;
+    final descending = sort == LibrarySortBy.dateAdded ||
+        sort == LibrarySortBy.premiereDate ||
+        sort == LibrarySortBy.datePlayed;
+    Future<Map<String, dynamic>> fetch() => _client.itemsApi.getItems(
+      parentId: libraryId,
+      includeItemTypes: _paneUntyped ? null : types,
+      excludeItemTypes: _paneUntyped
+          ? const ['Folder', 'CollectionFolder', 'UserView']
+          : null,
+      recursive: true,
+      genres: _genre == null ? null : [_genre!],
+      sortBy: sort.apiValue,
+      sortOrder: descending ? 'Descending' : 'Ascending',
+      startIndex: start,
+      limit: _panePageSize,
+      fields: _paneFields,
+      enableImageTypes: 'Primary',
+      imageTypeLimit: 1,
+    );
+    var resp = await fetch();
+    // Some servers return nothing when the query names book types but answer
+    // without them, so the rest of the pages go out untyped.
+    if (start == 0 &&
+        !_paneUntyped &&
+        ((resp['Items'] as List?)?.isEmpty ?? true)) {
+      _paneUntyped = true;
+      resp = await fetch();
     }
+    final page = _pageOf(
+      resp,
+      start,
+      _panePageSize,
+      keep: _paneUntyped ? (raw) => types.contains(raw['Type']) : null,
+    );
+    return (
+      items: page.items.where(matchesScope).toList(),
+      read: page.read,
+      hasMore: page.hasMore,
+    );
   }
 
-  Future<List<AggregatedItem>> _loadSeriesSource() async {
-    try {
-      var resp = await _client.itemsApi.getItems(
-        parentId: libraryId,
-        includeItemTypes: combinedTypes,
-        recursive: true,
-        limit: _seriesSourceLimit,
-        sortBy: 'SortName',
-        sortOrder: 'Ascending',
-        fields: 'SeriesName,ParentId,Path',
-        enableImageTypes: 'Primary',
-        imageTypeLimit: 1,
-        enableTotalRecordCount: false,
-      );
-      var rawItems = resp['Items'] as List? ?? const [];
-      if (rawItems.isEmpty) {
-        resp = await _client.itemsApi.getItems(
+  _PanePage _pageOf(
+    Map<String, dynamic> resp,
+    int start,
+    int pageSize, {
+    bool Function(Map raw)? keep,
+  }) {
+    final raw = (resp['Items'] as List? ?? const []).whereType<Map>().toList();
+    final total = resp['TotalRecordCount'] as int?;
+    return (
+      items: [
+        for (final item in raw)
+          if (item['Id'] != null && (keep == null || keep(item)))
+            AggregatedItem(
+              id: item['Id'].toString(),
+              serverId: _serverId,
+              rawData: item.cast<String, dynamic>(),
+            ),
+      ],
+      read: raw.length,
+      hasMore: total != null
+          ? start + raw.length < total
+          : raw.length >= pageSize,
+    );
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  /// Every title in the library, with the fields the counts, series and
+  /// authors need.
+  Future<List<AggregatedItem>> _loadTitles() async {
+    final types = combinedTypes;
+    Future<Map<String, dynamic>> fetch({required bool typed}) =>
+        _client.itemsApi.getItems(
           parentId: libraryId,
-          excludeItemTypes: const ['Folder', 'CollectionFolder', 'UserView'],
+          includeItemTypes: typed ? types : null,
+          excludeItemTypes: typed
+              ? null
+              : const ['Folder', 'CollectionFolder', 'UserView'],
           recursive: true,
-          limit: _seriesSourceLimit,
+          limit: _titleScanLimit,
           sortBy: 'SortName',
           sortOrder: 'Ascending',
-          fields: 'SeriesName,ParentId,Path',
+          fields:
+              'SeriesName,ParentId,Path,People,AlbumArtist,Artists,Genres,'
+              'DateCreated,ProductionYear,RunTimeTicks',
           enableImageTypes: 'Primary',
           imageTypeLimit: 1,
           enableTotalRecordCount: false,
         );
-        rawItems = resp['Items'] as List? ?? const [];
+    try {
+      var rawItems = (await fetch(typed: true))['Items'] as List? ?? const [];
+      if (rawItems.isEmpty) {
+        rawItems = (await fetch(typed: false))['Items'] as List? ?? const [];
       }
-      final items = rawItems
-          .whereType<Map>()
-          .map(
-            (raw) => AggregatedItem(
-              id: raw['Id']?.toString() ?? '',
+      return [
+        for (final raw in rawItems.whereType<Map>())
+          if (raw['Id'] != null && types.contains(raw['Type']))
+            AggregatedItem(
+              id: raw['Id'].toString(),
               serverId: _serverId,
               rawData: raw.cast<String, dynamic>(),
             ),
-          )
-          .where((item) => item.id.isNotEmpty)
-          .toList();
-      return items;
+      ];
     } catch (_) {
       return const [];
     }
+  }
+
+  /// Authors who only appear as people on the [titles], which is all an ebook
+  /// has, minus the [known] ones.
+  List<AggregatedItem> _peopleAuthors(
+    List<AggregatedItem> titles, {
+    required Set<String> known,
+  }) {
+    final authors = <AggregatedItem>[];
+    for (final title in titles) {
+      final people = title.rawData['People'] as List? ?? const [];
+      for (final person in people.whereType<Map>()) {
+        if (person['Type'] != 'Author' && person['Role'] != 'Author') continue;
+        final name = person['Name'] as String?;
+        if (name == null || name.isEmpty || !known.add(name.toLowerCase())) {
+          continue;
+        }
+        final id = person['Id'] as String? ?? name;
+        final tag = person['PrimaryImageTag'] as String?;
+        authors.add(
+          AggregatedItem(
+            id: id,
+            serverId: _serverId,
+            rawData: {
+              'Id': id,
+              'Name': name,
+              'Type': 'Person',
+              if (tag != null) 'ImageTags': {'Primary': tag},
+            },
+          ),
+        );
+      }
+    }
+    return authors
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }
+
+  /// The first genres with the library's types, and how many there are.
+  Future<({List<AggregatedItem> items, int total})> _loadGenres() async {
+    try {
+      final resp = await _client.itemsApi.getGenres(
+        parentId: libraryId,
+        includeItemTypes: combinedTypes,
+        recursive: true,
+        sortBy: 'SortName',
+        sortOrder: 'Ascending',
+        limit: _previewSize,
+        fields: 'ItemCounts',
+      );
+      final items = _pageOf(resp, 0, _previewSize).items;
+      return (
+        items: items,
+        total: resp['TotalRecordCount'] as int? ?? items.length,
+      );
+    } catch (_) {
+      return (items: const <AggregatedItem>[], total: 0);
+    }
+  }
+
+  /// How many titles each author name is on, as people, album artist or
+  /// artists.
+  static Map<String, int> _tallyAuthorTitles(List<AggregatedItem> titles) {
+    final counts = <String, int>{};
+    for (final title in titles) {
+      for (final name in _authorNames(title)) {
+        counts.update(name, (n) => n + 1, ifAbsent: () => 1);
+      }
+    }
+    return counts;
+  }
+
+  /// The lowercased names a title credits as its authors.
+  static Set<String> _authorNames(AggregatedItem title) {
+    final raw = title.rawData;
+    final people = raw['People'] as List? ?? const [];
+    final artists = raw['Artists'] as List? ?? const [];
+    return {
+      for (final person in people.whereType<Map>())
+        if (person['Type'] == 'Author' || person['Role'] == 'Author')
+          if (person['Name'] case final String name) name.toLowerCase(),
+      if (raw['AlbumArtist'] case final String name) name.toLowerCase(),
+      for (final artist in artists.whereType<String>()) artist.toLowerCase(),
+    };
+  }
+
+  /// Up to five covers from a collection's titles.
+  List<String> collectionCoverUrls(AggregatedItem collection) {
+    final covers = collection.rawData['BookCovers'] as List? ?? const [];
+    return [
+      for (final cover in covers.whereType<Map>())
+        imageApi.getPrimaryImageUrl(
+          cover['Id'] as String,
+          maxHeight: 400,
+          tag: cover['Tag'] as String?,
+        ),
+    ];
+  }
+
+  /// Up to three member covers of a series, for its stacked look.
+  List<String> seriesCoverUrls(AggregatedItem series) {
+    final covers = series.rawData['StackCovers'] as List? ?? const [];
+    return [
+      for (final cover in covers.whereType<Map>())
+        imageApi.getPrimaryImageUrl(
+          cover['Id'] as String,
+          maxHeight: 400,
+          tag: cover['Tag'] as String?,
+        ),
+    ];
   }
 
   Future<List<AggregatedItem>> _loadFolders() async {
@@ -753,54 +763,151 @@ class BookBrowseViewModel extends ChangeNotifier {
     }
   }
 
-  HomeRow? _buildSeriesRow() {
-    final l10n = currentAppLocalizations();
-    final entries = bookSeriesEntries(
-      books: [
-        for (final item in _seriesSource)
-          if (_matchesScope(item)) item,
-      ],
-      folders: _folders,
-    );
-    if (entries.isEmpty) return null;
-
-    return HomeRow(
-      id: _seriesRowId,
-      title: l10n.series,
-      items: entries,
-      rowType: HomeRowType.latestMedia,
-      totalCount: entries.length,
-    );
-  }
-
   Future<HomeRow> _loadBookCollections() async {
     final raw = await _dataSource.loadLibraryCollections(libraryId, _serverId);
+    _collectionsChecked = raw.items.length;
     if (raw.items.isEmpty) return raw;
+    return raw.copyWith(items: await _holdingBooks(raw.items));
+  }
+
+  /// The [boxes] holding something this library shows, each with the covers
+  /// of its first titles and how many it holds.
+  Future<List<AggregatedItem>> _holdingBooks(List<AggregatedItem> boxes) async {
     final types = combinedTypes;
-    final containsBooks = await Future.wait(
-      raw.items.map((box) async {
+    final checked = await Future.wait(
+      boxes.map((box) async {
         try {
           final resp = await _client.itemsApi.getItems(
             parentId: box.id,
             includeItemTypes: types,
             recursive: true,
             limit: 8,
+            enableImageTypes: 'Primary',
+            imageTypeLimit: 1,
           );
-          final items = (resp['Items'] as List?) ?? const [];
-          return items.any((it) {
-            final type = (it is Map ? it['Type'] : null) as String?;
-            return type != null && types.contains(type);
-          });
+          final books = [
+            for (final item in (resp['Items'] as List? ?? const []).whereType<Map>())
+              if (types.contains(item['Type'])) item,
+          ];
+          if (books.isEmpty) return null;
+          return AggregatedItem(
+            id: box.id,
+            serverId: box.serverId,
+            rawData: {
+              ...box.rawData,
+              'BookCovers': [
+                for (final book in books.take(5))
+                  if ((book['ImageTags'] as Map?)?['Primary'] case final String tag)
+                    {'Id': book['Id'].toString(), 'Tag': tag},
+              ],
+              'BookCount': resp['TotalRecordCount'] as int? ?? books.length,
+            },
+          );
         } catch (_) {
-          return false;
+          return null;
         }
       }),
     );
-    final kept = <AggregatedItem>[
-      for (var i = 0; i < raw.items.length; i++)
-        if (containsBooks[i]) raw.items[i],
-    ];
-    return raw.copyWith(items: kept);
+    return checked.nonNulls.toList();
+  }
+}
+
+/// What both book library view models know about a library's formats and
+/// titles.
+mixin BookLibraryHelpers {
+  ImageApi get imageApi;
+  bool get isAudiobookLibrary;
+  BookScope get scope;
+  int get titleCount;
+  int get bookCount;
+  int get audiobookCount;
+  int get comicCount;
+  int get seriesCount;
+  int get authorCount;
+  int get genreCount;
+  int get collectionCount;
+  int get favoriteCount;
+
+  int titleCountFor(BookScope scope) => switch (scope) {
+    BookScope.all => titleCount,
+    BookScope.books => bookCount,
+    BookScope.audiobooks => audiobookCount,
+    BookScope.comics => comicCount,
+  };
+
+  /// True when the library holds 2 or more formats (books, audiobooks, comics),
+  /// which turns on the format filter.
+  bool get isMixedLibrary {
+    if (isAudiobookLibrary) return false;
+    var count = 0;
+    if (bookCount > 0) count++;
+    if (audiobookCount > 0) count++;
+    if (comicCount > 0) count++;
+    return count >= 2;
+  }
+
+  /// The formats this library holds, after All.
+  List<BookScope> get availableScopes => [
+    BookScope.all,
+    if (bookCount > 0) BookScope.books,
+    if (audiobookCount > 0) BookScope.audiobooks,
+    if (comicCount > 0) BookScope.comics,
+  ];
+
+  List<String> get audiobookTypes =>
+      isAudiobookLibrary ? const ['AudioBook', 'Audio'] : const ['AudioBook'];
+
+  /// Types for whole-library queries. A books library asks for AudioBook too,
+  /// so audiobooks filed in it show up. Jellyfin types comics as Book, so
+  /// they're told apart here instead.
+  List<String> get combinedTypes =>
+      isAudiobookLibrary
+          ? const ['AudioBook', 'Audio']
+          : const ['Book', 'AudioBook'];
+
+  /// Types matching the active format.
+  List<String> get scopedTypes {
+    if (isAudiobookLibrary) return audiobookTypes;
+    return switch (scope) {
+      BookScope.books => const ['Book'],
+      BookScope.audiobooks => audiobookTypes,
+      BookScope.comics => const ['Book'],
+      BookScope.all => combinedTypes,
+    };
+  }
+
+  /// Whether [item] is an audiobook rather than a book or comic. The server's
+  /// type wins, and the guess only settles bare audio items.
+  bool isAudiobookItem(AggregatedItem item) {
+    if (item.isComic) return false;
+    final type = item.type;
+    if (type == 'AudioBook' || type == 'Audio') return true;
+    if (type == 'Book') return false;
+    return item.isAudiobook;
+  }
+
+  bool isComicItem(AggregatedItem item) => item.isComic;
+
+  bool isBookItem(AggregatedItem item) => !isAudiobookItem(item) && !item.isComic;
+
+  bool matchesScope(AggregatedItem item) => switch (scope) {
+    BookScope.all => true,
+    BookScope.books => isBookItem(item),
+    BookScope.audiobooks => isAudiobookItem(item),
+    BookScope.comics => isComicItem(item),
+  };
+
+  /// Time left in an audiobook, or in a book with server progress. Null
+  /// without a runtime.
+  Duration? remainingFor(AggregatedItem item) {
+    final runtime = item.runtime;
+    if (runtime == null) return null;
+    final pct = item.playedPercentage;
+    if (pct == null || pct <= 0) return runtime;
+    if (pct >= 100) return Duration.zero;
+    return Duration(
+      microseconds: (runtime.inMicroseconds * (1.0 - pct / 100.0)).round(),
+    );
   }
 
   String bookSubtitle(AggregatedItem item) {
@@ -879,7 +986,6 @@ class BookBrowseViewModel extends ChangeNotifier {
 /// folders, and neither do audiobooks split into chapter files. Books sharing
 /// a SeriesName are a series too, unless every one of them already sits in a
 /// series folder.
-@visibleForTesting
 List<AggregatedItem> bookSeriesEntries({
   required List<AggregatedItem> books,
   required List<AggregatedItem> folders,
@@ -924,6 +1030,7 @@ AggregatedItem _seriesEntry(
     (m) => m.primaryImageTag != null,
     orElse: () => members.first,
   );
+  final stack = members.where((m) => m.primaryImageTag != null).take(3);
   return AggregatedItem(
     id: id,
     serverId: members.first.serverId,
@@ -931,6 +1038,13 @@ AggregatedItem _seriesEntry(
       'Name': name,
       'Type': 'BookSeries',
       'ChildCount': members.length,
+      'MemberIds': [for (final member in members) member.id],
+      if (folder?.rawData['UserData'] case final Map userData)
+        'UserData': userData,
+      'StackCovers': [
+        for (final member in stack)
+          {'Id': member.id, 'Tag': member.primaryImageTag},
+      ],
       if (folder != null) 'IsFolder': true,
       if (folderTag != null)
         'ImageTags': {'Primary': folderTag}

@@ -26,7 +26,7 @@ class AdminGroupIndexScreen extends StatelessWidget {
         adminListCard(
           child: Column(
             children: [
-              for (final page in group.pages)
+              for (final page in group.pagesOn(AdminServerScope.of(context)))
                 AdminPageTile(page: page, showChevron: true),
             ],
           ),

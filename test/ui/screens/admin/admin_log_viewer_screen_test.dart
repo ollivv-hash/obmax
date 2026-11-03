@@ -12,14 +12,16 @@ class _MockMediaServerClient extends Mock implements MediaServerClient {}
 /// the server is still writing.
 class _FakeSystemApi extends Fake implements AdminSystemApi {
   final names = <String>[];
+  String? content;
 
   @override
   Future<String> getLogFileContent(String name) async {
     names.add(name);
-    return List.generate(
-      80 + names.length,
-      (i) => '[12:00:00] [INF] line $i',
-    ).join('\n');
+    return content ??
+        List.generate(
+          80 + names.length,
+          (i) => '[12:00:00] [INF] line $i',
+        ).join('\n');
   }
 }
 
@@ -75,5 +77,25 @@ void main() {
     await tester.tap(find.byTooltip(l10n.adminLogStopWatching));
     await tester.pump(const Duration(seconds: 4));
     expect(api.names, hasLength(3));
+  });
+
+  testWidgets('the level filters read Emby\'s level words', (tester) async {
+    const info = '2026-10-17 15:08:12.183 Info Main: Application path';
+    const warn = '2026-10-17 15:08:13.000 Warn App: Slow start';
+    const error = '2026-10-17 15:13:20.164 Error PackageService: Failed';
+    const trace = '\t*** Error Report ***';
+    api.content = [info, warn, error, trace].join('\n');
+    await pump(tester);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'ERR'));
+    await tester.pumpAndSettle();
+    expect(find.text(error, findRichText: true), findsOneWidget);
+    expect(find.text(info, findRichText: true), findsNothing);
+    expect(find.text(trace, findRichText: true), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'WRN'));
+    await tester.pumpAndSettle();
+    expect(find.text(warn, findRichText: true), findsOneWidget);
+    expect(find.text(error, findRichText: true), findsNothing);
   });
 }

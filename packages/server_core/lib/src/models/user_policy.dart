@@ -1,3 +1,5 @@
+import 'access_schedule.dart';
+
 class UserPolicy {
   final bool isAdministrator;
   final bool isHidden;
@@ -193,13 +195,26 @@ class UserPolicy {
         'PasswordResetProviderId': passwordResetProviderId,
       };
 
+  /// The hours the user may use the server, empty for no limit. Read from the
+  /// server's own policy, so entries this client can't read are left out.
+  List<AccessSchedule> get accessSchedules {
+    final entries = _raw['AccessSchedules'];
+    if (entries is! List) return const [];
+    return [
+      for (final entry in entries)
+        if (entry is Map)
+          AccessSchedule.fromJson(Map<String, dynamic>.from(entry)),
+    ];
+  }
+
   /// Whether the user may search for and pull in subtitles from a provider.
   ///
   /// Two flags mean the same thing here and servers disagree on which to
   /// grant. Emby hands out downloading by default and leaves management off,
-  /// so reading management alone locks out every ordinary Emby account.
+  /// so reading management alone locks out every ordinary Emby account. An
+  /// administrator may either way, and Jellyfin leaves both off for them.
   bool get canFetchRemoteSubtitles =>
-      enableSubtitleManagement || enableSubtitleDownloading;
+      isAdministrator || enableSubtitleManagement || enableSubtitleDownloading;
 
   static List<String> _stringList(dynamic value) {
     if (value is List) return value.cast<String>();

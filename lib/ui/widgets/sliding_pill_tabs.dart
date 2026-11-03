@@ -53,6 +53,9 @@ class SlidingPillTabs extends StatefulWidget {
   /// Left D-pad from the first segment; e.g. hop to the sidebar.
   final VoidCallback? onExitLeft;
 
+  /// Right D-pad from the last segment, to a control beside the strip.
+  final VoidCallback? onExitRight;
+
   /// Where the strip sits once it has hugged its content. Search lines it up
   /// under the field on the left, a panel centres it over its list.
   final Alignment alignment;
@@ -65,6 +68,7 @@ class SlidingPillTabs extends StatefulWidget {
     this.focusNode,
     this.onVerticalNavigation,
     this.onExitLeft,
+    this.onExitRight,
     this.alignment = Alignment.centerLeft,
   });
 
@@ -145,7 +149,11 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
       widths.add(box.size.width);
     }
     if (widths.isEmpty || listEquals(widths, _widths)) return;
+    final first = _widths.isEmpty;
     setState(() => _widths = widths);
+    // The first measurement rebuilds the strip around a new scroll view, so a
+    // segment picked from the start is only brought into view after it.
+    if (first && widget.selectedIndex > 0) _revealSelected();
   }
 
   void _scheduleEnsureVisible() {
@@ -159,6 +167,16 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
+    });
+  }
+
+  /// Scrolls the strip, and only the strip, to the selected segment.
+  void _revealSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _selectedKey?.currentContext;
+      final object = ctx?.findRenderObject();
+      if (!mounted || ctx == null || object == null) return;
+      Scrollable.maybeOf(ctx)?.position.ensureVisible(object, alignment: 0.5);
     });
   }
 
@@ -245,14 +263,14 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
       if (movesToNextIndex) {
         if (index < widget.labels.length - 1) {
           widget.onChanged(index + 1);
-        } else if (isRtl && widget.onExitLeft != null) {
-          widget.onExitLeft!();
+        } else {
+          (isRtl ? widget.onExitLeft : widget.onExitRight)?.call();
         }
       } else {
         if (index > 0) {
           widget.onChanged(index - 1);
-        } else if (!isRtl && widget.onExitLeft != null) {
-          widget.onExitLeft!();
+        } else {
+          (isRtl ? widget.onExitRight : widget.onExitLeft)?.call();
         }
       }
       return KeyEventResult.handled;

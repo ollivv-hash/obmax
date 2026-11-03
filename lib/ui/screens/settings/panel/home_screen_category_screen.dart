@@ -18,6 +18,8 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(_prefs.reconcileMediaPreviewMode());
+    unawaited(_prefs.reconcileHomeBackdropStyle());
     // The calendars come from Seerr's Radarr and Sonarr servers, so there is
     // nothing to ask when Seerr isn't set up.
     if (GetIt.instance<PluginSyncService>().seerrAvailable) {
@@ -46,6 +48,25 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
         });
       }
     }
+  }
+
+  // Older apps only read the switch, so it follows the mode.
+  Future<void> _onMediaPreviewModeChanged() async {
+    await _prefs.set(
+      UserPreferences.episodePreviewEnabled,
+      _prefs.get(UserPreferences.mediaPreviewMode) !=
+          UserPreferences.mediaPreviewOff,
+    );
+    _pushPersonalizationSync();
+  }
+
+  Future<void> _onHomeBackdropStyleChanged() async {
+    await _prefs.set(
+      UserPreferences.homeBackdropEnabled,
+      _prefs.get(UserPreferences.homeBackdropStyle) !=
+          UserPreferences.homeBackdropOff,
+    );
+    _pushPersonalizationSync();
   }
 
   String _mediaTypeBadgeBehaviorLabel(
@@ -329,6 +350,28 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
                     setState(() {});
                   },
                 ),
+              if (isMobileUi)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.homeBackdropEnabled,
+                  title: l10n.homeScreenBackdrop,
+                  icon: Icons.photo,
+                  onChanged: _pushPersonalizationSync,
+                )
+              else
+                StringPickerPreferenceTile(
+                  preference: UserPreferences.homeBackdropStyle,
+                  title: l10n.homeScreenBackdrop,
+                  icon: Icons.photo,
+                  options: {
+                    UserPreferences.homeBackdropOff: l10n.off,
+                    UserPreferences.homeBackdropFullScreen:
+                        l10n.homeScreenBackdropFullScreen,
+                    UserPreferences.homeBackdropCorner:
+                        l10n.homeScreenBackdropCorner,
+                    UserPreferences.homeBackdropTop: l10n.homeScreenBackdropTop,
+                  },
+                  onChanged: _onHomeBackdropStyleChanged,
+                ),
               SwitchPreferenceTile(
                 preference: UserPreferences.hideHomeMediaDescription,
                 title: l10n.hideHomeMediaDescription,
@@ -336,12 +379,17 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
                 icon: Icons.description_outlined,
                 onChanged: _pushPersonalizationSync,
               ),
-              SwitchPreferenceTile(
-                preference: UserPreferences.episodePreviewEnabled,
+              StringPickerPreferenceTile(
+                preference: UserPreferences.mediaPreviewMode,
                 title: l10n.mediaPreview,
-                subtitle: l10n.mediaPreviewDescription,
+                description: l10n.mediaPreviewDescription,
                 icon: Icons.ondemand_video,
-                onChanged: _pushPersonalizationSync,
+                options: {
+                  UserPreferences.mediaPreviewOff: l10n.off,
+                  UserPreferences.mediaPreviewMedia: l10n.mediaPreview,
+                  UserPreferences.mediaPreviewTrailer: l10n.trailerPreview,
+                },
+                onChanged: _onMediaPreviewModeChanged,
               ),
               SwitchPreferenceTile(
                 preference: UserPreferences.previewAudioEnabled,
@@ -350,7 +398,27 @@ class _HomeScreenCategoryScreenState extends State<_HomeScreenCategoryScreen> {
                 icon: Icons.volume_up,
                 onChanged: _pushPersonalizationSync,
               ),
+              SliderPreferenceTile(
+                preference: UserPreferences.previewVolume,
+                title: l10n.previewVolume,
+                description: l10n.previewVolumeDescription,
+                icon: Icons.volume_down,
+                min: 0,
+                max: 100,
+                divisions: 20,
+                labelOf: (v) => '$v%',
+                onChangeEnd: _pushPersonalizationSync,
+              ),
             ],
+          ),
+
+          _SectionHeader(l10n.ratings),
+          adaptiveListSection(
+            children: _ratingsSettingsTiles(
+              context,
+              l10n,
+              UserPreferences.homeRowsRatings,
+            ),
           ),
 
           // Every source here needs the Moonbase plugin. Seerr's rows and the

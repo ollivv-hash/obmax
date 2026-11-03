@@ -5,6 +5,8 @@ import 'package:server_core/server_core.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../util/error_message.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
+import '../admin_plugin_version_utils.dart';
 import '../widgets/admin_form_styles.dart';
 import '../widgets/filesystem_browser.dart';
 import 'admin_number_input.dart';
@@ -25,6 +27,10 @@ class _AdminGeneralSettingsScreenState
   List<Map<String, dynamic>> _cultures = const [];
   List<Map<String, dynamic>> _countries = const [];
   List<Map<String, dynamic>> _localizationOptions = const [];
+
+  /// Emby's version and platform flags, which some of its rows depend on.
+  /// Empty on Jellyfin.
+  Map<String, dynamic> _systemInfo = const {};
   bool _loading = true;
   String? _error;
   String? _browsingField;
@@ -41,12 +47,18 @@ class _AdminGeneralSettingsScreenState
   }
 
   Future<void> _load() async {
+    final emby = AdminServerScope.isEmby(context);
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final config = await _api.getServerConfiguration();
+      final systemInfo = emby
+          ? await GetIt.instance<MediaServerClient>().systemApi
+                .getSystemInfo()
+                .catchError((_) => <String, dynamic>{})
+          : const <String, dynamic>{};
       // Language/country lists are optional; degrade to empty on older servers.
       final cultures = await _api
           .getCultures()
@@ -63,6 +75,7 @@ class _AdminGeneralSettingsScreenState
         _cultures = cultures;
         _countries = countries;
         _localizationOptions = localizationOptions;
+        _systemInfo = systemInfo;
         _loading = false;
       });
       hostDraft(
@@ -110,7 +123,51 @@ class _AdminGeneralSettingsScreenState
     }
 
     final bottomSafe = MediaQuery.of(context).padding.bottom;
-    final slowWarning = _config!['EnableSlowResponseWarning'] as bool? ?? false;
+    final config = _config!;
+    final info = _systemInfo;
+    final slowWarning = config['EnableSlowResponseWarning'] as bool? ?? false;
+    // Each server leaves out the other's keys, so a row shows when its key
+    // is there. Emby also leaves out null text fields, so its banner goes by
+    // version, and some of its switches only show where the platform has them.
+    final version = info['Version'];
+    final bannerText = version is String &&
+        compareVersionStrings(version, '4.10.0.4') >= 0;
+    final performance = [
+      if (config.containsKey('LibraryScanFanoutConcurrency'))
+        _intField(
+          'LibraryScanFanoutConcurrency',
+          l10n.adminGeneralLibraryScanConcurrency,
+        ),
+      if (config.containsKey('ParallelImageEncodingLimit'))
+        _intField(
+          'ParallelImageEncodingLimit',
+          l10n.adminGeneralImageEncodingLimit,
+        ),
+      if (config.containsKey('EnableSlowResponseWarning'))
+        _switchTile(
+          'EnableSlowResponseWarning',
+          l10n.adminGeneralEnableSlowResponse,
+        ),
+      if (config.containsKey('SlowResponseThresholdMs'))
+        _intField(
+          'SlowResponseThresholdMs',
+          l10n.adminGeneralSlowResponseThreshold,
+          enabled: slowWarning,
+          fallback: 500,
+        ),
+    ];
+    final updates = [
+      if (config.containsKey('EnableAutoUpdate') &&
+          info['CanSelfUpdate'] == true)
+        _switchTile('EnableAutoUpdate', l10n.adminGeneralAutoUpdate),
+      if (config.containsKey('EnableAutomaticRestart') &&
+          info['CanSelfRestart'] == true)
+        _switchTile(
+          'EnableAutomaticRestart',
+          l10n.adminGeneralAutoRestart,
+          subtitle: l10n.adminGeneralAutoRestartHelp,
+        ),
+    ];
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 20, 16, bottomSafe + 40),
       children: [
@@ -130,12 +187,46 @@ class _AdminGeneralSettingsScreenState
                 children: [
                   _textField('ServerName', l10n.adminGeneralServerName),
                   _buildDisplayLanguageDropdown(l10n),
-                  _switchTile(
-                    'QuickConnectAvailable',
-                    l10n.adminGeneralQuickConnect,
-                  ),
+                  if (config.containsKey('QuickConnectAvailable'))
+                    _switchTile(
+                      'QuickConnectAvailable',
+                      l10n.adminGeneralQuickConnect,
+                    ),
+                  if (config.containsKey('RunAtStartup') &&
+                      info['SupportsAutoRunAtStartup'] == true)
+                    _switchTile('RunAtStartup', l10n.adminGeneralRunAtStartup),
+                  if (config.containsKey('AutoRunWebApp') &&
+                      info['CanLaunchWebBrowser'] == true)
+                    _switchTile('AutoRunWebApp', l10n.adminGeneralLaunchWebApp),
+                  if (bannerText)
+                    _textField(
+                      'BannerText',
+                      l10n.adminGeneralBannerText,
+                      helper: l10n.adminGeneralBannerTextHelp,
+                      omitEmpty: true,
+                    ),
                 ],
               ),
+              if (config.containsKey('IsInMaintenanceMode'))
+                adminSection(
+                  context,
+                  title: l10n.adminGeneralSectionMaintenance,
+                  icon: Icons.construction_outlined,
+                  children: [
+                    _switchTile(
+                      'IsInMaintenanceMode',
+                      l10n.adminGeneralMaintenanceMode,
+                      subtitle: l10n.adminGeneralMaintenanceModeHelp,
+                    ),
+                    if (config['IsInMaintenanceMode'] == true)
+                      _textField(
+                        'MaintenanceModeMessage',
+                        l10n.adminGeneralMaintenanceMessage,
+                        helper: l10n.adminGeneralMaintenanceMessageHelp,
+                        omitEmpty: true,
+                      ),
+                  ],
+                ),
               adminSection(
                 context,
                 title: l10n.adminGeneralSectionMetadata,
@@ -154,31 +245,20 @@ class _AdminGeneralSettingsScreenState
                   _pathField('MetadataPath', l10n.adminGeneralMetadataPath),
                 ],
               ),
-              adminSection(
-                context,
-                title: l10n.adminGeneralSectionPerformance,
-                icon: Icons.speed,
-                children: [
-                  _intField(
-                    'LibraryScanFanoutConcurrency',
-                    l10n.adminGeneralLibraryScanConcurrency,
-                  ),
-                  _intField(
-                    'ParallelImageEncodingLimit',
-                    l10n.adminGeneralImageEncodingLimit,
-                  ),
-                  _switchTile(
-                    'EnableSlowResponseWarning',
-                    l10n.adminGeneralEnableSlowResponse,
-                  ),
-                  _intField(
-                    'SlowResponseThresholdMs',
-                    l10n.adminGeneralSlowResponseThreshold,
-                    enabled: slowWarning,
-                    fallback: 500,
-                  ),
-                ],
-              ),
+              if (performance.isNotEmpty)
+                adminSection(
+                  context,
+                  title: l10n.adminGeneralSectionPerformance,
+                  icon: Icons.speed,
+                  children: performance,
+                ),
+              if (updates.isNotEmpty)
+                adminSection(
+                  context,
+                  title: l10n.adminGeneralSectionUpdates,
+                  icon: Icons.system_update_alt,
+                  children: updates,
+                ),
             ],
           ),
         ),
@@ -186,9 +266,10 @@ class _AdminGeneralSettingsScreenState
     );
   }
 
-  Widget _switchTile(String key, String title) {
+  Widget _switchTile(String key, String title, {String? subtitle}) {
     return adminSwitchRow(
       title: title,
+      subtitle: subtitle,
       anchor: 'settings.$key',
       value: _config![key] as bool? ?? false,
       onChanged: (v) => _set(key, v),
@@ -253,15 +334,28 @@ class _AdminGeneralSettingsScreenState
     );
   }
 
-  Widget _textField(String key, String label, {String? hint}) {
+  /// With [omitEmpty] a cleared box drops the key, so Emby stores null and
+  /// falls back to its default.
+  Widget _textField(
+    String key,
+    String label, {
+    String? hint,
+    String? helper,
+    bool omitEmpty = false,
+  }) {
     return adminFieldRow(
       label: label,
+      helper: helper,
       anchor: 'settings.$key',
       child: TextFormField(
         initialValue: _config![key]?.toString() ?? '',
         decoration: adminInputDecoration(hint: hint),
         onChanged: (v) {
-          _config![key] = v;
+          if (omitEmpty && v.isEmpty) {
+            _config!.remove(key);
+          } else {
+            _config![key] = v;
+          }
           edited();
         },
       ),

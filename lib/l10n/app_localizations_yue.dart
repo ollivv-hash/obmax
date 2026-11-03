@@ -34,6 +34,15 @@ class AppLocalizationsYue extends AppLocalizations {
   String get animeMarkerSubbedAndDubbed => 'Subbed/Dubbed';
 
   @override
+  String get animeMarkerSubbedShort => 'Sub';
+
+  @override
+  String get animeMarkerDubbedShort => 'Dub';
+
+  @override
+  String get animeMarkerSubbedAndDubbedShort => 'Sub/Dub';
+
+  @override
   String get animeMarkerPending => 'Pending';
 
   @override
@@ -72,6 +81,35 @@ class AppLocalizationsYue extends AppLocalizations {
   String get quickConnectInstruction => '在伺服器的 Web 儀表板上輸入以下程式碼：';
 
   @override
+  String get quickConnectScanHint =>
+      'Or scan this with a phone that\'s signed in to your server';
+
+  @override
+  String get quickConnectTapOrScanHint =>
+      'Tap to approve in your browser, or scan this with another device';
+
+  @override
+  String get timesUpTitle => 'Time\'s up';
+
+  @override
+  String get timesUpMessage => 'This account isn\'t available right now.';
+
+  @override
+  String timesUpResumesToday(String time) {
+    return 'You can use it again today at $time.';
+  }
+
+  @override
+  String timesUpResumesTomorrow(String time) {
+    return 'You can use it again tomorrow at $time.';
+  }
+
+  @override
+  String timesUpResumesOn(String day, String time) {
+    return 'You can use it again on $day at $time.';
+  }
+
+  @override
   String get waitingForAuthorization => '等待授權...';
 
   @override
@@ -82,6 +120,10 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get loginFailed => '登入失敗';
+
+  @override
+  String get loginForbidden =>
+      'This account can\'t sign in right now. It may be outside its allowed hours, locked or disabled. Try again later or ask an administrator.';
 
   @override
   String quickConnectUnavailable(String detail) {
@@ -533,10 +575,32 @@ class AppLocalizationsYue extends AppLocalizations {
   String get customThemeSubtitle => '自訂主題會改變成個 Moonfin 嘅視覺元素。揀一個啱你風格嘅選項啦。';
 
   @override
-  String get keyboardPreferSystemIme => '優先用系統鍵盤';
+  String get keyboardStyle => 'Keyboard Style';
 
   @override
-  String get keyboardPreferSystemImeDescription => '預設用你部裝置嘅輸入法嚟打字';
+  String get keyboardStyleDescription =>
+      'Native uses your TV\'s own keyboard. Classic is the original Moonfin keyboard. Glass is a frosted panel with larger keys. Docked fills the bottom of the screen and shows what you type above the keys.';
+
+  @override
+  String get keyboardStyleNative => 'Native';
+
+  @override
+  String get keyboardStyleClassic => 'Classic';
+
+  @override
+  String get keyboardStyleGlass => 'Glass';
+
+  @override
+  String get keyboardStyleDocked => 'Docked';
+
+  @override
+  String get keyboardSpace => 'space';
+
+  @override
+  String get keyboardHoldForAccents => 'hold for accents';
+
+  @override
+  String get keyboardClose => 'close';
 
   @override
   String get controller => 'Controller';
@@ -598,6 +662,28 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get embyConnectNetworkError => '聯絡 Emby Connect 或所選伺服器時發生網路錯誤';
+
+  @override
+  String get signInWithPlex => 'Sign in with Plex';
+
+  @override
+  String get plexLinkInstructions =>
+      'Go to plex.tv/link on any device and enter this code';
+
+  @override
+  String get plexOpenLink => 'Open plex.tv/link';
+
+  @override
+  String get plexWaitingForApproval => 'Waiting for you to approve the code...';
+
+  @override
+  String get plexSignInWithPassword => 'Sign in with a password';
+
+  @override
+  String get plexVerificationCode => 'Verification code';
+
+  @override
+  String get plexNoServers => 'No Plex servers found on this account';
 
   @override
   String get loadingLinkedServers => '正在載入連結伺服器...';
@@ -888,9 +974,6 @@ class AppLocalizationsYue extends AppLocalizations {
   String get discoverySubjects => '發現主題';
 
   @override
-  String get pickDiscoverySubjects => '選擇要在「發現」中顯示的主題來源。';
-
-  @override
   String get apply => '套用';
 
   @override
@@ -901,20 +984,6 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get audiobookGenres => '有聲書流派';
-
-  @override
-  String get pickAudiobookGenres => '選擇要在有聲書探索中顯示的流派。';
-
-  @override
-  String get discoverAudiobooks => '發現有聲書';
-
-  @override
-  String get librivoxDescription => '來自 LibriVox 的熱門公共領域標題。';
-
-  @override
-  String titlesCount(int count) {
-    return '$count 部作品';
-  }
 
   @override
   String get scrollLeft => '向左滾動';
@@ -1043,9 +1112,6 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get discover => '發現';
-
-  @override
-  String get trendingTitlesOpenLibrary => 'Open Library 中按主題劃分的熱門標題。';
 
   @override
   String get noBookmarkedItems => '還沒有加書籤的項目';
@@ -1803,11 +1869,6 @@ class AppLocalizationsYue extends AppLocalizations {
   }
 
   @override
-  String channelsCount(int count) {
-    return '$count 聲道';
-  }
-
-  @override
   String get mono => '單聲道';
 
   @override
@@ -1943,9 +2004,6 @@ class AppLocalizationsYue extends AppLocalizations {
   }
 
   @override
-  String get bitrateOverride => '比特率覆蓋';
-
-  @override
   String get audioDelay => '音訊延遲';
 
   @override
@@ -2021,6 +2079,9 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get keyNameBackspace => 'Backspace';
+
+  @override
+  String get keyNameDelete => 'Delete';
 
   @override
   String get keyNamePageUp => 'Page Up';
@@ -2106,6 +2167,9 @@ class AppLocalizationsYue extends AppLocalizations {
       'Exit fullscreen, or stop if not fullscreen';
 
   @override
+  String get shortcutHideControls => 'Hide controls';
+
+  @override
   String get shortcutStopPlayback => 'Stop playback';
 
   @override
@@ -2178,28 +2242,6 @@ class AppLocalizationsYue extends AppLocalizations {
   String get hdr => '高動態範圍';
 
   @override
-  String get hdrOutput => 'HDR output';
-
-  @override
-  String hdrOutputActive(String format) {
-    return 'Active — $format';
-  }
-
-  @override
-  String get hdrOutputActiveTonemapped =>
-      'Active — tone-mapped to SDR for this display';
-
-  @override
-  String get hdrOutputContentSdr => 'Inactive — content is SDR';
-
-  @override
-  String get hdrOutputDisabled => 'Inactive — turned off in settings';
-
-  @override
-  String get hdrOutputFailed =>
-      'Inactive — could not start, using the standard path';
-
-  @override
   String get videoRenderer => 'Video Renderer';
 
   @override
@@ -2216,22 +2258,10 @@ class AppLocalizationsYue extends AppLocalizations {
   String get videoRendererInApp => 'In-app (legacy)';
 
   @override
-  String get codec => '編解碼器';
-
-  @override
-  String get videoBitrate => '視訊比特率';
-
-  @override
   String get track => '音軌';
 
   @override
   String get channels => '頻道';
-
-  @override
-  String get audioBitrate => '音訊比特率';
-
-  @override
-  String get sampleRate => '取樣率';
 
   @override
   String get format => '格式';
@@ -2254,6 +2284,13 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get epubUnavailableOnPlatform => '應用程式內 EPUB 渲染在此平台上尚不可用。';
+
+  @override
+  String get bookReadingUnavailableTitle => 'Books can\'t be read on Apple TV';
+
+  @override
+  String get bookReadingUnavailableMessage =>
+      'Open it in Moonfin on a phone, tablet or computer to read it. Audiobooks still play here.';
 
   @override
   String formatCannotRenderInApp(String extension) {
@@ -2489,6 +2526,46 @@ class AppLocalizationsYue extends AppLocalizations {
   @override
   String get noUpcomingSeriesRecording =>
       'Series recording is scheduled, but the guide has no upcoming episodes';
+
+  @override
+  String get seriesRecordingSkipsShowing =>
+      'The series recording will skip this showing';
+
+  @override
+  String get seriesRecordingEpisodesQuestion =>
+      'Which episodes should be recorded?';
+
+  @override
+  String get seriesRecordingAllEpisodes => 'All Episodes';
+
+  @override
+  String get seriesRecordingAllEpisodesDescription =>
+      'Every showing, including repeats';
+
+  @override
+  String get seriesRecordingNotRecordedEpisodes =>
+      'Episodes Not Already Recorded';
+
+  @override
+  String get seriesRecordingNotRecordedEpisodesDescription =>
+      'Skips episodes already in your library and records each episode once';
+
+  @override
+  String get seriesRecordingNewEpisodesOnly => 'New Episodes Only';
+
+  @override
+  String get seriesRecordingNewEpisodesOnlyDescription =>
+      'First airings only, no repeats';
+
+  @override
+  String get seriesRecordingSettings => 'Series Settings';
+
+  @override
+  String get seriesRecordingUpdated => 'Series recording updated';
+
+  @override
+  String get failedToUpdateSeriesRecording =>
+      'Unable to update series recording';
 
   @override
   String get recordCurrentEpisode => 'Record This Episode';
@@ -2995,12 +3072,6 @@ class AppLocalizationsYue extends AppLocalizations {
   String get scaleFocusedCards => '縮放聚焦或懸停的卡片和圖塊';
 
   @override
-  String get backgroundBackdrops => '背景背景';
-
-  @override
-  String get showBackdropImages => '顯示內容後面的背景影像';
-
-  @override
   String get seriesThumbnails => '系列縮圖';
 
   @override
@@ -3162,6 +3233,17 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get seasonalDensityHeavy => 'Heavy';
+
+  @override
+  String get seasonalFollower => 'Focus Follower';
+
+  @override
+  String get seasonalFollowerDescription =>
+      'A holiday piece, like Halloween\'s planchette, follows what you select on Home';
+
+  @override
+  String get seasonalFollowerPointerDescription =>
+      'A holiday piece, like Halloween\'s planchette, replaces the mouse pointer on Home';
 
   @override
   String get seasonalRow => 'Seasonal Row';
@@ -3404,6 +3486,19 @@ class AppLocalizationsYue extends AppLocalizations {
       'Slide up or down on the player to change brightness on the left and volume on the right';
 
   @override
+  String get invertGestureIndicators => 'Invert Gesture Indicators';
+
+  @override
+  String get invertGestureIndicatorsDescription =>
+      'Place brightness and volume visual indicators on same or opposite side of screen from swipe';
+
+  @override
+  String get gestureIndicatorSame => 'Same';
+
+  @override
+  String get gestureIndicatorInverted => 'Inverted';
+
+  @override
   String get osdButtons => 'Player Buttons';
 
   @override
@@ -3579,6 +3674,12 @@ class AppLocalizationsYue extends AppLocalizations {
   String get detailSectionSeerrStats => 'Stats';
 
   @override
+  String get detailSectionSeerrStreaming => 'Streaming services';
+
+  @override
+  String get seerrStreamingOn => 'Streaming on';
+
+  @override
   String get detailSectionSeerrRecommendations => 'Recommendations';
 
   @override
@@ -3601,6 +3702,12 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get detailSectionBirthplace => 'Birthplace';
+
+  @override
+  String get detailSectionPersonLinks => 'Links';
+
+  @override
+  String get detailSectionPersonLinksSubtitle => 'IMDb, TMDB and social media';
 
   @override
   String get detailSectionGuestAppearances => 'Guest appearances';
@@ -3671,21 +3778,6 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get preferAudioDescriptionDescription => '優先用口述影像音軌，唔用普通音軌。';
-
-  @override
-  String get transcodingAudio => '轉碼（音訊）';
-
-  @override
-  String get directStreamRemux => '直接串流（重新封裝）';
-
-  @override
-  String get transcodingBitrateOrResolution => '轉碼（位元率或解析度）';
-
-  @override
-  String get transcodingVideoAndAudio => '轉碼（視訊同音訊）';
-
-  @override
-  String get transcodingVideo => '轉碼（視訊）';
 
   @override
   String get autoServerDefault => '自動（伺服器預設）';
@@ -3762,6 +3854,13 @@ class AppLocalizationsYue extends AppLocalizations {
   @override
   String get settingsAudioFallbackCodecDescription =>
       '揀當來源串流冇辦法直接播放或者直通嗰陣，多聲道音訊要轉碼成咩格式。';
+
+  @override
+  String get transcodeAudioCodecs => 'Transcode Audio Codecs';
+
+  @override
+  String get transcodeAudioCodecsDescription =>
+      'The server converts audio in these formats instead of sending it as is.';
 
   @override
   String get settingsAudioFallbackCodecAuto => '自動偵測\n（建議）';
@@ -3934,37 +4033,6 @@ class AppLocalizationsYue extends AppLocalizations {
   }
 
   @override
-  String get settingsAudioDiagnostics => '診斷';
-
-  @override
-  String get settingsAudioDiagnosticsVideoLevel => '視訊等級';
-
-  @override
-  String get settingsAudioDiagnosticsVideoRange => '視訊範圍';
-
-  @override
-  String get settingsAudioDiagnosticsSubtitleCodec => '字幕編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsAllowedAudioCodecs => '允許嘅音訊編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsHlsMpegTsAudioCodecs =>
-      'HLS MPEG-TS 音訊編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsHlsFmp4AudioCodecs => 'HLS fMP4 音訊編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsAudioSpdifPassthrough => 'audio-spdif 直通';
-
-  @override
-  String get settingsAudioDiagnosticsActiveAudioRoute => '使用中嘅音訊路由';
-
-  @override
-  String get settingsAudioDiagnosticsRouteHdAudioSupport => '路由 HD 音訊支援';
-
-  @override
   String get nightMode => '夜間模式';
 
   @override
@@ -4083,6 +4151,10 @@ class AppLocalizationsYue extends AppLocalizations {
       'Preferred Secondary Subtitle Language';
 
   @override
+  String get secondarySubtitlesEnabledSubtitle =>
+      'Show a second subtitle track at the same time. The subtitle menu then asks for the primary or secondary track first';
+
+  @override
   String get defaultToNoSubtitles => '預設為無字幕';
 
   @override
@@ -4092,13 +4164,16 @@ class AppLocalizationsYue extends AppLocalizations {
   String get subtitleSize => '字幕大小';
 
   @override
-  String get primarySubtitleSlot => 'Primary';
+  String get primarySubtitleSlot => 'Primary Track';
 
   @override
-  String get secondarySubtitleSlot => 'Secondary';
+  String get secondarySubtitleSlot => 'Secondary Track';
 
   @override
-  String get secondarySubtitleTrack => 'Secondary Subtitle Track';
+  String get secondarySubtitleTrack => 'Secondary Subtitles';
+
+  @override
+  String get secondaryDelayAdjustment => 'Secondary Delay Adjustment';
 
   @override
   String decreaseValue(String setting) {
@@ -4418,6 +4493,13 @@ class AppLocalizationsYue extends AppLocalizations {
   String get showLibrariesInToolbar => '在工具列中顯示庫';
 
   @override
+  String get showLibrariesIndividually => 'Show Libraries Individually';
+
+  @override
+  String get showLibrariesIndividuallySubtitle =>
+      'Show each library as its own button in the navigation bar instead of in the Libraries menu';
+
+  @override
   String get navbarAlwaysExpanded => '永遠展開導覽列標籤';
 
   @override
@@ -4497,7 +4579,7 @@ class AppLocalizationsYue extends AppLocalizations {
   String get libraryView => 'Library View';
 
   @override
-  String get libraryStyle => 'Library Style';
+  String get libraryStyle => 'Video Library Style';
 
   @override
   String get libraryStyleDescription =>
@@ -4517,6 +4599,80 @@ class AppLocalizationsYue extends AppLocalizations {
   String get libraryStyleDocked => 'Docked';
 
   @override
+  String get bookLibraryStyle => 'Book Library Style';
+
+  @override
+  String get bookLibraryStyleDescription =>
+      'Classic is the original shelves under a featured title. Reading Room leads with what you\'re reading on large cards. Bookstore browses the whole library in a grid.';
+
+  @override
+  String get bookLibraryStyleClassic => 'Classic';
+
+  @override
+  String get bookLibraryStyleReadingRoom => 'Reading Room';
+
+  @override
+  String get bookLibraryStyleBookstore => 'Bookstore';
+
+  @override
+  String get musicLibraryStyle => 'Music Library Style';
+
+  @override
+  String get musicLibraryStyleDescription =>
+      'Classic is the original rows under a Jump Back In card. Quick Access starts with a grid of your recent albums and playlists. Immersive leads with the album you\'re listening to.';
+
+  @override
+  String get musicLibraryStyleClassic => 'Classic';
+
+  @override
+  String get musicLibraryStyleQuickAccess => 'Quick Access';
+
+  @override
+  String get musicLibraryStyleImmersive => 'Immersive';
+
+  @override
+  String get jumpBackIn => 'Jump Back In';
+
+  @override
+  String get yourPlaylists => 'Your Playlists';
+
+  @override
+  String get fromThisAlbum => 'From This Album';
+
+  @override
+  String get searchMusic => 'Search Music';
+
+  @override
+  String bookSeriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count series',
+      one: '1 series',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bookInProgressCount(int count) {
+    return '$count in progress';
+  }
+
+  @override
+  String bookBrowseAllTitles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Browse all $count titles',
+      one: 'Browse 1 title',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get searchBooks => 'Search books';
+
+  @override
   String get libraryShowLabel => 'Show';
 
   @override
@@ -4524,12 +4680,6 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get libraryJumpToLetter => 'Jump to letter';
-
-  @override
-  String get enableFolderView => '啟用資料夾視圖';
-
-  @override
-  String get showFolderBrowsingOption => '顯示資料夾瀏覽選項';
 
   @override
   String get groupItemsIntoCollections => '將項目歸入合輯';
@@ -4609,6 +4759,13 @@ class AppLocalizationsYue extends AppLocalizations {
   String get mediaBarModeDescription => '在 Moonfin、MakD 之間進行選擇，或關閉媒體列';
 
   @override
+  String get peekHomeRows => 'Peek Home Rows';
+
+  @override
+  String get peekHomeRowsDescription =>
+      'Show the top half of the first row along the bottom of the media bar';
+
+  @override
   String get mediaBarModeMoonfin => 'Moonfin';
 
   @override
@@ -4684,11 +4841,16 @@ class AppLocalizationsYue extends AppLocalizations {
   String get enableTrailerAudio => '喺媒體列嘅預告片開聲';
 
   @override
+  String get trailerVolume => 'Trailer Volume';
+
+  @override
+  String get trailerVolumeDescription => 'How loud media bar trailers play';
+
+  @override
   String get trailerCaptions => 'Trailer Captions';
 
   @override
-  String get trailerCaptionsDescription =>
-      'Show captions on YouTube trailers in the media bar';
+  String get trailerCaptionsDescription => 'Show captions on YouTube trailers';
 
   @override
   String get episodePreview => '劇集預覽';
@@ -4707,6 +4869,13 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get enablePreviewAudio => '為預告片和劇集預覽啟用音訊';
+
+  @override
+  String get previewVolume => 'Preview Volume';
+
+  @override
+  String get previewVolumeDescription =>
+      'How loud media previews on cards play';
 
   @override
   String get latestMedia => '最新媒體';
@@ -4764,6 +4933,19 @@ class AppLocalizationsYue extends AppLocalizations {
   String get combineBothRows => '將兩行合併為一個主頁部分';
 
   @override
+  String get continueWatchingDefaultAction => 'Default Action';
+
+  @override
+  String get continueWatchingDefaultActionDescription =>
+      'What selecting a Continue Watching or Next Up item does';
+
+  @override
+  String get goToDetailsScreen => 'Go to Details';
+
+  @override
+  String get playImmediately => 'Play immediately';
+
+  @override
   String get nextUpMaxDays => 'Max days in Next Up';
 
   @override
@@ -4787,6 +4969,12 @@ class AppLocalizationsYue extends AppLocalizations {
   @override
   String get homeRowsPaddingDescription =>
       'Customize padding between home rows';
+
+  @override
+  String get homeRowsGenresAndStudios => 'Genres and Studios';
+
+  @override
+  String get homeRowsExternalLists => 'External Lists';
 
   @override
   String get perRowSettings => '每行設定';
@@ -4826,6 +5014,13 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get enablePinCode => '啟用 PIN 碼';
+
+  @override
+  String get pinSynced => 'PIN synced';
+
+  @override
+  String get pinResetFailed =>
+      'The PIN on the server could not be cleared. If it is still set, ask a server administrator to remove it.';
 
   @override
   String get requirePinToAccess => '需要 PIN 碼才能存取您的帳戶';
@@ -5283,9 +5478,6 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get featuredContentAppearance => '特色內容、外觀';
-
-  @override
-  String get posterSizeImageTypeFolderView => '海報尺寸、圖像類型、資料夾視圖';
 
   @override
   String gbValue(String value) {
@@ -5914,6 +6106,618 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get adminExitTooltip => '退出管理';
+
+  @override
+  String get adminPremiereNoteLiveTv =>
+      'Live TV needs Emby Premiere. Without it the server doesn\'t import channels or record anything.';
+
+  @override
+  String get adminPremiereNoteBackups =>
+      'Backup & Restore needs Emby Premiere once its trial ends.';
+
+  @override
+  String get adminGeneralRunAtStartup => 'Run the server at startup';
+
+  @override
+  String get adminGeneralLaunchWebApp =>
+      'Open the web app in a browser when the server starts';
+
+  @override
+  String get adminGeneralBannerText => 'Home screen banner text';
+
+  @override
+  String get adminGeneralBannerTextHelp =>
+      'Shown to every user on their home screen';
+
+  @override
+  String get adminGeneralSectionMaintenance => 'Maintenance mode';
+
+  @override
+  String get adminGeneralMaintenanceMode =>
+      'Put the server into maintenance mode';
+
+  @override
+  String get adminGeneralMaintenanceModeHelp =>
+      'Users only see the maintenance message.';
+
+  @override
+  String get adminGeneralMaintenanceMessage => 'Maintenance message';
+
+  @override
+  String get adminGeneralMaintenanceMessageHelp =>
+      'Leave it blank for a general message in each user\'s language.';
+
+  @override
+  String get adminGeneralSectionUpdates => 'Automatic updates';
+
+  @override
+  String get adminGeneralAutoUpdate => 'Update the server automatically';
+
+  @override
+  String get adminGeneralAutoRestart =>
+      'Restart automatically to apply updates';
+
+  @override
+  String get adminGeneralAutoRestartHelp =>
+      'The server only restarts while no users are active.';
+
+  @override
+  String adminTaskTriggerSystemEvent(String event) {
+    return 'After a system event ($event)';
+  }
+
+  @override
+  String get adminPluginNeedsPremiere =>
+      'Needs Emby Premiere after a 14-day free trial';
+
+  @override
+  String get adminEmbyBackupsHelp =>
+      'Emby backs up through its Backup & Restore plugin.';
+
+  @override
+  String get adminEmbyBackupsNoPlugin =>
+      'The Backup & Restore plugin isn\'t installed. Install it from the plugin catalog to back up this server.';
+
+  @override
+  String get adminEmbyBackupNow => 'Back up now';
+
+  @override
+  String get adminEmbyFullBackup => 'Full backup';
+
+  @override
+  String get adminEmbyLightBackups => 'Database backups';
+
+  @override
+  String adminEmbyBackupServerVersion(String version) {
+    return 'Emby $version';
+  }
+
+  @override
+  String adminEmbyRestoreConfirm(String name) {
+    return 'Restore $name? It replaces this server\'s libraries, settings, users and passwords, and the server shuts down when it\'s done. You may need to start it again yourself.';
+  }
+
+  @override
+  String get adminEmbyRestoreServerId => 'Restore the server ID';
+
+  @override
+  String get adminEmbyRestoreServerIdHelp =>
+      'Turn this off when you restore the same backup onto more than one server.';
+
+  @override
+  String get adminEmbyRestoreShuttingDown =>
+      'The restore is done and the server is shutting down. Start it again if it doesn\'t restart by itself.';
+
+  @override
+  String get adminHiddenRemotely =>
+      'Hide from login screens when connected remotely';
+
+  @override
+  String get adminHiddenFromUnusedDevices =>
+      'Hide from login screens on devices they\'ve never signed in on';
+
+  @override
+  String get adminSimultaneousStreamLimitHelp =>
+      'Limits how many videos this user can play at once.';
+
+  @override
+  String get adminUnlimited => 'Unlimited';
+
+  @override
+  String get adminAutoRemoteQuality => 'Auto remote quality (Mbps)';
+
+  @override
+  String get adminAutoRemoteQualityHelp =>
+      'Used remotely when the player is set to auto quality. Leave empty to detect it.';
+
+  @override
+  String get adminAllowCameraUpload => 'Allow camera upload';
+
+  @override
+  String get adminAllowSubtitleDownloading => 'Allow subtitle downloading';
+
+  @override
+  String get adminAllowMediaConversion => 'Allow media conversion';
+
+  @override
+  String get adminAllowSyncTranscoding =>
+      'Allow downloads that need transcoding';
+
+  @override
+  String get adminAllowSharingPersonalItems =>
+      'Allow sharing playlists with other users';
+
+  @override
+  String get adminAllowPreferenceAccess =>
+      'Allow changing their own password and profile image';
+
+  @override
+  String get adminTagMode => 'Tag mode';
+
+  @override
+  String get adminEmbyConnect => 'Emby Connect';
+
+  @override
+  String get adminEmbyConnectUser => 'Emby Connect username or email';
+
+  @override
+  String get adminEmbyConnectHelp =>
+      'Lets this user sign in from any Emby app without knowing the server address.';
+
+  @override
+  String get adminEmbyConnectLink => 'Link';
+
+  @override
+  String get adminEmbyConnectUnlink => 'Unlink';
+
+  @override
+  String get adminEmbyConnectLinked => 'Linked to Emby Connect';
+
+  @override
+  String get adminEmbyConnectPending =>
+      'Invitation sent. The link is made once they accept it.';
+
+  @override
+  String get adminEmbyConnectUnlinked => 'Emby Connect link removed';
+
+  @override
+  String get adminEmbyConnectNotFound =>
+      'No Emby Connect account has that username or email.';
+
+  @override
+  String get adminLibImportPlaylists => 'Import playlist files';
+
+  @override
+  String get adminLibExcludeFromSearch => 'Exclude from global search';
+
+  @override
+  String get adminLibForcedSubtitlesOnly => 'Download forced subtitles only';
+
+  @override
+  String get adminLibImportCollections =>
+      'Import collections from metadata downloaders';
+
+  @override
+  String get adminLibThumbnailInterval => 'Preview thumbnail interval';
+
+  @override
+  String adminLibThumbnailEverySeconds(int count) {
+    return 'Every $count seconds';
+  }
+
+  @override
+  String get adminLibThumbnailAtChapters => 'At chapter markers';
+
+  @override
+  String get adminLibSaveThumbnailsWithMedia =>
+      'Save preview thumbnails into media folders';
+
+  @override
+  String get adminLibrarySectionMarkers => 'Intro markers';
+
+  @override
+  String get adminLibIntroDetection => 'Detect intros';
+
+  @override
+  String get adminLibIntroDetectionDuringScan =>
+      'Detect intros during the library scan';
+
+  @override
+  String get adminProviderEmbyGuide => 'Emby Guide Data';
+
+  @override
+  String get adminLiveTvEmbyGuideSelectLineup =>
+      'Select a lineup. If none are listed, check the postal code. Lineups need Emby Premiere.';
+
+  @override
+  String get adminLiveTvWakeServer => 'Wake the server for recordings';
+
+  @override
+  String get adminDrawerLiveTvChannels => 'Live TV Channels';
+
+  @override
+  String get adminPageDescLiveTvChannels =>
+      'Turn channels on and off and set their order';
+
+  @override
+  String get adminLiveTvChannelsEmpty =>
+      'No channels yet. They show up here once a tuner is set up and the server has imported its channels.';
+
+  @override
+  String get adminTranscodingHwaAdvanced => 'Advanced';
+
+  @override
+  String get adminTranscodingHwaHelp =>
+      'Advanced lets you pick and order the hardware codecs.';
+
+  @override
+  String get adminTranscodingHwDecoders => 'Preferred hardware decoders';
+
+  @override
+  String get adminTranscodingHwEncoders => 'Preferred hardware encoders';
+
+  @override
+  String get adminTranscodingTempPathHelp =>
+      'Where the transcoder keeps its working files. Leave it empty to use the server\'s data folder.';
+
+  @override
+  String get adminTranscodingThrottleHelp =>
+      'Slows transcoding down once enough is buffered, to lower CPU use.';
+
+  @override
+  String get adminTranscodingDownmixHelp =>
+      'Raises the volume when audio is downmixed. 1 keeps the original volume.';
+
+  @override
+  String get adminTranscodingFontExtraction =>
+      'Allow font extraction on the fly';
+
+  @override
+  String get adminTranscodingMaxResolution => 'Max transcoding resolution';
+
+  @override
+  String get adminTranscodingMaxResolutionHelp =>
+      'A limit on every transcode, whatever quality the app asks for.';
+
+  @override
+  String get adminTranscodingToneMapSoftware =>
+      'Tone mapping in software transcodes';
+
+  @override
+  String get adminTranscodingToneMapHardware =>
+      'Tone mapping in hardware transcodes';
+
+  @override
+  String get adminTranscodingToneMapHelp =>
+      'Keeps HDR video from looking dim and washed out when it\'s transcoded.';
+
+  @override
+  String get adminNetworkingLocalAddress => 'Local IP address';
+
+  @override
+  String get adminNetworkingLocalAddressHelp =>
+      'The local address the server gives to apps. Leave it empty to detect it automatically.';
+
+  @override
+  String get adminNetworkingBehindProxy =>
+      'HTTPS is handled by a reverse proxy';
+
+  @override
+  String get adminNetworkingExternalDomain => 'External domain';
+
+  @override
+  String get adminNetworkingExternalDomainHelp =>
+      'A domain or dynamic DNS name for remote connections, without the protocol or port. A custom certificate needs it.';
+
+  @override
+  String get adminNetworkingUpnp => 'Enable automatic port mapping';
+
+  @override
+  String get adminNetworkingUpnpHelp =>
+      'Tries to map the public port to the local port with UPnP. Some routers don\'t support it.';
+
+  @override
+  String get adminNetworkingProxyHeaders =>
+      'Read proxy headers for client addresses';
+
+  @override
+  String get adminNetworkingProxyHeadersHelp =>
+      'Uses headers like X-Forwarded-For to find each client\'s address. Only turn this on behind a reverse proxy.';
+
+  @override
+  String get adminNetworkingProxyHeadersRemote =>
+      'Only when they hold remote addresses';
+
+  @override
+  String get adminNetworkingIpv4Only => 'Use IPv4 for outgoing requests';
+
+  @override
+  String get adminNetworkingIpv4OnlyHelp =>
+      'For when metadata providers and other services can\'t be reached over IPv6.';
+
+  @override
+  String get adminOnePerLine => 'One per line';
+
+  @override
+  String get adminStreamingStreamLimit => 'Max simultaneous video streams';
+
+  @override
+  String get adminStreamingStreamLimitHelp =>
+      'How many videos can play at once across the server. 0 means no limit.';
+
+  @override
+  String get adminSyncJobsConversions => 'Conversion jobs';
+
+  @override
+  String get adminSyncJobsDownloads => 'Download jobs';
+
+  @override
+  String get adminSyncJobsEmpty => 'No jobs';
+
+  @override
+  String get adminSyncJobCancel => 'Cancel job';
+
+  @override
+  String adminSyncJobCancelConfirm(String name) {
+    return 'Cancel $name and remove it from the list?';
+  }
+
+  @override
+  String get adminSyncJobConverting => 'Converting';
+
+  @override
+  String get adminSyncJobReady => 'Ready to transfer';
+
+  @override
+  String get adminSyncJobTransferring => 'Transferring';
+
+  @override
+  String get adminSyncJobCompletedWithError => 'Completed with errors';
+
+  @override
+  String adminSyncJobItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminDrawerDatabase => 'Database';
+
+  @override
+  String get adminPageDescDatabase => 'Cache size and upkeep';
+
+  @override
+  String get adminDatabaseWarning =>
+      'These are advanced options. Leave them at their defaults unless you have a reason to change them.';
+
+  @override
+  String get adminDatabaseCacheSize => 'Database cache size (MB)';
+
+  @override
+  String get adminDatabaseCacheSizeHelp =>
+      'How much of each database file the server keeps in memory. More can make the server faster. Takes effect after a restart.';
+
+  @override
+  String get adminDatabaseOptimize =>
+      'Optimize the database when the server shuts down';
+
+  @override
+  String get adminDatabaseOptimizeHelp =>
+      'Usually this does nothing, but now and then it runs an analysis that helps the server\'s queries. Shutdowns can take longer.';
+
+  @override
+  String get adminDatabaseAnalysisLimit => 'Analysis row limit';
+
+  @override
+  String get adminDatabaseAnalysisLimitHelp =>
+      'About how many rows of each index the optimize step reads. More rows work better but can slow shutdowns.';
+
+  @override
+  String get adminDatabaseVacuum => 'Vacuum the database on the next startup';
+
+  @override
+  String get adminDatabaseVacuumHelp =>
+      'Rebuilds the database file so it takes up the least space, which can help performance. The server can\'t be used while it runs and shows no progress, so don\'t force it closed. It turns itself back off after that startup.';
+
+  @override
+  String get adminDrawerCinemaIntros => 'Cinema Intros';
+
+  @override
+  String get adminPageDescCinemaIntros => 'Trailers and intros before playback';
+
+  @override
+  String get adminCinemaIntrosPlayBefore => 'Play intros before';
+
+  @override
+  String get adminCinemaIntrosUpcoming =>
+      'Include trailers from new and upcoming movies';
+
+  @override
+  String get adminCinemaIntrosOlder => 'Include trailers from older movies';
+
+  @override
+  String get adminCinemaIntrosLibrary =>
+      'Include trailers from movies in my libraries';
+
+  @override
+  String get adminCinemaIntrosLibraryHelp => 'Needs local trailers set up.';
+
+  @override
+  String get adminCinemaIntrosCount => 'Number of trailers to play';
+
+  @override
+  String get adminCinemaIntrosParental => 'Smart parental control';
+
+  @override
+  String get adminCinemaIntrosParentalHelp =>
+      'Only picks trailers rated the same as or lower than what\'s being watched.';
+
+  @override
+  String get adminCinemaIntrosUnwatchedOnly =>
+      'Only play intros before unwatched content';
+
+  @override
+  String get adminCinemaIntrosSimilarOnly =>
+      'Only play trailers similar to what\'s being watched';
+
+  @override
+  String get adminCinemaIntrosSimilarOnlyHelp =>
+      'Based on shared genres, tags, studios and so on.';
+
+  @override
+  String get adminCinemaIntrosCustom => 'Custom intros';
+
+  @override
+  String get adminCinemaIntrosCustomPath => 'Custom intros folder';
+
+  @override
+  String get adminCinemaIntrosCustomPathHelp =>
+      'A folder of videos. One is picked at random and plays after the trailers.';
+
+  @override
+  String get adminCinemaIntrosCodecPath => 'Codec intros folder';
+
+  @override
+  String get adminCinemaIntrosCodecPathHelp =>
+      'A folder of videos. One whose file name matches the video codec, audio codec, audio profile or a tag plays before the main feature.';
+
+  @override
+  String get adminDrawerDlna => 'DLNA';
+
+  @override
+  String get adminPageDescDlna => 'Play To and the DLNA server';
+
+  @override
+  String get adminDlnaPlayTo => 'Enable DLNA Play To';
+
+  @override
+  String get adminDlnaPlayToHelp =>
+      'Emby can find devices on your network and control them remotely.';
+
+  @override
+  String get adminDlnaServer => 'Enable the DLNA server';
+
+  @override
+  String get adminDlnaServerHelp =>
+      'Lets the server stream media to DLNA devices.';
+
+  @override
+  String get adminDlnaDefaultUser => 'Default user';
+
+  @override
+  String get adminDlnaDefaultUserHelp =>
+      'Whose libraries connected devices see. A device profile can override it.';
+
+  @override
+  String get adminDlnaDebugLog => 'Enable DLNA debug logging';
+
+  @override
+  String get adminDlnaDebugLogHelp =>
+      'Makes large log files. Only turn it on while troubleshooting.';
+
+  @override
+  String get adminDrawerCameraUpload => 'Camera Upload';
+
+  @override
+  String get adminPageDescCameraUpload => 'Where photos from phones are saved';
+
+  @override
+  String get adminCameraUploadPath => 'Camera upload folder';
+
+  @override
+  String get adminCameraUploadPathHelp =>
+      'Leave it blank to use the default folder. A custom folder also has to be added as a library.';
+
+  @override
+  String get adminCameraUploadSubfolders => 'Make a subfolder for each device';
+
+  @override
+  String get adminDrawerConversions => 'Conversions';
+
+  @override
+  String get adminPageDescConversions => 'Converted media and downloads';
+
+  @override
+  String get adminConversionsTempPath => 'Temporary file folder';
+
+  @override
+  String get adminConversionsTempPathHelp =>
+      'Where media is kept while it\'s being converted.';
+
+  @override
+  String get adminConversionsFullSpeed => 'Convert at full speed';
+
+  @override
+  String get adminConversionsFullSpeedHelp =>
+      'Conversions run slowly by default to keep the load down.';
+
+  @override
+  String get adminDrawerPremiere => 'Emby Premiere';
+
+  @override
+  String get adminPageDescPremiere => 'License status and key';
+
+  @override
+  String get adminPremiereActive => 'Premiere is active on this server.';
+
+  @override
+  String get adminPremiereInactive => 'This server has no Premiere key.';
+
+  @override
+  String get adminPremiereKeyInvalid =>
+      'A key is set but isn\'t active. It may be mistyped or expired.';
+
+  @override
+  String get adminPremiereCurrentKey => 'Current key';
+
+  @override
+  String get adminPremiereNewKey => 'New key';
+
+  @override
+  String get adminPremiereNewKeyHint =>
+      'Paste the key from your Emby Premiere email.';
+
+  @override
+  String get adminPremiereSaveKey => 'Save key';
+
+  @override
+  String get adminPremiereRemoveKey => 'Remove key';
+
+  @override
+  String get adminPremiereKeyRejected =>
+      'Emby saved the key but didn\'t accept it.';
+
+  @override
+  String get adminPremiereLoadFailed => 'Couldn\'t load the Premiere status';
+
+  @override
+  String get embyPremiereRequiredTitle => 'Emby Premiere required';
+
+  @override
+  String get embyPremiereRequiredBody =>
+      'This needs an active Emby Premiere subscription on the server.';
+
+  @override
+  String get embyPremiereRequiredSaveBody =>
+      'This needs an active Emby Premiere subscription. Emby keeps the setting but won\'t use it until Premiere is active.';
+
+  @override
+  String get embyPremiereLearnMore => 'Learn more';
+
+  @override
+  String get embyPremiereSaveAnyway => 'Save anyway';
+
+  @override
+  String get embyPremiereEnterKey => 'Enter key';
+
+  @override
+  String get adminPremiereNote =>
+      'Needs Emby Premiere. The server keeps this setting but won\'t use it until Premiere is active.';
 
   @override
   String adminExternalIdLabel(String name) {
@@ -10859,6 +11663,14 @@ class AppLocalizationsYue extends AppLocalizations {
       '喺唔支援 Dolby Vision 嘅裝置度，將 Dolby Vision profile 7 串流當做 HDR10 相容嘅 HEVC 嚟播。';
 
   @override
+  String get stripDolbyVisionHdr10PlusTitle =>
+      'Play Dolby Vision with HDR10+ as HDR10+';
+
+  @override
+  String get stripDolbyVisionHdr10PlusSubtitle =>
+      'Drop the Dolby Vision layer from videos that also have HDR10+. Turn this on if those videos play with sound but a black screen.';
+
+  @override
   String get subtitlesUseEmbeddedStyles => '用內嵌嘅字幕樣式';
 
   @override
@@ -10879,7 +11691,11 @@ class AppLocalizationsYue extends AppLocalizations {
   String get showMediaDetailsOnLibraryPageDescription => '喺媒體庫頁面頂部顯示已揀項目嘅詳情。';
 
   @override
-  String get hideBackdropsInLibraries => '瀏覽嗰陣隱藏背景圖？';
+  String get libraryCardTitles => 'Titles Under Posters';
+
+  @override
+  String get libraryCardTitlesDescription =>
+      'Show each item\'s title and details below its artwork in library grids.';
 
   @override
   String get useDetailedSubHeadings => '用詳細副標題';
@@ -11150,6 +11966,60 @@ class AppLocalizationsYue extends AppLocalizations {
       'Sort Audio rows in ascending or descending order.';
 
   @override
+  String get sorting => 'Sorting';
+
+  @override
+  String get imdbRowsSorting => 'IMDb Row Sorting';
+
+  @override
+  String get imdbRowsSortingDescription =>
+      'Sort IMDb rows by name, release date, rating, and more.';
+
+  @override
+  String get imdbRowsSortOrderDescription =>
+      'Sort IMDb rows in ascending or descending order.';
+
+  @override
+  String get tmdbRowsSorting => 'TMDB Row Sorting';
+
+  @override
+  String get tmdbRowsSortingDescription =>
+      'Sort TMDB rows by name, release date, rating, and more.';
+
+  @override
+  String get tmdbRowsSortOrderDescription =>
+      'Sort TMDB rows in ascending or descending order.';
+
+  @override
+  String get seerrRowsSorting => 'Seerr Row Sorting';
+
+  @override
+  String get seerrRowsSortingDescription =>
+      'Sort Seerr rows by name, release date, rating, and more.';
+
+  @override
+  String get seerrRowsSortOrderDescription =>
+      'Sort Seerr rows in ascending or descending order.';
+
+  @override
+  String get externalRowSortDefault => 'Default (List Order)';
+
+  @override
+  String get externalRowSortName => 'Name';
+
+  @override
+  String get externalRowSortReleaseDate => 'Release Date';
+
+  @override
+  String get externalRowSortRating => 'Rating';
+
+  @override
+  String get externalRowSortPopularity => 'Popularity';
+
+  @override
+  String get externalRowSortShuffle => 'Shuffle';
+
+  @override
   String get audioPlaylists => '音訊播放清單';
 
   @override
@@ -11233,10 +12103,31 @@ class AppLocalizationsYue extends AppLocalizations {
       '喺硬件解碼器之前先用 FFmpeg（音訊）同 libgav1（AV1）。如果 HDMI 音訊直通有問題就閂咗佢。';
 
   @override
+  String get hevcSoftwareDirectPlay => 'Direct Play HEVC (Software Decode)';
+
+  @override
+  String get hevcSoftwareDirectPlaySubtitle =>
+      'Play HEVC up to 1080p from the original file instead of asking the server to transcode it. This Apple TV decodes it in software, so heavy 10-bit or high bitrate files may stutter.';
+
+  @override
+  String get av1SoftwareUhdDirectPlay => 'Direct Play 4K AV1 (Software Decode)';
+
+  @override
+  String get av1SoftwareUhdDirectPlaySubtitle =>
+      'Play AV1 above 1080p, including HDR10, from the original file instead of asking the server to transcode it. This device decodes AV1 in software, so heavy 4K or high bitrate files may stutter.';
+
+  @override
   String get useExternalPlayer => 'Use external player';
 
   @override
   String get useExternalPlayerSubtitle => '喺 Android TV 度用你揀咗嘅外部應用程式播片。';
+
+  @override
+  String get externalPlayerLiveTvOnly => 'Live TV Only';
+
+  @override
+  String get externalPlayerLiveTvOnlySubtitle =>
+      'Use the external player for Live TV and keep everything else in the built-in player.';
 
   @override
   String get automaticQueuing => '自動排隊';
@@ -11439,6 +12330,9 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get crewContributionsSeerr => '幕後參與（Seerr）';
+
+  @override
+  String get personWebsite => 'Official website';
 
   @override
   String get watchWithGroup => '同群組一齊睇';
@@ -12293,6 +13187,20 @@ class AppLocalizationsYue extends AppLocalizations {
   String get analyticsNoLibrariesAvailable => '冇媒體庫可以用。';
 
   @override
+  String get analyticsLibraryShare => 'Share of items by library';
+
+  @override
+  String get analyticsTopRating => 'Most common rating';
+
+  @override
+  String get analyticsTypicalRuntime => 'Typical runtime';
+
+  @override
+  String analyticsShareOfItems(String percent) {
+    return '$percent% of items';
+  }
+
+  @override
   String get adminServerAdministrationTitle => '伺服器管理';
 
   @override
@@ -12395,9 +13303,6 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get cb7ExtractionPluginUnavailable => '呢個平台冇 CB7 解壓縮外掛程式。';
-
-  @override
-  String get closeGenrePanel => '關閉類型面板';
 
   @override
   String get loadingShuffle => '載入緊隨機播放...';
@@ -12942,6 +13847,9 @@ class AppLocalizationsYue extends AppLocalizations {
       'Direct play is not supported for this media format.';
 
   @override
+  String get sortServerOrder => 'Server Order';
+
+  @override
   String get sortAlphabetical => '按字母順序';
 
   @override
@@ -12952,6 +13860,11 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get sortCustomDragDrop => '自訂（拖放）';
+
+  @override
+  String sortCurrent(String option) {
+    return 'Sort: $option';
+  }
 
   @override
   String get playlistSortOptions => '播放清單排序選項';
@@ -13186,6 +14099,9 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get showAlphabeticalFilters => 'Show Alphabet';
+
+  @override
+  String get libraryFolderView => 'Folder View';
 
   @override
   String get personalRatingStyle => 'Personal Rating Style';
@@ -13438,6 +14354,55 @@ class AppLocalizationsYue extends AppLocalizations {
   String get setupTourBulletMore => 'And plenty more';
 
   @override
+  String setupStepOf(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get setupCurrent => 'Current';
+
+  @override
+  String get setupTvHint =>
+      'Up and down to preview · OK to choose · Back twice to skip';
+
+  @override
+  String get setupNavbarTopHint => 'Tabs across the top of the screen.';
+
+  @override
+  String get setupNavbarLeftHint => 'A slim rail of icons down the left side.';
+
+  @override
+  String get setupNavbarBottomHint =>
+      'Tabs along the bottom edge, in easy reach of your thumb.';
+
+  @override
+  String get setupMediaBarMoonfinHint =>
+      'Large artwork with the title, details and overview laid over it.';
+
+  @override
+  String get setupMediaBarMakdHint => 'Large artwork led by a big title logo.';
+
+  @override
+  String get setupMediaBarBookshelfHint =>
+      'Titles shelved as book spines, with the featured one face out.';
+
+  @override
+  String get setupMediaBarGalleryHint =>
+      'The featured title opened up, with the next few lined up beside it.';
+
+  @override
+  String get setupMediaBarBannerHint =>
+      'A shorter banner above your rows, so more of them fit on screen.';
+
+  @override
+  String get setupMediaBarAyaHint =>
+      'Artwork first in a framed panel, with your rows right underneath.';
+
+  @override
+  String get setupMediaBarOffHint =>
+      'No featured area. Home opens straight onto your rows.';
+
+  @override
   String get runSetupAgain => 'Run setup again';
 
   @override
@@ -13518,8 +14483,8 @@ class AppLocalizationsYue extends AppLocalizations {
   String get smartDownloadsEnable => 'Download Next Episodes';
 
   @override
-  String get smartDownloadsEnableSubtitle =>
-      'When you finish an episode on any device, OB Max downloads the next ones. Downloaded episodes are deleted once watched.';
+  String get smartDownloadsEnableDescription =>
+      'When you finish an episode on any device, Moonfin downloads the next ones. Episodes it downloads are deleted once watched.';
 
   @override
   String get smartDownloadsKeepReady => 'Episodes to Keep Downloaded';
@@ -13559,8 +14524,22 @@ class AppLocalizationsYue extends AppLocalizations {
   String get autoDownloadDelete => 'Delete Downloaded Episodes';
 
   @override
-  String get autoDownloadDeleteSubtitle =>
-      'When to remove automatically downloaded episodes after you watch them';
+  String get autoDownloadDeleteFollowedSubtitle =>
+      'When to remove episodes downloaded for series you follow, after you watch them';
+
+  @override
+  String get removeWatchedDownloads => 'Remove Watched Downloads';
+
+  @override
+  String get removeWatchedDownloadsSubtitle =>
+      'When to remove episodes and movies you downloaded yourself. Only those you watch after turning this on are removed';
+
+  @override
+  String get keepDownloaded => 'Keep Downloaded';
+
+  @override
+  String get keepDownloadedSubtitle =>
+      'Never remove this automatically after watching';
 
   @override
   String get autoDownloadDeleteNever => 'Never';
@@ -13871,6 +14850,13 @@ class AppLocalizationsYue extends AppLocalizations {
   String get navYou => 'You';
 
   @override
+  String get cinemaSkipPrerolls => 'Cinema Mode Skip Button';
+
+  @override
+  String get cinemaSkipPrerollsDescription =>
+      'Show a Skip button during Cinema Mode trailers, commercials, and other pre-rolls.';
+
+  @override
   String get detailsPage => 'Details Page';
 
   @override
@@ -14066,6 +15052,685 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get librarySortLength => 'Length';
+
+  @override
+  String get homeScreenBackdrop => 'Home Screen Backdrop';
+
+  @override
+  String get homeScreenBackdropFullScreen => 'Full Screen';
+
+  @override
+  String get homeScreenBackdropCorner => 'Corner';
+
+  @override
+  String get homeScreenBackdropTop => 'Top';
+
+  @override
+  String get detailsScreenBackdrop => 'Details Screen Backdrop';
+
+  @override
+  String get detailsBackdropSize => 'Backdrop Size';
+
+  @override
+  String get detailsBackdropFullScreen => 'Full Screen';
+
+  @override
+  String get detailsBackdropFit => 'Fit';
+
+  @override
+  String get libraryBackdrops => 'Library Backdrops';
+
+  @override
+  String get playbackInfoChannel => 'Channel';
+
+  @override
+  String get playbackInfoProgram => 'Program';
+
+  @override
+  String get playbackInfoWhy => 'Why';
+
+  @override
+  String get playbackInfoQualityLimit => 'Quality Limit';
+
+  @override
+  String get playbackInfoFrameRate => 'Frame Rate';
+
+  @override
+  String get playbackInfoDelivery => 'Delivery';
+
+  @override
+  String get playbackInfoFile => 'File';
+
+  @override
+  String get playbackInfoTechnical => 'Technical';
+
+  @override
+  String get playbackInfoDevice => 'Device';
+
+  @override
+  String get playbackInfoAudioRoute => 'Audio Route';
+
+  @override
+  String get playbackInfoSurround51 => '5.1 surround';
+
+  @override
+  String get playbackInfoSurround71 => '7.1 surround';
+
+  @override
+  String playbackInfoChannelCount(int count) {
+    return '$count channels';
+  }
+
+  @override
+  String get playbackInfoBurnedIn => 'Burned in by the server';
+
+  @override
+  String playbackInfoOriginal(String value, String original) {
+    return '$value (original $original)';
+  }
+
+  @override
+  String playbackInfoConvertedFrom(String value, String source) {
+    return '$value (converted from $source)';
+  }
+
+  @override
+  String playbackInfoResolutionConverted(
+    String name,
+    String size,
+    String source,
+  ) {
+    return '$name ($size, converted from $source)';
+  }
+
+  @override
+  String get playbackInfoNoteDirectPlay => 'Playing the original file as is.';
+
+  @override
+  String get playbackInfoNoteDirectStream =>
+      'The server is repackaging the file without converting it.';
+
+  @override
+  String get playbackInfoNoteTranscodeVideo =>
+      'The server is converting the video so this device can play it.';
+
+  @override
+  String get playbackInfoNoteTranscodeAudio =>
+      'The server is converting the audio so this device can play it.';
+
+  @override
+  String get playbackInfoNoteTranscodeBoth =>
+      'The server is converting the video and audio so this device can play it.';
+
+  @override
+  String get playbackInfoNoteTranscodeUnknown =>
+      'The server is converting this file so this device can play it.';
+
+  @override
+  String get playbackInfoNoteOffline => 'Playing a downloaded copy.';
+
+  @override
+  String get playbackInfoWhyForced => 'Transcoding is forced in settings';
+
+  @override
+  String get playbackInfoWhyBitrate =>
+      'The bitrate is above the streaming limit';
+
+  @override
+  String get playbackInfoWhyContainer =>
+      'This device can\'t play this file type';
+
+  @override
+  String get playbackInfoWhyVideo =>
+      'This device can\'t play this video format';
+
+  @override
+  String get playbackInfoWhyHdr => 'This device can\'t display this HDR format';
+
+  @override
+  String get playbackInfoWhyAudio =>
+      'This device can\'t play this audio format';
+
+  @override
+  String get playbackInfoWhySubtitles =>
+      'Subtitles are being burned into the video';
+
+  @override
+  String get playbackInfoWhyOther => 'The file couldn\'t be played directly';
+
+  @override
+  String playbackInfoWhyBitrateLimit(String bitrate, String limit) {
+    return '$bitrate is above the $limit streaming limit';
+  }
+
+  @override
+  String playbackInfoWhyContainerName(String container) {
+    return 'This device can\'t open $container files';
+  }
+
+  @override
+  String playbackInfoWhyVideoCodec(String codec) {
+    return 'This device can\'t play $codec video';
+  }
+
+  @override
+  String playbackInfoWhyVideoProfile(String codec, String profile) {
+    return 'This device can\'t play $codec $profile video';
+  }
+
+  @override
+  String playbackInfoWhyVideoLevel(String codec, String level) {
+    return 'This device can\'t play $codec level $level video';
+  }
+
+  @override
+  String playbackInfoWhyVideoBitDepth(int bits) {
+    return 'This device can\'t play $bits-bit video';
+  }
+
+  @override
+  String playbackInfoWhyVideoResolution(String resolution) {
+    return 'This device can\'t play $resolution video';
+  }
+
+  @override
+  String playbackInfoWhyVideoFrameRate(String fps) {
+    return 'This device can\'t play $fps fps video';
+  }
+
+  @override
+  String get playbackInfoWhyInterlaced =>
+      'This device can\'t play interlaced video';
+
+  @override
+  String get playbackInfoWhyAnamorphic =>
+      'This device can\'t play anamorphic video';
+
+  @override
+  String playbackInfoWhyHdrName(String range) {
+    return 'This device can\'t display $range';
+  }
+
+  @override
+  String playbackInfoWhyAudioCodec(String format) {
+    return 'This device can\'t play $format audio';
+  }
+
+  @override
+  String playbackInfoWhyAudioProfile(String fullFormat) {
+    return 'This device can\'t play $fullFormat';
+  }
+
+  @override
+  String playbackInfoWhyAudioChannels(String channels) {
+    return 'This device can\'t play $channels audio';
+  }
+
+  @override
+  String playbackInfoWhyAudioSampleRate(String rate) {
+    return 'This device can\'t play $rate kHz audio';
+  }
+
+  @override
+  String playbackInfoWhyAudioBitDepth(int bits) {
+    return 'This device can\'t play $bits-bit audio';
+  }
+
+  @override
+  String get playbackInfoWhyAudioExternal =>
+      'The audio track is in a separate file';
+
+  @override
+  String get playbackInfoWhySecondaryAudio =>
+      'This device can only play the first audio track';
+
+  @override
+  String playbackInfoWhySubtitleFormat(String format) {
+    return '$format subtitles are being burned into the video';
+  }
+
+  @override
+  String get playbackInfoDroppedFrames => 'Dropped Frames';
+
+  @override
+  String get playFromServer => 'Play from Server';
+
+  @override
+  String get settingsApplePlayerUi => 'Video player';
+
+  @override
+  String get settingsApplePlayerUiDescription =>
+      'The native Apple style player has no casting, audio delay or PiP button, and its rotation lock is only in Live TV';
+
+  @override
+  String get settingsApplePlayerUiStandard => 'Standard';
+
+  @override
+  String get settingsApplePlayerUiNative => 'Native Apple style';
+
+  @override
+  String get playerTransportPosition => 'Play buttons';
+
+  @override
+  String get playerTransportPositionDescription =>
+      'Show play, skip and seek in the middle of the video or docked in the bottom bar';
+
+  @override
+  String get playerTransportOnScreen => 'On screen';
+
+  @override
+  String get playerTransportDocked => 'Docked';
+
+  @override
+  String get incompleteRecording => 'Incomplete';
+
+  @override
+  String incompleteRecordingMinutes(int recorded, int expected) {
+    return '$recorded of $expected min';
+  }
+
+  @override
+  String completeShowingScheduled(String dateTime) {
+    return 'Complete showing scheduled $dateTime';
+  }
+
+  @override
+  String completeCopyRecorded(String dateTime) {
+    return 'Complete copy recorded $dateTime';
+  }
+
+  @override
+  String get noCompleteShowingFound => 'No complete showing found';
+
+  @override
+  String get keepAsComplete => 'Keep as Complete';
+
+  @override
+  String get keptAsComplete => 'Marked as complete';
+
+  @override
+  String get unableToKeepAsComplete => 'Unable to mark as complete';
+
+  @override
+  String recordPromptTitle(String name) {
+    return 'Record $name';
+  }
+
+  @override
+  String recordPromptStarted(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other:
+          'This showing started $minutes minutes ago, so the recording will miss the start.',
+      one: 'This showing started 1 minute ago, so the recording will miss the start.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordPromptAlsoRecordLater =>
+      'Also record the future showing to get a complete recording?';
+
+  @override
+  String get recordPromptSearchLater =>
+      'Also record a future showing automatically once one is found, to get a complete recording?';
+
+  @override
+  String get recordPromptNow => 'Now';
+
+  @override
+  String get recordPromptLater => 'Future showing';
+
+  @override
+  String recordPromptAired(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes min already aired',
+      one: '1 min already aired',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordPromptUncertainMatch =>
+      'Matched by title and description only. Check it\'s the same program.';
+
+  @override
+  String get recordPromptDescriptionsDiffer =>
+      'The descriptions differ, so this may be a different program.';
+
+  @override
+  String recordPromptSameEpisode(int season, int episode) {
+    return 'Same episode (S${season}E$episode)';
+  }
+
+  @override
+  String get recordPromptAlreadyScheduled => 'Already set to record';
+
+  @override
+  String get recordPromptTomorrow => 'Tomorrow';
+
+  @override
+  String get recordNowOnly => 'Record Now Only';
+
+  @override
+  String recordNowAnd(String when) {
+    return 'Record Now and $when';
+  }
+
+  @override
+  String get recordNowAndLater => 'Record Now and Future Showing';
+
+  @override
+  String recordOnlyLater(String when) {
+    return 'Record $when Only';
+  }
+
+  @override
+  String get recordLaterShowingOnly => 'Record Future Showing Only';
+
+  @override
+  String get laterShowingOnlyRequested =>
+      'The future showing will be recorded.';
+
+  @override
+  String get unableToRequestLaterShowingOnly =>
+      'Couldn\'t request the future showing, so nothing will be recorded.';
+
+  @override
+  String get laterShowingRequested =>
+      'Recording started. A future showing will be recorded too.';
+
+  @override
+  String get unableToRequestLaterShowing =>
+      'Recording started, but couldn\'t request a future showing.';
+
+  @override
+  String trailerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trailers',
+      one: '1 trailer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trailerNumber(int number) {
+    return 'Trailer $number';
+  }
+
+  @override
+  String get subtitled => 'Subtitled';
+
+  @override
+  String get rommAccount => 'RomM account';
+
+  @override
+  String get rommAccountIntro =>
+      'Link your RomM account to play from your own RomM library and keep your saves in RomM.';
+
+  @override
+  String get rommLinkAccount => 'Link RomM account';
+
+  @override
+  String get rommLinkInstructions =>
+      'Sign in to RomM and enter this code to link your account.';
+
+  @override
+  String rommLinkScanOrVisit(String url) {
+    return 'Scan the QR code with your phone, or go to $url';
+  }
+
+  @override
+  String get rommOpen => 'Open RomM';
+
+  @override
+  String get rommWaitingForApproval =>
+      'Waiting for you to approve the code in RomM...';
+
+  @override
+  String rommLinkedAs(String username) {
+    return 'Linked as $username';
+  }
+
+  @override
+  String get rommLinked => 'Your RomM account is linked.';
+
+  @override
+  String get rommUnlinkNote =>
+      'Unlinking stops Moonfin from using your RomM key. The key stays in RomM until you remove it from your API tokens there.';
+
+  @override
+  String get rommUnlink => 'Unlink';
+
+  @override
+  String get rommLinkExpired =>
+      'The code expired before it was approved. Link again to get a new one.';
+
+  @override
+  String get rommLinkDenied => 'The link was turned down in RomM.';
+
+  @override
+  String get rommUnreachable =>
+      'Moonfin couldn\'t reach RomM. Try again in a moment.';
+
+  @override
+  String get rommNotAvailable => 'This server has no RomM library.';
+
+  @override
+  String get rommAccountLoadFailed => 'Couldn\'t load your RomM account.';
+
+  @override
+  String get reviews => 'Reviews';
+
+  @override
+  String get detailSectionReviews => 'Reviews';
+
+  @override
+  String spotlightReviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get readOnTmdb => 'Read on TMDB';
+
+  @override
+  String get addServerButtonSubtitle =>
+      'By address, or with a Plex or Emby Connect account';
+
+  @override
+  String get addServerChooseHow => 'Choose how you\'d like to connect.';
+
+  @override
+  String get addServerAddressChoice =>
+      'Jellyfin or Emby on your network or online';
+
+  @override
+  String get addServerPlexChoice => 'Use your Plex account to find its servers';
+
+  @override
+  String get addServerAddressHelp =>
+      'The same address you\'d open in a browser, including the port.';
+
+  @override
+  String get addServerDetectNote =>
+      'Works with Jellyfin and Emby. A Plex address opens the Plex sign-in.';
+
+  @override
+  String addServerChecking(String address) {
+    return 'Checking $address';
+  }
+
+  @override
+  String get addServerUnreachableDetail =>
+      'Check the address and port, and that the server is running.';
+
+  @override
+  String get addServerFound => 'Server found';
+
+  @override
+  String get addServerFoundNote => 'Continue to choose who\'s signing in.';
+
+  @override
+  String get addServerUseDifferentAddress => 'Use a different address';
+
+  @override
+  String musicArtistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artists',
+      one: '1 artist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String musicSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String musicPlaylistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists',
+      one: '1 playlist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String musicPlayCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plays',
+      one: '1 play',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get allArtists => 'All Artists';
+
+  @override
+  String get libraryZToA => 'Z to A';
+
+  @override
+  String get musicSortYear => 'Year';
+
+  @override
+  String get musicFilter => 'Filter';
+
+  @override
+  String get musicGenreFilterTitle => 'Filter by Genre';
+
+  @override
+  String get openAlbum => 'Open Album';
+
+  @override
+  String get openPlaylist => 'Open Playlist';
+
+  @override
+  String get allSongsAToZ => 'All Songs A to Z';
+
+  @override
+  String get musicMix => 'Mix';
+
+  @override
+  String get musicMixEverything => 'Everything';
+
+  @override
+  String get musicMixEverythingSubtitle => '300 songs at random';
+
+  @override
+  String get mostPlayed => 'Most Played';
+
+  @override
+  String get musicMixMostPlayedSubtitle => 'Your top 100';
+
+  @override
+  String get musicMixFreshArrivals => 'Fresh Arrivals';
+
+  @override
+  String get musicMixFreshArrivalsSubtitle => 'The newest 100 songs';
+
+  @override
+  String get musicMixRediscover => 'Rediscover';
+
+  @override
+  String get musicMixRediscoverSubtitle =>
+      'Favorites you haven\'t played lately';
+
+  @override
+  String get musicSortMostAlbums => 'Most Albums';
+
+  @override
+  String bookSeriesPosition(int index, int total) {
+    return 'Book $index of $total';
+  }
+
+  @override
+  String bookFavoriteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count favorites',
+      one: '1 favorite',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bookSortZToA => 'Z to A';
+
+  @override
+  String get bookSortMostTitles => 'Most Titles';
+
+  @override
+  String get bookSurpriseMe => 'Surprise Me';
+
+  @override
+  String get bookShuffleAudiobooks => 'Shuffle Audiobooks';
+
+  @override
+  String get bookStartReading => 'Start Reading';
+
+  @override
+  String get bookOtherBooks => 'Other Books';
+
+  @override
+  String get bookDiscoverSearchBooks => 'Search Open Library';
+
+  @override
+  String get bookDiscoverSearchAudiobooks => 'Search LibriVox';
+
+  @override
+  String get bookDiscoverFeatured => 'Featured';
+
+  @override
+  String get bookReaderControlsAutoHide => 'Controls hide automatically';
+
+  @override
+  String get bookReaderControlsStayVisible => 'Controls stay visible';
 }
 
 /// The translations for Yue Chinese Cantonese, as used in China (`yue_CN`).
@@ -14191,12 +15856,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   @override
   String get settingsAppearanceThemeSubtitle =>
       '在 Moonfin 和 Neon Pulse 之间切换，无需重新启动应用程序';
-
-  @override
-  String get keyboardPreferSystemIme => '更喜欢系统键盘';
-
-  @override
-  String get keyboardPreferSystemImeDescription => '默认情况下使用您的设备输入法进行文本输入';
 
   @override
   String get themeMoonfin => 'Moonfin';
@@ -14452,9 +16111,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   String get discoverySubjects => '发现主题';
 
   @override
-  String get pickDiscoverySubjects => '选择要在“发现”中显示的主题源。';
-
-  @override
   String get apply => '申请';
 
   @override
@@ -14465,20 +16121,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
 
   @override
   String get audiobookGenres => '有声读物流派';
-
-  @override
-  String get pickAudiobookGenres => '选择要在有声读物探索中显示的流派。';
-
-  @override
-  String get discoverAudiobooks => '发现有声读物';
-
-  @override
-  String get librivoxDescription => '来自 LibriVox 的热门公共领域标题。';
-
-  @override
-  String titlesCount(int count) {
-    return '$count 标题';
-  }
 
   @override
   String get scrollLeft => '向左滚动';
@@ -14604,9 +16246,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
 
   @override
   String get discover => '发现';
-
-  @override
-  String get trendingTitlesOpenLibrary => 'Open Library 中按主题划分的热门标题。';
 
   @override
   String get noBookmarkedItems => '还没有添加书签的项目';
@@ -15157,11 +16796,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   String get perfectMatch => '完美搭配';
 
   @override
-  String channelsCount(int count) {
-    return '${count}ch';
-  }
-
-  @override
   String get mono => '单核细胞增多症';
 
   @override
@@ -15297,9 +16931,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   }
 
   @override
-  String get bitrateOverride => '比特率覆盖';
-
-  @override
   String get audioDelay => '音频延迟';
 
   @override
@@ -15361,22 +16992,10 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   String get hdr => '高动态范围';
 
   @override
-  String get codec => '编解码器';
-
-  @override
-  String get videoBitrate => '视频比特率';
-
-  @override
   String get track => '追踪';
 
   @override
   String get channels => '渠道';
-
-  @override
-  String get audioBitrate => '音频比特率';
-
-  @override
-  String get sampleRate => '采样率';
 
   @override
   String get format => '格式';
@@ -15974,12 +17593,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   String get scaleFocusedCards => '缩放聚焦或悬停的卡片和图块';
 
   @override
-  String get backgroundBackdrops => '背景背景';
-
-  @override
-  String get showBackdropImages => '显示内容后面的背景图像';
-
-  @override
   String get seriesThumbnails => '系列缩略图';
 
   @override
@@ -16238,41 +17851,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
   String settingsAudioPcmChannels(int count) {
     return '${count}ch PCM';
   }
-
-  @override
-  String get settingsAudioDiagnostics => 'Diagnostics';
-
-  @override
-  String get settingsAudioDiagnosticsVideoLevel => 'Video Level';
-
-  @override
-  String get settingsAudioDiagnosticsVideoRange => 'Video Range';
-
-  @override
-  String get settingsAudioDiagnosticsSubtitleCodec => 'Subtitle Codec';
-
-  @override
-  String get settingsAudioDiagnosticsAllowedAudioCodecs =>
-      'Allowed Audio Codecs';
-
-  @override
-  String get settingsAudioDiagnosticsHlsMpegTsAudioCodecs =>
-      'HLS MPEG-TS Audio Codecs';
-
-  @override
-  String get settingsAudioDiagnosticsHlsFmp4AudioCodecs =>
-      'HLS fMP4 Audio Codecs';
-
-  @override
-  String get settingsAudioDiagnosticsAudioSpdifPassthrough =>
-      'audio-spdif passthrough';
-
-  @override
-  String get settingsAudioDiagnosticsActiveAudioRoute => 'Active Audio Route';
-
-  @override
-  String get settingsAudioDiagnosticsRouteHdAudioSupport =>
-      'Route HD Audio Support';
 
   @override
   String get nightMode => '夜间模式';
@@ -16643,12 +18221,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
 
   @override
   String get showLibrariesFromAllServers => '显示所有连接服务器的库';
-
-  @override
-  String get enableFolderView => '启用文件夹视图';
-
-  @override
-  String get showFolderBrowsingOption => '显示文件夹浏览选项';
 
   @override
   String get libraryVisibility => '图书馆可见性';
@@ -17110,9 +18682,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
 
   @override
   String get featuredContentAppearance => '特色内容、外观';
-
-  @override
-  String get posterSizeImageTypeFolderView => '海报尺寸、图像类型、文件夹视图';
 
   @override
   String gbValue(String value) {
@@ -21027,9 +22596,6 @@ class AppLocalizationsYueCn extends AppLocalizationsYue {
       'CB7 extraction plugin is not available on this platform.';
 
   @override
-  String get closeGenrePanel => 'Close genre panel';
-
-  @override
   String get loadingShuffle => 'Loading shuffle...';
 
   @override
@@ -21178,13 +22744,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   @override
   String get settingsAppearanceThemeSubtitle =>
       '在 Moonfin 和 Neon Pulse 之間切換，無需重新啟動應用程式';
-
-  @override
-  String get keyboardPreferSystemIme => 'Prefer system keyboard';
-
-  @override
-  String get keyboardPreferSystemImeDescription =>
-      'Use your device input method by default for text entry';
 
   @override
   String get themeMoonfin => 'Moonfin';
@@ -21440,9 +22999,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   String get discoverySubjects => '發現主題';
 
   @override
-  String get pickDiscoverySubjects => '選擇要在「發現」中顯示的主題來源。';
-
-  @override
   String get apply => '申請';
 
   @override
@@ -21453,20 +23009,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
 
   @override
   String get audiobookGenres => '有聲書流派';
-
-  @override
-  String get pickAudiobookGenres => '選擇要在有聲書探索中顯示的流派。';
-
-  @override
-  String get discoverAudiobooks => '發現有聲書';
-
-  @override
-  String get librivoxDescription => '來自 LibriVox 的熱門公共領域標題。';
-
-  @override
-  String titlesCount(int count) {
-    return '$count titles';
-  }
 
   @override
   String get scrollLeft => '向左滾動';
@@ -21592,9 +23134,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
 
   @override
   String get discover => '發現';
-
-  @override
-  String get trendingTitlesOpenLibrary => 'Open Library 中按主題劃分的熱門標題。';
 
   @override
   String get noBookmarkedItems => '還沒有加書籤的項目';
@@ -22145,11 +23684,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   String get perfectMatch => '完美搭配';
 
   @override
-  String channelsCount(int count) {
-    return '${count}ch';
-  }
-
-  @override
   String get mono => '單核白血球增多症';
 
   @override
@@ -22285,9 +23819,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   }
 
   @override
-  String get bitrateOverride => '比特率覆蓋';
-
-  @override
   String get audioDelay => '音訊延遲';
 
   @override
@@ -22349,22 +23880,10 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   String get hdr => '高動態範圍';
 
   @override
-  String get codec => '編解碼器';
-
-  @override
-  String get videoBitrate => '視訊比特率';
-
-  @override
   String get track => '追蹤';
 
   @override
   String get channels => '頻道';
-
-  @override
-  String get audioBitrate => '音訊比特率';
-
-  @override
-  String get sampleRate => '取樣率';
 
   @override
   String get format => '格式';
@@ -22962,12 +24481,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   String get scaleFocusedCards => '縮放聚焦或懸停的卡片和圖塊';
 
   @override
-  String get backgroundBackdrops => '背景背景';
-
-  @override
-  String get showBackdropImages => '顯示內容後面的背景影像';
-
-  @override
   String get seriesThumbnails => '系列縮圖';
 
   @override
@@ -23226,41 +24739,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   String settingsAudioPcmChannels(int count) {
     return '${count}ch PCM';
   }
-
-  @override
-  String get settingsAudioDiagnostics => 'Diagnostics';
-
-  @override
-  String get settingsAudioDiagnosticsVideoLevel => 'Video Level';
-
-  @override
-  String get settingsAudioDiagnosticsVideoRange => 'Video Range';
-
-  @override
-  String get settingsAudioDiagnosticsSubtitleCodec => 'Subtitle Codec';
-
-  @override
-  String get settingsAudioDiagnosticsAllowedAudioCodecs =>
-      'Allowed Audio Codecs';
-
-  @override
-  String get settingsAudioDiagnosticsHlsMpegTsAudioCodecs =>
-      'HLS MPEG-TS Audio Codecs';
-
-  @override
-  String get settingsAudioDiagnosticsHlsFmp4AudioCodecs =>
-      'HLS fMP4 Audio Codecs';
-
-  @override
-  String get settingsAudioDiagnosticsAudioSpdifPassthrough =>
-      'audio-spdif passthrough';
-
-  @override
-  String get settingsAudioDiagnosticsActiveAudioRoute => 'Active Audio Route';
-
-  @override
-  String get settingsAudioDiagnosticsRouteHdAudioSupport =>
-      'Route HD Audio Support';
 
   @override
   String get nightMode => '夜間模式';
@@ -23631,12 +25109,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
 
   @override
   String get showLibrariesFromAllServers => '顯示所有連接伺服器的庫';
-
-  @override
-  String get enableFolderView => '啟用資料夾視圖';
-
-  @override
-  String get showFolderBrowsingOption => '顯示資料夾瀏覽選項';
 
   @override
   String get libraryVisibility => '圖書館可見性';
@@ -24098,9 +25570,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
 
   @override
   String get featuredContentAppearance => '特色內容、外觀';
-
-  @override
-  String get posterSizeImageTypeFolderView => '海報尺寸、圖像類型、資料夾視圖';
 
   @override
   String gbValue(String value) {
@@ -28012,9 +29481,6 @@ class AppLocalizationsYueHk extends AppLocalizationsYue {
   @override
   String get cb7ExtractionPluginUnavailable =>
       'CB7 extraction plugin is not available on this platform.';
-
-  @override
-  String get closeGenrePanel => 'Close genre panel';
 
   @override
   String get loadingShuffle => 'Loading shuffle...';

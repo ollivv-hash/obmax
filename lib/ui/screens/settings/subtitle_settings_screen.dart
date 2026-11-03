@@ -94,7 +94,13 @@ class SubtitleSettingsScreen extends StatelessWidget {
                         icon: Icons.language,
                         options: langOptions,
                       ),
-                      if (PlatformDetection.isAndroid)
+                      SwitchPreferenceTile(
+                        preference: UserPreferences.secondarySubtitlesEnabled,
+                        title: l10n.secondarySubtitleTrack,
+                        subtitle: l10n.secondarySubtitlesEnabledSubtitle,
+                        icon: Icons.subtitles_outlined,
+                      ),
+                      if (prefs.get(UserPreferences.secondarySubtitlesEnabled))
                         StringPickerPreferenceTile(
                           preference: UserPreferences
                               .preferredSecondarySubtitleLanguage,

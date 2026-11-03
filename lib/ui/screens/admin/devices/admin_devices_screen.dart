@@ -188,6 +188,8 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final currentDeviceId = GetIt.instance<MediaServerClient>().deviceInfo.id;
+    bool isCurrent(DeviceInfoDto d) =>
+        (d.reportedDeviceId ?? d.id) == currentDeviceId;
 
     return devicesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -247,7 +249,7 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
                     color: theme.colorScheme.error,
                     onPressed: () {
                       final targets = devices
-                          .where((d) => d.id != currentDeviceId)
+                          .where((d) => !isCurrent(d))
                           .toList();
                       if (targets.isEmpty) return;
                       _deleteAllDevices(targets);
@@ -323,7 +325,7 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
               itemCount: filtered.length,
               itemBuilder: (context, index) {
                 final device = filtered[index];
-                final isCurrentDevice = device.id == currentDeviceId;
+                final isCurrentDevice = isCurrent(device);
                 final appInfo = [device.appName, device.appVersion]
                     .where((v) => v != null && v.isNotEmpty)
                     .join(' ');

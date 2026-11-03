@@ -9,6 +9,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../util/error_message.dart';
 import '../../../../util/image_mime.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
 import '../widgets/admin_form_styles.dart';
 
 class AdminBrandingScreen extends StatefulWidget {
@@ -259,21 +260,23 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen>
           title: l10n.adminBrandingTitle,
           icon: Icons.brush_outlined,
         ),
-        adminSection(
-          context,
-          title: l10n.adminBrandingSplashSection,
-          icon: Icons.image_outlined,
-          children: [
-            adminSwitchRow(
-              title: l10n.adminBrandingEnableSplash,
-              anchor: 'branding.SplashscreenEnabled',
-              value: _splashEnabled,
-              onChanged: _savingSplash ? (_) {} : _setSplashEnabled,
-            ),
-            _buildSplashButtons(l10n),
-            if (_splashEnabled) _buildSplashPreview(l10n),
-          ],
-        ),
+        // Emby has no splash screen.
+        if (!AdminServerScope.isEmby(context))
+          adminSection(
+            context,
+            title: l10n.adminBrandingSplashSection,
+            icon: Icons.image_outlined,
+            children: [
+              adminSwitchRow(
+                title: l10n.adminBrandingEnableSplash,
+                anchor: 'branding.SplashscreenEnabled',
+                value: _splashEnabled,
+                onChanged: _savingSplash ? (_) {} : _setSplashEnabled,
+              ),
+              _buildSplashButtons(l10n),
+              if (_splashEnabled) _buildSplashPreview(l10n),
+            ],
+          ),
         draftKeyed(
           adminSection(
             context,

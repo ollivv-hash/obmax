@@ -17,7 +17,15 @@ import 'media3_letterbox_crop.dart';
 import 'server_transcode_capabilities.dart';
 
 class Media3PlayerBackend extends PlayerBackend
-    implements SubtitleLoadingBackend {
+    with SubtitleDelayState
+    implements SubtitleLoadingBackend, SecondarySubtitleBackend {
+  @override
+  bool get supportsSecondarySubtitleDelay => true;
+  @override
+  bool get supportsSecondarySubtitlePosition => true;
+  @override
+  bool get supportsSecondarySubtitleStyle => true;
+
   static const _discontinuityWindowMs = 15000;
   static const _discontinuityThreshold = 3;
   static const _audioSinkErrorThreshold = 2;
@@ -98,6 +106,20 @@ class Media3PlayerBackend extends PlayerBackend
         : Media3DoviCompatMode.strip;
   }
 
+  /// Whether the native side drops the Dolby Vision layer from this source so
+  /// its HDR10+ stream plays on its own.
+  @visibleForTesting
+  static bool stripsDolbyVision(UserPreferences prefs, String? videoRangeType) {
+    if (!prefs.get(UserPreferences.media3StripDolbyVisionWithHdr10Plus)) {
+      return false;
+    }
+    final range = videoRangeType?.toUpperCase().replaceAll(
+      RegExp(r'[^A-Z0-9]+'),
+      '',
+    );
+    return range == 'DOVIWITHHDR10PLUS' || range == 'DOVIWITHELHDR10PLUS';
+  }
+
   final UserPreferences _prefs;
   late final Media3LetterboxCropper _letterboxCropper;
   String? _currentUrl;
@@ -105,6 +127,16 @@ class Media3PlayerBackend extends PlayerBackend
   StreamSubscription<dynamic>? _eventSub;
 
   Duration _position = Duration.zero;
+
+  /// Where the previous item stopped, while the native ticker may still
+  /// report it for the item that just started.
+  Duration? _previousItemPosition;
+
+  /// How close a tick has to be to [_previousItemPosition] to count as the
+  /// previous item's, and how far a new item has to start from it for the
+  /// check to apply at all: a resume of the same spot is not checked.
+  static const _previousItemTolerance = Duration(milliseconds: 500);
+  static const _newItemJump = Duration(seconds: 1);
   Duration _duration = Duration.zero;
   Duration _buffer = Duration.zero;
   bool _isPlaying = false;
@@ -113,8 +145,6 @@ class Media3PlayerBackend extends PlayerBackend
   Duration? _liveEdge;
   double _volume = 100.0;
   double _audioDelaySeconds = 0.0;
-  double _subtitleDelaySeconds = 0.0;
-  int? _subtitleDelaySessionId;
   int _volumeBoostLevel = 0;
   bool _skipSilenceEnabled = false;
   RepeatMode _repeatMode = RepeatMode.none;
@@ -194,8 +224,6 @@ class Media3PlayerBackend extends PlayerBackend
   @override
   bool? get playWhenReady => _playWhenReady;
 
-  double get subtitleDelaySeconds => _subtitleDelaySeconds;
-
   Future<T?> _invoke<T>(String method, [dynamic arguments]) async {
     if (_disposed) return null;
     try {
@@ -225,6 +253,16 @@ class Media3PlayerBackend extends PlayerBackend
     await _stopActivity();
   }
 
+  /// A tick still describing the previous item. The first tick that does
+  /// not ends the wait, so a real one is never held back for long.
+  bool _isPreviousItemTick(Duration reported) {
+    final previous = _previousItemPosition;
+    if (previous == null) return false;
+    if ((reported - previous).abs() <= _previousItemTolerance) return true;
+    _previousItemPosition = null;
+    return false;
+  }
+
   void _handleEvent(dynamic event) {
     if (_disposed || event is! Map) return;
     final map = event.map((k, v) => MapEntry(k.toString(), v));
@@ -232,9 +270,13 @@ class Media3PlayerBackend extends PlayerBackend
 
     switch (eventType) {
       case 'state':
+        final reported = Duration(milliseconds: _toInt(map['positionMs']));
+        // Its duration and play state are the previous item's too: taken
+        // here, a resume past that length would count as finished.
+        if (_isPreviousItemTick(reported)) return;
         final wasPlaying = _isPlaying;
         final wasBuffering = _isBuffering;
-        _position = Duration(milliseconds: _toInt(map['positionMs']));
+        _position = reported;
         _duration = Duration(milliseconds: _toInt(map['durationMs']));
         _buffer = Duration(milliseconds: _toInt(map['bufferedMs']));
         _isPlaying = _toBool(map['isPlaying']);
@@ -379,7 +421,7 @@ class Media3PlayerBackend extends PlayerBackend
         _completedStream.add(false);
       case 'syncDelays':
         _audioDelaySeconds = _toInt(map['audioDelayMs']) / 1000.0;
-        _subtitleDelaySeconds = _toInt(map['subtitleDelayMs']) / 1000.0;
+        subtitleDelaySeconds = _toInt(map['subtitleDelayMs']) / 1000.0;
       case 'volumeBoost':
         _volumeBoostLevel = (_toInt(map['level']).clamp(0, 10)).toInt();
       case 'repeatModeChanged':
@@ -416,6 +458,9 @@ class Media3PlayerBackend extends PlayerBackend
               ? LogLevel.warning
               : LogLevel.debug,
         );
+      case 'secondarySubtitleSelection':
+        _diag('Media3: secondary subtitle ${map['mode']} '
+            '(track=${map['trackId'] ?? 'none'})');
       case 'secondarySubtitleError':
         _diag(
           'Media3: secondary subtitle failed: ${map['message'] ?? 'unknown error'}',
@@ -616,25 +661,29 @@ class Media3PlayerBackend extends PlayerBackend
     );
   }
 
-  /// Records what the Dolby Vision profile 7 chain did with a track. A P7
-  /// stream that plays wrong is otherwise indistinguishable from a bad file,
-  /// so the report carries the decision, where the RPU came from, and the
-  /// running counts behind it.
+  /// Records what the Dolby Vision chain did with a track. A rewritten stream
+  /// that plays wrong otherwise looks just like a bad file, so the report
+  /// carries the decision, where the RPU came from, and the running counts
+  /// behind it.
   void _onDoviCompat(Map<String, dynamic> map) {
     final reason = map['reason']?.toString() ?? 'decided';
     final applied = map['mode']?.toString() ?? 'none';
     final requested = map['requestedMode']?.toString() ?? 'none';
     final detail = map['detail']?.toString();
+    final codecs = map['codecs']?.toString() ?? '';
+    final profile = codecs.startsWith('dvhe.08') || codecs.startsWith('dvh1.08')
+        ? 'P8'
+        : 'P7';
 
     final headline = switch (reason) {
-      'untouched' => 'DoVi P7 left untouched',
-      'progress' => 'DoVi P7 still handled as $applied',
-      'converterFailed' => 'DoVi P7 conversion stopped working',
-      'disarmed' => 'DoVi P7 rewriting stood down',
+      'untouched' => 'DoVi $profile left untouched',
+      'progress' => 'DoVi $profile still handled as $applied',
+      'converterFailed' => 'DoVi $profile conversion stopped working',
+      'disarmed' => 'DoVi $profile rewriting stood down',
       _ =>
         applied == requested
-            ? 'DoVi P7 handled as $applied'
-            : 'DoVi P7 asked for $requested, settled on $applied',
+            ? 'DoVi $profile handled as $applied'
+            : 'DoVi $profile asked for $requested, settled on $applied',
     };
 
     final counts =
@@ -659,12 +708,12 @@ class Media3PlayerBackend extends PlayerBackend
     );
 
     // A stand-down before the first sample decided anything sends the raw
-    // profile 7 stream to a decoder that can't play it, which reads as a
+    // Dolby Vision stream to a decoder that can't show it, which reads as a
     // silent black screen. Raising it as a recoverable video error routes
     // playback into the transcode fallback instead.
     if (reason == 'disarmed' && applied == 'none') {
       _diag(
-        'Media3: raising a recoverable video error for the untouched P7 '
+        'Media3: raising a recoverable video error for the untouched $profile '
         'stream so playback can fall back',
         level: LogLevel.warning,
       );
@@ -673,7 +722,7 @@ class Media3PlayerBackend extends PlayerBackend
         'recoverable': true,
         'kind': 'unsupported_video',
         'message':
-            'DoVi P7 rewriting stood down before playback could start'
+            'DoVi $profile rewriting stood down before playback could start'
             '${detail == null ? '' : ': $detail'}',
       });
     }
@@ -1042,6 +1091,17 @@ class Media3PlayerBackend extends PlayerBackend
     final isPreview = payload['preview'] == true;
 
     _completed = false;
+    // The native ticker keeps reporting the previous item's frozen position
+    // until the new source is set. Left in place, a stop in the first second
+    // reports where the last episode ended, which marks this one watched.
+    // A play before the new source's first tick keeps the previous item's
+    // position: [_position] is only the start position set below.
+    final previous = _previousItemPosition ?? _position;
+    _previousItemPosition = (previous - startPosition).abs() > _newItemJump
+        ? previous
+        : null;
+    _position = startPosition;
+    _positionStream.add(_position);
     _tracksKnown = false;
     _textTrackCount = 0;
     _embeddedCaptionTracks = const [];
@@ -1112,14 +1172,7 @@ class Media3PlayerBackend extends PlayerBackend
     _lastFrameRateLine = null;
     _liveEdge = null;
     _sourceIsLive = payload['isLive'] == true;
-    // Reset for a new viewing session, but keep the adjustment when the
-    // same session changes quality or restores playback after backgrounding.
-    final subtitleDelaySessionId = payload['subtitleDelaySessionId'] as int?;
-    if (subtitleDelaySessionId == null ||
-        subtitleDelaySessionId != _subtitleDelaySessionId) {
-      _subtitleDelaySeconds = 0.0;
-    }
-    _subtitleDelaySessionId = subtitleDelaySessionId;
+    updateSubtitleDelaySession(payload['subtitleDelaySessionId'] as int?);
     await _invoke<void>('setSource', {
       'url': url,
       'headers': headers,
@@ -1127,6 +1180,7 @@ class Media3PlayerBackend extends PlayerBackend
       'startPositionMs': startPosition.inMilliseconds,
       'container': container,
       'videoRangeType': videoRangeType,
+      'stripDolbyVision': stripsDolbyVision(_prefs, videoRangeType),
       'mediaType': mediaType,
       'videoFrameRate': (payload['videoFrameRate'] as num?)?.toDouble(),
       'videoStartDelayMs': _prefs.get(UserPreferences.videoStartDelay),
@@ -1138,6 +1192,8 @@ class Media3PlayerBackend extends PlayerBackend
       'preferredAudioLanguage': preferredAudioLanguage,
       'preferredTextLanguage': preferredSubtitleLanguage,
       'externalSubtitles': payload['externalSubtitles'] ?? const [],
+      if (payload['secondarySubtitleTrackId'] is int)
+        'secondarySubtitleTrackId': payload['secondarySubtitleTrackId'],
       if (payload['secondarySubtitleUrl'] is String)
         'secondarySubtitleUrl': payload['secondarySubtitleUrl'],
       if (payload['secondarySubtitleCodec'] is String)
@@ -1145,7 +1201,9 @@ class Media3PlayerBackend extends PlayerBackend
       if (payload['secondarySubtitleDelayMs'] is int)
         'secondarySubtitleDelayMs': payload['secondarySubtitleDelayMs'],
       if (payload['secondarySubtitleOffset'] is num)
-        'secondarySubtitleOffset': payload['secondarySubtitleOffset'],
+        'secondarySubtitleOffset': PlaybackManager.clampSecondarySubtitleOffset(
+          (payload['secondarySubtitleOffset'] as num).toDouble(),
+        ),
       if (payload['secondarySubtitleFontSize'] is num)
         'secondarySubtitleFontSize': payload['secondarySubtitleFontSize'],
       if (payload['secondarySubtitleTextColor'] is int)
@@ -1156,7 +1214,7 @@ class Media3PlayerBackend extends PlayerBackend
       'forceSubtitlesDisabledOnStart':
           _prefs.get(UserPreferences.subtitleMode) == SubtitleMode.none,
       'audioDelayMs': (_audioDelaySeconds * 1000).round(),
-      'subtitleDelayMs': (_subtitleDelaySeconds * 1000).round(),
+      'subtitleDelayMs': (subtitleDelaySeconds * 1000).round(),
       'volumeBoostLevel': _volumeBoostLevel,
       'preview': isPreview,
     });
@@ -1234,6 +1292,8 @@ class Media3PlayerBackend extends PlayerBackend
     _watchdogTimer?.cancel();
     _watchdogTimer = null;
     _loadRequestedAtMs = 0;
+    // Ticks between this stop and the next load still carry this position.
+    _previousItemPosition = _position;
     await _invoke<void>(command);
     if (_isPlaying) {
       _isPlaying = false;
@@ -1295,6 +1355,7 @@ class Media3PlayerBackend extends PlayerBackend
       maxBitrateMbps: maxBitrate,
       audioCapabilityProfile: audioCapabilityProfile,
       audioFallbackCodec: _prefs.resolveAudioFallbackCodec(),
+      transcodeAudioCodecs: _prefs.resolveTranscodeAudioCodecs(),
       ac3PassthroughEnabled: _prefs.resolveAc3PassthroughEnabled(),
       eac3PassthroughEnabled: _prefs.resolveEac3PassthroughEnabled(),
       dtsCorePassthroughEnabled: _prefs.resolveDtsCorePassthroughEnabled(),
@@ -1451,8 +1512,15 @@ class Media3PlayerBackend extends PlayerBackend
   }
 
   @override
-  Future<void> setSecondarySubtitle({String? url, String? codec}) async {
-    await _invoke<void>('setSecondarySubtitle', {'url': url, 'codec': codec});
+  Future<void> setSecondarySubtitle({
+    String? url,
+    String? codec,
+    String? language,
+    int? embeddedTrackId,
+  }) async {
+    await _invoke<void>('setSecondarySubtitle', {
+      'url': url, 'codec': codec, 'embeddedTrackId': embeddedTrackId,
+    });
   }
 
   @override
@@ -1471,7 +1539,9 @@ class Media3PlayerBackend extends PlayerBackend
   }) async {
     await _invoke<void>('configureSecondarySubtitleStyle', {
       'fontSize': fontSize,
-      'verticalOffset': verticalOffset,
+      'verticalOffset': verticalOffset == null
+          ? null
+          : PlaybackManager.clampSecondarySubtitleOffset(verticalOffset),
       'textColor': textColor,
     });
   }
@@ -1530,7 +1600,7 @@ class Media3PlayerBackend extends PlayerBackend
 
   @override
   Future<void> setSubtitleDelay(double seconds) async {
-    _subtitleDelaySeconds = seconds;
+    subtitleDelaySeconds = seconds;
     await _invoke<void>('setSubtitleDelay', {
       'seconds': seconds,
       'delayMs': (seconds * 1000).round(),
@@ -1752,4 +1822,4 @@ enum Media3DoviCompatMode { native, convert, strip, off }
 /// (its Ogg support is audio only), so those route to a server remux here.
 /// AVI and FLV extractors exist in media3 and join in their place.
 const String media3DirectPlayVideoContainers =
-    'avi,dash,flv,hls,m4v,mkv,mov,mp4,ts,vob,webm,xvid';
+    'avi,dash,flv,hls,m4v,mkv,mov,mp4,mpegts,ts,vob,webm,xvid';

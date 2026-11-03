@@ -149,6 +149,46 @@ void main() {
     expect(find.text('settings page'), findsOneWidget);
   });
 
+  testWidgets('a page opened from the phone list has a way back to it', (
+    tester,
+  ) async {
+    setWindow(tester, const Size(390, 844));
+    await pumpShell(tester, Destinations.adminGroupPath('people'));
+    expect(find.byTooltip('Back'), findsNothing);
+
+    await tester.tap(find.text(l10n.adminDrawerUsers));
+    await tester.pumpAndSettle();
+    expect(find.text('users page'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.adminPageDescUsers), findsOneWidget);
+  });
+
+  testWidgets('the Moonfin mark leaves the area in both layouts', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    for (final size in const [Size(1400, 900), Size(390, 844)]) {
+      setWindow(tester, size);
+      await pumpShell(tester, Destinations.adminUsers);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(l10n.adminExitTooltip)),
+        isSemantics(
+          label: l10n.adminExitTooltip,
+          isButton: true,
+          hasTapAction: true,
+        ),
+        reason: '$size',
+      );
+
+      await tester.tap(find.text(l10n.exit));
+      await tester.pumpAndSettle();
+      expect(find.text('home'), findsOneWidget, reason: '$size');
+    }
+    semantics.dispose();
+  });
+
   testWidgets('an edit brings up the bar and discard puts it back', (
     tester,
   ) async {

@@ -2,25 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:playback_core/playback_core.dart';
-import 'package:server_core/server_core.dart' show MediaServerClient, ServerType;
+import 'package:server_core/server_core.dart' show ServerType;
 import '../../obmax/obmax_features.dart'; // OBMAX
 import '../../obmax/onboarding/obmax_onboarding_screen.dart'; // OBMAX
 
+import '../../auth/repositories/server_repository.dart';
 import '../../auth/repositories/session_repository.dart';
 import '../../auth/repositories/user_repository.dart';
 import '../../data/services/connectivity_service.dart';
-import '../../data/services/media_server_client_factory.dart';
 import '../../data/services/remote_search_session.dart';
 import '../../data/services/retro_artwork/retro_artwork_activity_gate.dart';
 import '../../di/injection.dart';
+import '../../playback/apple_player_ui.dart';
 import '../../playback/external_player_policy.dart';
 import '../../preference/user_preferences.dart';
 import '../../preference/preference_constants.dart';
-import '../../syncplay/syncplay_manager.dart';
 import '../../util/game_cores.dart';
 import '../../util/platform_detection.dart';
+import '../screens/admin/admin_nav.dart';
 import '../screens/admin/admin_routes.dart';
 import '../screens/auth/emby_connect_screen.dart';
+import '../screens/auth/plex_sign_in_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/server_screen.dart';
 import '../screens/auth/server_select_screen.dart';
@@ -34,13 +36,18 @@ import '../screens/browse/library_browse_screen.dart';
 import '../screens/browse/library_genres_screen.dart';
 import '../screens/browse/library_letters_screen.dart';
 import '../screens/browse/library_suggestions_screen.dart';
-import '../screens/browse/book_browse_screen.dart';
-import '../screens/browse/music_browse_screen.dart';
+import '../screens/browse/book_category_screen.dart';
+import '../screens/browse/book_library_screen.dart';
+import '../screens/browse/music_category_screen.dart';
+import '../screens/browse/music_library_screen.dart';
+import '../widgets/book/book_navigation.dart';
+import '../widgets/music/music_navigation.dart';
 import '../../data/models/tmdb_item_ref.dart';
 import '../screens/detail/item_detail_screen.dart';
 import '../screens/games/game_library_screen.dart';
 import '../screens/games/game_system_screen.dart';
 import '../screens/games/game_detail_screen.dart';
+import '../screens/games/romm_account_screen.dart';
 import '../screens/playback/game_emulator_screen.dart';
 import '../screens/playback/native_game_player_screen.dart';
 import '../screens/detail/item_list_screen.dart';
@@ -53,6 +60,7 @@ import '../screens/seerr/seerr_requests_screen.dart';
 import '../screens/livetv/live_tv_channel_player_loader.dart';
 import '../screens/livetv/live_tv_guide_screen.dart';
 import '../screens/livetv/live_tv_player_screen.dart';
+import '../../data/viewmodels/book_browse_view_model.dart' show BookScope;
 import '../../data/viewmodels/live_tv_guide_view_model.dart';
 import '../screens/livetv/live_tv_recordings_screen.dart';
 import '../screens/livetv/live_tv_schedule_screen.dart';
@@ -80,6 +88,7 @@ const _authRoutes = {
   Destinations.startup,
   Destinations.serverSelect,
   Destinations.embyConnect,
+  Destinations.plexSignIn,
   Destinations.webDiagnostics,
   Destinations.server,
   Destinations.login,
@@ -94,20 +103,19 @@ bool _shouldRunSetupWizard() {
   // OBMAX: the wizard asks for what OB Max fixes (theme, home, engine).
   if (!ObMaxFeatures.setupWizard) return false;
   try {
-    final client = GetIt.instance<MediaServerClientFactory>().getActiveClient();
+    final client = SetupWizardGate.activeClient();
+    if (client == null) return false;
     return GetIt.instance<SetupWizardGate>().shouldRun(client);
   } catch (_) {
     return false;
   }
 }
 
-/// The admin area talks to Jellyfin's admin API, which Emby lacks, and has no
-/// TV layout. The settings tile is hidden in both cases, this stops deep links.
-bool _adminAvailable() {
-  if (PlatformDetection.isTV && !ObMaxFeatures.adminOnTv) return false; // OBMAX
-  if (!GetIt.instance.isRegistered<MediaServerClient>()) return false;
-  return GetIt.instance<MediaServerClient>().serverType == ServerType.jellyfin;
-}
+/// The admin area has no TV layout. The settings tile is hidden there and on
+/// servers it doesn't cover, and this stops deep links too.
+bool _adminAvailable() =>
+    (!PlatformDetection.isTV || ObMaxFeatures.adminOnTv) && // OBMAX
+    adminServerSupported();
 
 /// Surfaces that genuinely need the server. Everything else works offline
 /// against the downloads catalog.
@@ -128,23 +136,7 @@ bool _shouldRedirectVideoToExternalPlayer(String path) {
     return false;
   }
 
-  if (!PlatformDetection.isAndroid) {
-    return false;
-  }
-
-  final prefs = GetIt.instance<UserPreferences>();
-  if (!prefs.get(UserPreferences.useExternalPlayer)) {
-    return false;
-  }
-
-  if (GetIt.instance.isRegistered<SyncPlayManager>()) {
-    final syncPlay = GetIt.instance<SyncPlayManager>();
-    if (syncPlay.state.enabled) {
-      return false;
-    }
-  }
-
-  return ExternalPlayerPolicy.isEligibleItem(manager.queueService.currentItem);
+  return ExternalPlayerPolicy.coversQueue([manager.queueService.currentItem]);
 }
 
 CustomTransitionPage<T> _opaqueFullScreenPage<T>({
@@ -182,6 +174,8 @@ final appRouter = GoRouter(
   redirect: (context, state) {
     final path = state.uri.path;
     if (_authRoutes.contains(path)) return null;
+    // The old Folders screen, for a bookmark or a link from an older app.
+    if (path == '/folders') return Destinations.home;
 
     final session = GetIt.instance<SessionRepository>();
     if (session.activeUserId == null) {
@@ -253,6 +247,11 @@ final appRouter = GoRouter(
       builder: (context, state) => const EmbyConnectScreen(),
     ),
     GoRoute(
+      path: Destinations.plexSignIn,
+      builder: (context, state) =>
+          PlexSignInScreen(address: state.uri.queryParameters['address']),
+    ),
+    GoRoute(
       path: Destinations.webDiagnostics,
       builder: (context, state) => WebDiagnosticsScreen(
         reason: state.uri.queryParameters['reason'],
@@ -269,6 +268,16 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: Destinations.login,
+      // A Plex server has no password sign-in of its own, only plex.tv's.
+      redirect: (context, state) {
+        final serverId = state.uri.queryParameters['serverId'];
+        final server = serverId == null
+            ? null
+            : GetIt.instance<ServerRepository>().getServer(serverId);
+        return server?.serverType == ServerType.plex
+            ? Destinations.plexSignIn
+            : null;
+      },
       builder: (context, state) {
         final serverId = state.uri.queryParameters['serverId'] ?? '';
         final username = state.uri.queryParameters['username'];
@@ -354,10 +363,6 @@ final appRouter = GoRouter(
       builder: (context, state) => const FavoritesScreen(),
     ),
     GoRoute(
-      path: Destinations.folderView,
-      builder: (context, state) => const FolderBrowseScreen(folderId: 'root'),
-    ),
-    GoRoute(
       path: Destinations.folderBrowse,
       builder: (context, state) {
         final folderId = state.pathParameters['folderId']!;
@@ -376,15 +381,39 @@ final appRouter = GoRouter(
       path: Destinations.musicBrowse,
       builder: (context, state) {
         final libraryId = state.pathParameters['libraryId']!;
-        return MusicBrowseScreen(libraryId: libraryId);
+        return MusicLibraryScreen(libraryId: libraryId);
       },
+    ),
+    GoRoute(
+      path: Destinations.musicCategoryBrowse,
+      redirect: (context, state) =>
+          MusicCategoryKind.parse(state.pathParameters['category']) == null
+          ? Destinations.musicLibrary(state.pathParameters['libraryId']!)
+          : null,
+      builder: (context, state) => MusicCategoryScreen(
+        libraryId: state.pathParameters['libraryId']!,
+        kind: MusicCategoryKind.parse(state.pathParameters['category'])!,
+        show: state.uri.queryParameters['show'],
+      ),
+    ),
+    GoRoute(
+      path: Destinations.bookCategoryBrowse,
+      redirect: (context, state) =>
+          BookCategoryKind.parse(state.pathParameters['category']) == null
+          ? Destinations.bookLibrary(state.pathParameters['libraryId']!)
+          : null,
+      builder: (context, state) => BookCategoryScreen(
+        libraryId: state.pathParameters['libraryId']!,
+        kind: BookCategoryKind.parse(state.pathParameters['category'])!,
+        scope: BookScope.values.asNameMap()[state.uri.queryParameters['scope']],
+      ),
     ),
     GoRoute(
       path: Destinations.bookBrowse,
       builder: (context, state) {
         final libraryId = state.pathParameters['libraryId']!;
         final collectionType = state.uri.queryParameters['collectionType'];
-        return BookBrowseScreen(
+        return BookLibraryScreen(
           libraryId: libraryId,
           collectionType: collectionType,
         );
@@ -482,6 +511,10 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: Destinations.rommAccount,
+      builder: (context, state) => const RommAccountScreen(),
+    ),
+    GoRoute(
       path: Destinations.gamePlayer,
       pageBuilder: (context, state) {
         final libraryId = state.pathParameters['libraryId']!;
@@ -557,9 +590,12 @@ final appRouter = GoRouter(
                 : const <String, dynamic>{};
             final channels = extra['channels'] as List<GuideChannel>?;
             final startIndex = extra['startIndex'] as int? ?? 0;
+            // Decided before branching so the channel loader below reads the
+            // same answer this route latched.
+            final useNativePlayer = useNativeApplePlayerForRoute(state.pageKey);
             final Widget child;
             if (channels != null) {
-              child = PlatformDetection.isAppleTV
+              child = useNativePlayer
                   ? AppleTvLiveTvPlayerHostScreen(
                       channels: channels,
                       startIndex: startIndex,
@@ -586,7 +622,7 @@ final appRouter = GoRouter(
       path: Destinations.videoPlayer,
       pageBuilder: (context, state) => _opaqueFullScreenPage<void>(
         state: state,
-        child: PlatformDetection.isAppleTV
+        child: useNativeApplePlayerForRoute(state.pageKey)
             ? const AppleTvPlayerHostScreen()
             : const VideoPlayerScreen(),
       ),
@@ -739,11 +775,19 @@ class PlayerRouteObserver extends NavigatorObserver {
     }
   }
 
+  // The page key is what the route's page builder latched the iOS player
+  // choice against, so the choice ends with the route.
+  void _released(Route<dynamic> route) {
+    final settings = route.settings;
+    releaseApplePlayerRoute(settings is Page ? settings.key : null);
+  }
+
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     if (_isPlayer(route)) {
       _playerRoutes.remove(route);
       isPlayerActive.value = _playerRoutes.isNotEmpty;
+      _released(route);
     }
   }
 
@@ -752,6 +796,7 @@ class PlayerRouteObserver extends NavigatorObserver {
     if (_isPlayer(route)) {
       _playerRoutes.remove(route);
       isPlayerActive.value = _playerRoutes.isNotEmpty;
+      _released(route);
     }
   }
 
@@ -759,6 +804,7 @@ class PlayerRouteObserver extends NavigatorObserver {
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     if (oldRoute != null && _isPlayer(oldRoute)) {
       _playerRoutes.remove(oldRoute);
+      _released(oldRoute);
     }
     if (newRoute != null && _isPlayer(newRoute)) {
       _playerRoutes.add(newRoute);

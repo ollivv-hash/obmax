@@ -6,9 +6,12 @@ import 'package:server_core/server_core.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../util/error_message.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
 import '../widgets/admin_form_styles.dart';
 
 /// Server-wide preferred metadata language/country and chapter image settings.
+/// The Display page is Jellyfin only, so on Emby the date added and
+/// suggestion settings are here instead of the chapter ones.
 class AdminLibraryMetadataScreen extends StatefulWidget {
   const AdminLibraryMetadataScreen({super.key});
 
@@ -21,6 +24,9 @@ class _AdminLibraryMetadataScreenState
     extends State<AdminLibraryMetadataScreen> with AdminDraftHost {
   late final AdminSystemApi _api;
   Map<String, dynamic>? _config;
+
+  /// The named `metadata` configuration, loaded on Emby only.
+  Map<String, dynamic>? _metadata;
   List<Map<String, dynamic>> _cultures = const [];
   List<Map<String, dynamic>> _countries = const [];
   bool _loading = true;
@@ -51,24 +57,35 @@ class _AdminLibraryMetadataScreenState
       _error = null;
     });
     try {
+      final emby = AdminServerScope.isEmby(context);
       final config = await _api.getServerConfiguration();
+      // No fallback, because saving a blank metadata config would flip the
+      // date added behavior to the server default.
+      final metadata = emby ? await _api.getNamedConfiguration('metadata') : null;
       // Either list failing shows the error instead of the form.
       final cultures = await _api.getCultures();
       final countries = await _api.getCountries();
       if (!mounted) return;
       setState(() {
         _config = config;
+        _metadata = metadata;
         _cultures = cultures;
         _countries = countries;
         _loading = false;
       });
-      hostDraft(
-        AdminDraft.single(
+      hostDraft(AdminDraft({
+        'config': AdminDraftTarget(
           working: config,
           reload: _api.getServerConfiguration,
           post: _api.updateServerConfiguration,
         ),
-      );
+        if (metadata != null)
+          'metadata': AdminDraftTarget(
+            working: metadata,
+            reload: () => _api.getNamedConfiguration('metadata'),
+            post: (value) => _api.updateNamedConfiguration('metadata', value),
+          ),
+      }));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -81,6 +98,47 @@ class _AdminLibraryMetadataScreenState
   void _set(String key, Object? value) {
     setState(() => _config![key] = value);
     edited();
+  }
+
+  /// The date added and suggestion settings Emby keeps in its metadata and
+  /// base configurations.
+  Widget _buildEmbyDisplay(AppLocalizations l10n) {
+    // The server default is true when the key is missing.
+    final useFileTime =
+        _metadata!['UseFileCreationTimeForDateAdded'] as bool? ?? true;
+    return adminSection(
+      context,
+      title: l10n.adminLibDisplaySection,
+      icon: Icons.event_outlined,
+      children: [
+        adminFieldRow(
+          label: l10n.adminLibDateAddedLabel,
+          anchor: 'metadata.UseFileCreationTimeForDateAdded',
+          child: DropdownButtonFormField<bool>(
+            initialValue: useFileTime,
+            isExpanded: true,
+            decoration: adminInputDecoration(),
+            items: [
+              DropdownMenuItem(
+                  value: false, child: Text(l10n.adminLibDateAddedImport)),
+              DropdownMenuItem(
+                  value: true, child: Text(l10n.adminLibDateAddedFile)),
+            ],
+            onChanged: (v) {
+              setState(
+                  () => _metadata!['UseFileCreationTimeForDateAdded'] = v ?? true);
+              edited();
+            },
+          ),
+        ),
+        adminSwitchRow(
+          title: l10n.adminLibExternalSuggestions,
+          anchor: 'metadata.EnableExternalContentInSuggestions',
+          value: _config!['EnableExternalContentInSuggestions'] as bool? ?? true,
+          onChanged: (v) => _set('EnableExternalContentInSuggestions', v),
+        ),
+      ],
+    );
   }
 
   @override
@@ -151,51 +209,54 @@ class _AdminLibraryMetadataScreenState
                   ),
                 ],
               ),
-              adminSection(
-                context,
-                title: l10n.adminLibChaptersSection,
-                icon: Icons.bookmark_outline,
-                children: [
-                  adminFieldRow(
-                    label: l10n.adminLibDummyChapterDuration,
-                    helper: l10n.adminLibDummyChapterDurationHint,
-                    anchor: 'metadata.DummyChapterDuration',
-                    child: TextFormField(
-                      initialValue:
-                          (_config!['DummyChapterDuration'] as num?)
-                                  ?.toString() ??
-                              '0',
-                      decoration: adminInputDecoration(),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (v) {
-                        _config!['DummyChapterDuration'] = int.tryParse(v) ?? 0;
-                        edited();
-                      },
+              if (_metadata != null)
+                _buildEmbyDisplay(l10n)
+              else
+                adminSection(
+                  context,
+                  title: l10n.adminLibChaptersSection,
+                  icon: Icons.bookmark_outline,
+                  children: [
+                    adminFieldRow(
+                      label: l10n.adminLibDummyChapterDuration,
+                      helper: l10n.adminLibDummyChapterDurationHint,
+                      anchor: 'metadata.DummyChapterDuration',
+                      child: TextFormField(
+                        initialValue:
+                            (_config!['DummyChapterDuration'] as num?)
+                                    ?.toString() ??
+                                '0',
+                        decoration: adminInputDecoration(),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        onChanged: (v) {
+                          _config!['DummyChapterDuration'] = int.tryParse(v) ?? 0;
+                          edited();
+                        },
+                      ),
                     ),
-                  ),
-                  adminFieldRow(
-                    label: l10n.adminLibChapterImageResolution,
-                    anchor: 'metadata.ChapterImageResolution',
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _resolutions.any((r) => r.$1 == currentRes)
-                          ? currentRes
-                          : 'MatchSource',
-                      isExpanded: true,
-                      decoration: adminInputDecoration(),
-                      items: _resolutions
-                          .map((r) => DropdownMenuItem(
-                                value: r.$1,
-                                child: Text(r.$1 == 'MatchSource'
-                                    ? l10n.adminLibChapterImageResolutionMatchSource
-                                    : r.$2),
-                              ))
-                          .toList(),
-                      onChanged: (v) => _set('ChapterImageResolution', v),
+                    adminFieldRow(
+                      label: l10n.adminLibChapterImageResolution,
+                      anchor: 'metadata.ChapterImageResolution',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _resolutions.any((r) => r.$1 == currentRes)
+                            ? currentRes
+                            : 'MatchSource',
+                        isExpanded: true,
+                        decoration: adminInputDecoration(),
+                        items: _resolutions
+                            .map((r) => DropdownMenuItem(
+                                  value: r.$1,
+                                  child: Text(r.$1 == 'MatchSource'
+                                      ? l10n.adminLibChapterImageResolutionMatchSource
+                                      : r.$2),
+                                ))
+                            .toList(),
+                        onChanged: (v) => _set('ChapterImageResolution', v),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),

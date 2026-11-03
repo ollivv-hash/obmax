@@ -10,6 +10,7 @@ import '../widgets/admin_form_styles.dart';
 Future<void> showRenameLibraryDialog(
   BuildContext context, {
   required String currentName,
+  String? libraryId,
   required VoidCallback onRenamed,
 }) async {
   final l10n = AppLocalizations.of(context);
@@ -51,7 +52,12 @@ Future<void> showRenameLibraryDialog(
   try {
     await GetIt.instance<MediaServerClient>()
         .adminLibraryApi
-        .renameVirtualFolder(currentName, newName, refreshLibrary: true);
+        .renameVirtualFolder(
+          currentName,
+          newName,
+          refreshLibrary: true,
+          libraryId: libraryId,
+        );
     onRenamed();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,6 +76,7 @@ Future<void> showRenameLibraryDialog(
 Future<void> showDeleteLibraryDialog(
   BuildContext context, {
   required String libraryName,
+  String? libraryId,
   List<String> locations = const [],
   required VoidCallback onDeleted,
 }) async {
@@ -116,7 +123,11 @@ Future<void> showDeleteLibraryDialog(
   try {
     await GetIt.instance<MediaServerClient>()
         .adminLibraryApi
-        .removeVirtualFolder(libraryName, refreshLibrary: true);
+        .removeVirtualFolder(
+          libraryName,
+          refreshLibrary: true,
+          libraryId: libraryId,
+        );
     onDeleted();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

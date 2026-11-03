@@ -2,28 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
+import 'package:moonfin/ui/navigation/destinations.dart';
+import 'package:moonfin/ui/screens/admin/admin_analytics_items_screen.dart';
 import 'package:moonfin/ui/screens/admin/admin_content_analytics_screen.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/providers/admin_media_analytics_provider.dart';
+import 'package:moonfin/ui/screens/admin/providers/admin_user_providers.dart';
 import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MockMediaServerClient extends Mock implements MediaServerClient {}
-
-class _FakeAdminSystemApi extends Fake implements AdminSystemApi {
-  @override
-  Future<Map<String, dynamic>> getItemCounts() async => {
-    'MovieCount': 2,
-    'SeriesCount': 0,
-    'EpisodeCount': 0,
-    'AlbumCount': 0,
-    'SongCount': 0,
-    'MusicVideoCount': 0,
-    'BookCount': 0,
-    'BoxSetCount': 1,
-  };
-}
 
 class _FakeLibraryApi extends Fake implements AdminLibraryApi {
   @override
@@ -50,6 +41,9 @@ class _FakeItemsApi extends Fake implements ItemsApi {
     return Future.value(<String, dynamic>{
       'Items': [
         {
+          'Id': 'film1',
+          'Name': 'Night Film',
+          'Type': 'Movie',
           'Genres': ['Drama'],
           'ProductionYear': 2021,
           'MediaSources': [
@@ -70,14 +64,15 @@ class _FakeItemsApi extends Fake implements ItemsApi {
 
 void main() {
   late _FakeItemsApi items;
+  late _MockMediaServerClient client;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     items = _FakeItemsApi();
-    final client = _MockMediaServerClient();
+    client = _MockMediaServerClient();
+    when(() => client.serverType).thenReturn(ServerType.jellyfin);
     when(() => client.baseUrl).thenReturn('http://server');
     when(() => client.userId).thenReturn('u1');
-    when(() => client.adminSystemApi).thenReturn(_FakeAdminSystemApi());
     when(() => client.adminLibraryApi).thenReturn(_FakeLibraryApi());
     when(() => client.itemsApi).thenReturn(items);
     await GetIt.instance.reset();
@@ -117,8 +112,123 @@ void main() {
     expect(insights, hasLength(1));
     expect(insights.single[#serverWide], isTrue);
     expect(insights.single[#parentId], 'm1');
-    expect(insights.single[#fields], 'Genres,MediaSources,MediaStreams');
+    expect(insights.single[#fields], 'Genres,MediaSources');
     expect(find.text('Films'), findsWidgets);
+  });
+
+  testWidgets('Emby is asked for the year and rating it leaves out', (
+    tester,
+  ) async {
+    when(() => client.serverType).thenReturn(ServerType.emby);
+    await pump(tester);
+
+    final insights = items.calls.where((c) => c[#fields] != null);
+    expect(
+      insights.single[#fields],
+      'Genres,MediaSources,ProductionYear,OfficialRating',
+    );
+  });
+
+  testWidgets('a tapped codec lists its items, which open the editor', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) =>
+              const Scaffold(body: AdminContentAnalyticsScreen()),
+        ),
+        GoRoute(
+          path: Destinations.adminAnalyticsItems,
+          builder: (_, state) => Scaffold(
+            body: AdminAnalyticsItemsScreen(
+              query: AdminAnalyticsQuery.fromUri(state.uri),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Destinations.adminMetadataEdit,
+          builder: (_, state) =>
+              Text('editing ${state.pathParameters['itemId']}'),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('HEVC'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AdminAnalyticsItemsScreen), findsOneWidget);
+    expect(find.text('Night Film'), findsOneWidget);
+    // The library's items were read once, for the charts.
+    expect(items.calls.where((c) => c[#fields] != null), hasLength(1));
+
+    await tester.tap(find.text('Night Film'));
+    await tester.pumpAndSettle();
+    expect(find.text('editing film1'), findsOneWidget);
+  });
+
+  test('a query survives the trip through its location', () {
+    const query = AdminAnalyticsQuery(
+      libraryId: 'm1',
+      dimension: AdminAnalyticsDimension.year,
+      values: ['1984', '1987'],
+      title: '1980s',
+    );
+    expect(AdminAnalyticsQuery.fromUri(Uri.parse(query.location)), query);
+    const item = AdminAnalyticsItem(id: 'a', name: 'A', type: 'Movie', year: 1987);
+    expect(query.matches(item), isTrue);
+    expect(
+      query.matches(const AdminAnalyticsItem(id: 'b', name: 'B', type: 'Movie', year: 1990)),
+      isFalse,
+    );
+  });
+
+  test('a category groups episodes by series and keeps their order', () async {
+    final container = ProviderContainer(
+      overrides: [
+        adminLibrariesProvider.overrideWith(
+          (ref) async => const [
+            VirtualFolderInfo(
+              name: 'Shows',
+              collectionType: 'tvshows',
+              itemId: 't1',
+            ),
+          ],
+        ),
+        adminLibraryItemsProvider.overrideWith(
+          (ref, library) async => const [
+            AdminAnalyticsItem(id: 'b2', name: 'Pilot', type: 'Episode', parentName: 'Bravo', genres: ['Drama']),
+            AdminAnalyticsItem(id: 'a1', name: 'Zebra', type: 'Episode', parentName: 'Alpha', genres: ['Drama']),
+            AdminAnalyticsItem(id: 'b3', name: 'Another', type: 'Episode', parentName: 'Bravo', genres: ['Drama']),
+            AdminAnalyticsItem(id: 's1', name: 'Alpha', type: 'Series', genres: ['Drama']),
+          ],
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const query = AdminAnalyticsQuery(
+      dimension: AdminAnalyticsDimension.genre,
+      values: ['drama'],
+      title: 'Drama',
+    );
+    container.listen(adminAnalyticsItemsProvider(query), (_, _) {});
+
+    final items = await container.read(adminAnalyticsItemsProvider(query).future);
+    expect(items.map((item) => item.id), ['s1', 'a1', 'b2', 'b3']);
   });
 
   testWidgets('home videos count videos and photos, collections need no /Items', (
@@ -131,7 +241,7 @@ void main() {
         .map(typesOf)
         .toList();
     expect(camera, unorderedEquals([['Video'], ['Photo']]));
-    // BoxSetCount comes from /Items/Counts, and the summary asks nothing else.
+    // Every count is asked per library.
     final serverWide = items.calls.where((c) => c[#parentId] == null);
     expect(serverWide, isEmpty);
   });

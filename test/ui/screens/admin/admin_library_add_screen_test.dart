@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/screens/admin/libraries/admin_library_add_screen.dart';
+import 'package:moonfin/ui/screens/admin/libraries/library_options_defaults.dart';
 import 'package:server_core/server_core.dart';
 
 class _MockMediaServerClient extends Mock implements MediaServerClient {}
@@ -260,5 +261,28 @@ void main() {
       (options['TypeOptions'] as List).single['MetadataFetchers'],
       ['TheMovieDb', 'The Open Movie Database'],
     );
+  });
+
+  test('Emby starts a new library from its own defaults', () {
+    final options = newLibraryOptions({
+      'LyricsFetchers': [
+        {'Name': 'Lyrics Finder', 'DefaultEnabled': false},
+      ],
+      'TypeOptions': const [],
+      'DefaultLibraryOptions': {
+        'EnableRealtimeMonitor': true,
+        'MinResumePct': 2,
+        'ThumbnailImagesIntervalSeconds': -1,
+        'PathInfos': const [],
+        'TypeOptions': const [],
+      },
+    });
+    expect(options['MinResumePct'], 2);
+    expect(options['ThumbnailImagesIntervalSeconds'], -1);
+    expect(options['LyricsFetcherOrder'], ['Lyrics Finder']);
+    expect(options['DisabledLyricsFetchers'], ['Lyrics Finder']);
+    // None of Jellyfin's defaults.
+    expect(options.containsKey('Enabled'), isFalse);
+    expect(options.containsKey('EnableTrickplayImageExtraction'), isFalse);
   });
 }

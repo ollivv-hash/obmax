@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/libraries/admin_library_metadata_screen.dart';
 import 'package:server_core/server_core.dart';
 
@@ -19,6 +20,23 @@ class _FakeSystemApi extends Fake implements AdminSystemApi {
   };
   bool failCultures = false;
   final posted = <Map<String, dynamic>>[];
+  Map<String, dynamic> metadata = {'UseFileCreationTimeForDateAdded': true};
+  final namedPosts = <String, Map<String, dynamic>>{};
+
+  @override
+  Future<Map<String, dynamic>> getNamedConfiguration(String key) async {
+    expect(key, 'metadata');
+    return Map<String, dynamic>.from(metadata);
+  }
+
+  @override
+  Future<void> updateNamedConfiguration(
+    String key,
+    Map<String, dynamic> config,
+  ) async {
+    namedPosts[key] = config;
+    metadata = Map<String, dynamic>.from(config);
+  }
 
   @override
   Future<Map<String, dynamic>> getServerConfiguration() async =>
@@ -63,15 +81,20 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {bool onEmby = false}) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    const page = AdminLibraryMetadataScreen();
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: AdminLibraryMetadataScreen()),
+        home: Scaffold(
+          body: onEmby
+              ? const AdminServerScope(serverType: ServerType.emby, child: page)
+              : page,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -128,5 +151,35 @@ void main() {
 
     expect(find.text(l10n.adminSettingsLoadFailed), findsOneWidget);
     expect(AdminDraft.active.value, isNull);
+  });
+
+  testWidgets('Jellyfin keeps date added on its Display page', (tester) async {
+    await pump(tester);
+    expect(find.text(l10n.adminLibDateAddedLabel), findsNothing);
+    expect(api.namedPosts, isEmpty);
+  });
+
+  testWidgets('on Emby date added and suggestions replace the chapters', (
+    tester,
+  ) async {
+    // Emby's base configuration, which has no chapter settings.
+    api.server = {
+      'MetadataCountryCode': 'US',
+      'EnableExternalContentInSuggestions': true,
+    };
+    await pump(tester, onEmby: true);
+
+    expect(find.text(l10n.adminLibDummyChapterDuration), findsNothing);
+    await tester.tap(find.text(l10n.adminLibDateAddedFile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.adminLibDateAddedImport).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.adminLibExternalSuggestions));
+    await tester.pump();
+
+    expect(await AdminDraft.active.value!.save(), isTrue);
+    expect(api.namedPosts['metadata'], {'UseFileCreationTimeForDateAdded': false});
+    expect(api.posted.single['EnableExternalContentInSuggestions'], isFalse);
+    expect(api.posted.single.containsKey('DummyChapterDuration'), isFalse);
   });
 }

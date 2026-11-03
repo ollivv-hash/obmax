@@ -140,6 +140,7 @@ class JellyfinAdminPluginsApi implements AdminPluginsApi {
     String? assemblyGuid,
     String? version,
     String? repositoryUrl,
+    String? updateClass,
   }) async {
     await _dio.post(
       '/Packages/Installed/${Uri.encodeComponent(name)}',

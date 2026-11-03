@@ -1,5 +1,8 @@
+import 'package:server_core/server_core.dart';
+
 import '../../../l10n/app_localizations.dart';
 import 'admin_nav.dart';
+import 'emby/emby_config_pages.dart';
 import 'search/library_search_entries.dart';
 import 'search/livetv_search_entries.dart';
 import 'search/overview_search_entries.dart';
@@ -13,6 +16,7 @@ class AdminSearchEntry {
     required this.label,
     this.section,
     this.anchor,
+    this.servers,
   });
 
   final String pageId;
@@ -21,6 +25,9 @@ class AdminSearchEntry {
 
   /// The [AdminSettingAnchor] id of the row, null for a whole page.
   final String? anchor;
+
+  /// The servers whose page has this row, every server when null.
+  final Set<ServerType>? servers;
 
   String where(AppLocalizations l10n) {
     final page = adminPageById(pageId);
@@ -33,31 +40,43 @@ class AdminSearchEntry {
   }
 }
 
+/// [AdminSearchEntry.servers] for a row only one server has.
+const jellyfinOnly = {ServerType.jellyfin};
+const embyOnly = {ServerType.emby};
+
 /// A settings row on [page]. Its anchor is `<page>.<key>`, the id the page
 /// gives the row's AdminSettingAnchor.
 AdminSearchEntry adminSettingRow(
   String page,
   String key,
   String Function(AppLocalizations l10n) label,
-  String Function(AppLocalizations l10n) section,
-) => AdminSearchEntry(
+  String Function(AppLocalizations l10n) section, {
+  Set<ServerType>? servers,
+}) => AdminSearchEntry(
   pageId: page,
   label: label,
   section: section,
   anchor: '$page.$key',
+  servers: servers,
 );
 
 /// Every page, then the settings rows, one file per group under search/.
 /// Keep the anchor ids in step with the pages.
-List<AdminSearchEntry> adminSearchEntries() => [
+List<AdminSearchEntry> adminSearchEntries(ServerType server) => [
   for (final group in adminGroups)
-    for (final page in group.pages)
+    for (final page in group.pagesOn(server))
       AdminSearchEntry(pageId: page.id, label: page.title),
-  ...overviewSearchEntries,
-  ...librarySearchEntries,
-  ...livetvSearchEntries,
-  ...playbackSearchEntries,
-  ...systemSearchEntries,
+  for (final entry in [
+    ...overviewSearchEntries,
+    ...librarySearchEntries,
+    ...livetvSearchEntries,
+    ...playbackSearchEntries,
+    ...systemSearchEntries,
+  ])
+    if (adminPageById(entry.pageId)?.availableOn(server) ?? false)
+      if (server != ServerType.emby || !embyOwnPages.contains(entry.pageId))
+        if (entry.servers?.contains(server) ?? true) entry,
+  if (server == ServerType.emby) ...embySearchEntries,
 ];
 
 /// Every word of [query] has to appear in the label or where it lives.

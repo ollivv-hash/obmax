@@ -9,6 +9,7 @@ import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/navigation/destinations.dart';
 import 'package:moonfin/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/widgets/active_sessions_card.dart';
 import 'package:moonfin/ui/screens/admin/widgets/session_detail_sheet.dart';
 import 'package:server_core/server_core.dart';
@@ -16,22 +17,41 @@ import 'package:server_core/server_core.dart';
 class _MockMediaServerClient extends Mock implements MediaServerClient {}
 
 class _FakeSystemApi extends Fake implements SystemApi {
-  @override
-  Future<Map<String, dynamic>> getSystemInfo() async => {
+  Map<String, dynamic> info = {
     'ServerName': 'Moonbase',
     'Version': '10.12.2',
     // Obsolete and always true on 12.2, so it must not hide Restart.
     'CanSelfRestart': false,
   };
+
+  @override
+  Future<Map<String, dynamic>> getSystemInfo() async => info;
 }
+
+/// Emby 4.10's /System/Info, which is also its storage info: folder paths
+/// and no sizes.
+const _embyInfo = {
+  'ServerName': 'Emby Box',
+  'Version': '4.10.1.0',
+  'OperatingSystem': 'Linux',
+  'CanSelfRestart': true,
+  'HasPendingRestart': true,
+  'ProgramDataPath': '/config',
+  'CachePath': '/config/cache',
+  'LogPath': '/config/logs',
+  'InternalMetadataPath': '/config/metadata',
+  'TranscodingTempPath': '/config/transcoding-temp',
+};
 
 class _FakeAdminSystemApi extends Fake implements AdminSystemApi {
   final logCalls = <Map<String, Object?>>[];
   List<ActivityLogEntry> alerts = const [];
   int restarts = 0;
+  StorageInfo? storage;
 
   @override
-  Future<StorageInfo> getStorageInfo() async => throw Exception('no storage');
+  Future<StorageInfo> getStorageInfo() async =>
+      storage ?? (throw Exception('no storage'));
 
   @override
   Future<ActivityLogResult> getActivityLog({
@@ -168,6 +188,7 @@ Map<String, dynamic> _session(
 };
 
 void main() {
+  late _FakeSystemApi info;
   late _FakeAdminSystemApi system;
   late _FakeSessionApi sessions;
   late _FakeTasksApi tasks;
@@ -175,13 +196,14 @@ void main() {
   late AppLocalizations l10n;
 
   setUp(() async {
+    info = _FakeSystemApi();
     system = _FakeAdminSystemApi();
     sessions = _FakeSessionApi()
       ..sessions = [_session('tv'), _session('phone', playing: false)];
     tasks = _FakeTasksApi();
     items = _FakeItemsApi();
     final client = _MockMediaServerClient();
-    when(() => client.systemApi).thenReturn(_FakeSystemApi());
+    when(() => client.systemApi).thenReturn(info);
     when(() => client.adminSystemApi).thenReturn(system);
     when(() => client.sessionApi).thenReturn(sessions);
     when(() => client.adminTasksApi).thenReturn(tasks);
@@ -199,7 +221,11 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pumpDashboard(WidgetTester tester, {bool settle = true}) async {
+  Future<void> pumpDashboard(
+    WidgetTester tester, {
+    bool settle = true,
+    ServerType server = ServerType.jellyfin,
+  }) async {
     tester.view.physicalSize = const Size(1200, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -208,7 +234,10 @@ void main() {
       routes: [
         GoRoute(
           path: Destinations.admin,
-          builder: (_, _) => const Scaffold(body: AdminDashboardScreen()),
+          builder: (_, _) => AdminServerScope(
+            serverType: server,
+            child: const Scaffold(body: AdminDashboardScreen()),
+          ),
         ),
         GoRoute(
           path: Destinations.adminActivity,
@@ -319,6 +348,50 @@ void main() {
     await tester.tap(find.text(l10n.confirm));
     await tester.pumpAndSettle();
     expect(system.restarts, 1);
+  });
+
+  testWidgets('Jellyfin keeps the disk tile', (tester) async {
+    await pumpDashboard(tester);
+    expect(find.text(l10n.disk), findsOneWidget);
+  });
+
+  group('on Emby', () {
+    setUp(() {
+      info.info = Map.of(_embyInfo);
+      system.storage = StorageInfo.fromJson(_embyInfo);
+    });
+
+    testWidgets('folder paths show without sizes and no disk tile', (
+      tester,
+    ) async {
+      await pumpDashboard(tester, server: ServerType.emby);
+
+      expect(find.text('/config/cache'), findsOneWidget);
+      expect(find.text('/config/transcoding-temp'), findsOneWidget);
+      expect(find.text(l10n.disk), findsNothing);
+      expect(find.text(l10n.adminPercentUsed(0)), findsNothing);
+    });
+
+    testWidgets('a pending restart shows and Restart restarts', (tester) async {
+      await pumpDashboard(tester, server: ServerType.emby);
+
+      expect(find.text(l10n.adminRestartPending), findsOneWidget);
+      await tester.tap(find.text(l10n.adminRestartServer));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.confirm));
+      await tester.pumpAndSettle();
+      expect(system.restarts, 1);
+    });
+
+    testWidgets('Restart hides when Emby can\'t restart itself', (
+      tester,
+    ) async {
+      info.info = {..._embyInfo, 'CanSelfRestart': false};
+      await pumpDashboard(tester, server: ServerType.emby);
+
+      expect(find.text(l10n.adminRestartServer), findsNothing);
+      expect(find.text(l10n.adminShutdownServer), findsOneWidget);
+    });
   });
 
   testWidgets('Scan All Libraries starts the RefreshLibrary task', (

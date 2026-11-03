@@ -9,9 +9,11 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../util/error_message.dart';
 import '../../../navigation/destinations.dart';
 import '../../../widgets/adaptive/adaptive_dialog.dart';
+import '../admin_nav.dart';
 import '../admin_plugin_version_utils.dart';
 import '../providers/admin_user_providers.dart';
 import '../widgets/admin_form_styles.dart';
+import 'admin_plugin_detail_screen.dart';
 import 'admin_plugin_install_confirm.dart';
 
 class AdminPluginsScreen extends ConsumerStatefulWidget {
@@ -180,6 +182,7 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
         repositoryUrl: version.repositoryUrl.isNotEmpty
             ? version.repositoryUrl
             : null,
+        updateClass: version.classification,
       );
       ref.invalidate(adminInstalledPluginsProvider);
       ref.invalidate(adminAvailablePackagesProvider);
@@ -209,6 +212,7 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
         version: version.version,
         repositoryUrl:
             version.repositoryUrl.isNotEmpty ? version.repositoryUrl : null,
+        updateClass: version.classification,
       );
       ref.invalidate(adminInstalledPluginsProvider);
       ref.invalidate(adminAvailablePackagesProvider);
@@ -312,13 +316,15 @@ class _InstalledTab extends ConsumerWidget {
 
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-              child: _InstalledFilterTabs(
-                statusFilter: statusFilter,
-                onStatusChanged: onStatusChanged,
+            // Emby reports no plugin status to filter by.
+            if (!AdminServerScope.isEmby(context))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                child: _InstalledFilterTabs(
+                  statusFilter: statusFilter,
+                  onStatusChanged: onStatusChanged,
+                ),
               ),
-            ),
             Expanded(
               child: filtered.isEmpty
                   ? Center(
@@ -404,6 +410,8 @@ class _InstalledTab extends ConsumerWidget {
 
   String _pluginImageUrl(MediaServerClient client, PluginInfo plugin) {
     final base = client.baseUrl;
+    final thumb = pluginThumbUrl(base, plugin);
+    if (thumb != null) return thumb;
     final token = client.accessToken;
     final pluginId = Uri.encodeComponent(plugin.id);
     final version = Uri.encodeComponent(plugin.version);
@@ -540,6 +548,7 @@ class _InstalledPluginTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final canUninstall = canUninstallPlugin(context, plugin);
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -617,7 +626,7 @@ class _InstalledPluginTile extends StatelessWidget {
             ),
         ],
       ),
-      trailing: !plugin.canUninstall && onUpdate == null
+      trailing: !canUninstall && onUpdate == null
           ? null
           : PopupMenuButton<String>(
             onSelected: (value) {
@@ -635,7 +644,7 @@ class _InstalledPluginTile extends StatelessWidget {
             },
             itemBuilder: (context) => [
               // Bundled plugins can't be turned off, as on the plugin page.
-              if (plugin.canUninstall)
+              if (canTogglePlugin(context, plugin))
                 PopupMenuItem(
                   value: 'toggle',
                   child: Text(plugin.status == PluginStatus.disabled
@@ -651,7 +660,7 @@ class _InstalledPluginTile extends StatelessWidget {
                         : AppLocalizations.of(context).adminPluginsInstallUpdate,
                   ),
                 ),
-              if (plugin.canUninstall)
+              if (canUninstall)
                 PopupMenuItem(
                   value: 'uninstall',
                   child: Text(AppLocalizations.of(context).uninstall),
@@ -853,6 +862,15 @@ class _CatalogPackageTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                    if (package.isPremium) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        AppLocalizations.of(context).adminPluginNeedsPremiere,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.tertiary,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 4),

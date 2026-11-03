@@ -14,6 +14,7 @@ import '../../../widgets/adaptive/adaptive_dialog.dart';
 import '../../../widgets/identify_dialog.dart';
 import '../../detail/modern/widgets/details_tab_bar.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
 import '../libraries/admin_library_dialogs.dart';
 import '../widgets/admin_form_styles.dart';
 
@@ -119,6 +120,18 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
     super.dispose();
   }
 
+  /// Emby lists tags only as TagItems. Its items API writes Tags back there.
+  static Map<String, dynamic> _withTags(Map<String, dynamic> item) {
+    final tagItems = item['TagItems'];
+    if (item['Tags'] == null && tagItems is List) {
+      item['Tags'] = [
+        for (final tag in tagItems)
+          if (tag is Map) tag['Name'],
+      ];
+    }
+    return item;
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -127,7 +140,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
 
     try {
       final result = await Future.wait<dynamic>([
-        _itemsApi.getItem(widget.itemId),
+        _itemsApi.getItem(widget.itemId).then(_withTags),
         _api.getMetadataEditor(widget.itemId),
       ]);
       final item = result[0] as Map<String, dynamic>;
@@ -144,7 +157,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       hostDraft(
         AdminDraft.single(
           working: item,
-          reload: () => _itemsApi.getItem(widget.itemId),
+          reload: () => _itemsApi.getItem(widget.itemId).then(_withTags),
           post: (merged) => _api.updateItem(widget.itemId, {
             for (final key in _itemFields)
               if (merged.containsKey(key)) key: merged[key],
@@ -828,7 +841,8 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       icon: const Icon(Icons.travel_explore),
       label: Text(l10n.adminMetadataIdentify),
     ),
-    if (_contentTypeOptions().isNotEmpty)
+    // Emby has no per-item content type.
+    if (_contentTypeOptions().isNotEmpty && !AdminServerScope.isEmby(context))
       FilledButton.tonalIcon(
         onPressed: _changeContentType,
         icon: const Icon(Icons.category_outlined),

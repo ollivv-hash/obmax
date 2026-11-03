@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
@@ -8,7 +9,9 @@ import '../../../navigation/destinations.dart';
 import '../../../widgets/adaptive/adaptive_dialog.dart';
 import '../../detail/modern/widgets/details_tab_bar.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
 import '../widgets/admin_form_styles.dart';
+import '../widgets/premiere_note.dart';
 import '../providers/admin_user_providers.dart';
 import 'admin_user_delete_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -50,11 +53,16 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
   final _currentPasswordController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _connectController = TextEditingController();
   final _tagControllers = <String, TextEditingController>{};
 
   bool _loading = true;
   bool _passwordBusy = false;
+  bool _connectBusy = false;
   String? _error;
+
+  /// The Emby Connect account the user is linked to, empty when none.
+  String _connectLinked = '';
 
   /// Set on every build, for the draft's posts, which may finish after the
   /// page has gone.
@@ -82,6 +90,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     _currentPasswordController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _connectController.dispose();
     for (final c in _tagControllers.values) {
       c.dispose();
     }
@@ -116,8 +125,10 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
       final devicesLoad = _client.adminDevicesApi
           .getDevices()
           .catchError((_) => <DeviceInfoDto>[]);
-      final networkLoad = _client.adminSystemApi
-          .getNamedConfiguration('network')
+      // Emby keeps the remote access switch in the base configuration.
+      final networkLoad = (_emby
+              ? _client.adminSystemApi.getServerConfiguration()
+              : _client.adminSystemApi.getNamedConfiguration('network'))
           .catchError((_) => <String, dynamic>{});
       final user = await _fetchUser();
       final libraries = await _client.adminLibraryApi.getMediaFolders(
@@ -144,6 +155,8 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
         _deletableChannels = deletable;
         _devices = devices;
         _serverRemoteAccess = network['EnableRemoteAccess'] != false;
+        _connectLinked = _connectController.text =
+            '${user['ConnectUserName'] ?? ''}';
         _loading = false;
       });
       hostDraft(AdminDraft({
@@ -275,6 +288,46 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     }
   }
 
+  /// Links or unlinks right away rather than with the draft's save.
+  Future<void> _setConnect({required bool link}) async {
+    final l10n = AppLocalizations.of(context);
+    final emby = _client.embyAdminApi!;
+    final name = _connectController.text.trim();
+    if (link && name.isEmpty) return;
+    setState(() => _connectBusy = true);
+    try {
+      var pending = false;
+      if (link) {
+        final result = await emby.linkConnectUser(widget.userId, name);
+        pending = result['IsPending'] == true;
+      } else {
+        await emby.unlinkConnectUser(widget.userId);
+      }
+      final linked = '${(await _fetchUser())['ConnectUserName'] ?? ''}';
+      if (!mounted) return;
+      setState(() => _connectLinked = _connectController.text = linked);
+      _snack(link
+          ? (pending ? l10n.adminEmbyConnectPending : l10n.adminEmbyConnectLinked)
+          : l10n.adminEmbyConnectUnlinked);
+    } catch (e) {
+      if (!mounted) return;
+      // Emby answers an unknown account with a bare 500 "NotFound".
+      final notFound = e is DioException &&
+          e.response?.statusCode == 500 &&
+          '${e.response?.data}'.contains('NotFound');
+      _snack(notFound
+          ? l10n.adminEmbyConnectNotFound
+          : l10n.adminFailed(describeError(e, l10n)));
+    } finally {
+      if (mounted) setState(() => _connectBusy = false);
+    }
+  }
+
+  bool get _emby => AdminServerScope.isEmby(context);
+
+  /// A policy key only Emby has, shown when the server sent it.
+  bool _embyHas(String key) => _emby && _policy.containsKey(key);
+
   bool get _isSelf => _client.userId == widget.userId;
   bool get _isAdmin => _policy['IsAdministrator'] == true;
 
@@ -385,6 +438,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
           ),
         ],
       ),
+      if (_emby) _buildConnectSection(l10n),
       const SizedBox(height: 16),
       Align(
         alignment: Alignment.centerLeft,
@@ -406,8 +460,50 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     ];
   }
 
+  Widget _buildConnectSection(AppLocalizations l10n) {
+    final linked = _connectLinked.isNotEmpty;
+    return adminSection(
+      context,
+      title: l10n.adminEmbyConnect,
+      icon: Icons.link,
+      children: [
+        adminFieldRow(
+          label: l10n.adminEmbyConnectUser,
+          helper: linked ? l10n.adminEmbyConnectLinked : l10n.adminEmbyConnectHelp,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _connectController,
+                  enabled: !linked && !_connectBusy,
+                  decoration: adminInputDecoration(),
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _setConnect(link: true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (linked)
+                OutlinedButton(
+                  onPressed: _connectBusy ? null : () => _setConnect(link: false),
+                  child: Text(l10n.adminEmbyConnectUnlink),
+                )
+              else
+                FilledButton.tonal(
+                  onPressed: _connectBusy || _connectController.text.trim().isEmpty
+                      ? null
+                      : () => _setConnect(link: true),
+                  child: Text(l10n.adminEmbyConnectLink),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   List<Widget> _buildPermissionsTab(AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
+    final auth = _authRows(l10n);
     return [
       adminSection(
         context,
@@ -424,6 +520,11 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
             ),
           _policySwitch('IsAdministrator', l10n.administrator),
           _policySwitch('IsHidden', l10n.adminHiddenUser),
+          if (_embyHas('IsHiddenRemotely'))
+            _policySwitch('IsHiddenRemotely', l10n.adminHiddenRemotely),
+          if (_embyHas('IsHiddenFromUnusedDevices'))
+            _policySwitch(
+                'IsHiddenFromUnusedDevices', l10n.adminHiddenFromUnusedDevices),
           _policySwitch('IsDisabled', l10n.disabled),
         ],
       ),
@@ -438,21 +539,15 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
           _policySwitch(
               'EnableVideoPlaybackTranscoding', l10n.adminAllowVideoTranscoding),
           _policySwitch('EnablePlaybackRemuxing', l10n.adminAllowRemuxing),
-          _policySwitch(
-              'ForceRemoteSourceTranscoding', l10n.adminForceRemoteTranscoding),
-          adminFieldRow(
-            label: l10n.adminRemoteBitrateLimitMbps,
-            helper: l10n.adminLeaveEmptyNoLimit,
-            child: TextFormField(
-              initialValue: _mbps(_policy['RemoteClientBitrateLimit']),
-              decoration: adminInputDecoration(),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              // Stored in bits per second, empty is 0 (no limit).
-              onChanged: (v) => _setPolicy('RemoteClientBitrateLimit',
-                  ((double.tryParse(v.trim()) ?? 0) * 1e6).floor()),
-            ),
-          ),
+          if (!_emby)
+            _policySwitch('ForceRemoteSourceTranscoding',
+                l10n.adminForceRemoteTranscoding),
+          _mbpsField('RemoteClientBitrateLimit', l10n.adminRemoteBitrateLimitMbps,
+              l10n.adminLeaveEmptyNoLimit),
+          if (_embyHas('AutoRemoteQuality'))
+            _mbpsField('AutoRemoteQuality', l10n.adminAutoRemoteQuality,
+                l10n.adminAutoRemoteQualityHelp),
+          if (_embyHas('SimultaneousStreamLimit')) _streamLimitRow(l10n),
         ],
       ),
       adminSection(
@@ -463,6 +558,13 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
           _policySwitch(
               'EnableContentDownloading', l10n.adminAllowContentDownloading),
           _policySwitch('EnablePublicSharing', l10n.adminAllowPublicSharing),
+          for (final (key, label) in [
+            ('EnableSyncTranscoding', l10n.adminAllowSyncTranscoding),
+            ('EnableMediaConversion', l10n.adminAllowMediaConversion),
+            ('AllowCameraUpload', l10n.adminAllowCameraUpload),
+            ('AllowSharingPersonalItems', l10n.adminAllowSharingPersonalItems),
+          ])
+            if (_embyHas(key)) _policySwitch(key, label),
         ],
       ),
       adminSection(
@@ -476,8 +578,9 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
               'EnableSharedDeviceControl', l10n.adminAllowSharedDeviceControl),
           if (_serverRemoteAccess)
             _policySwitch('EnableRemoteAccess', l10n.adminAllowRemoteAccess),
-          _intField('MaxActiveSessions', l10n.adminMaxActiveSessions,
-              l10n.adminLeaveEmptyNoLimit),
+          if (!_emby)
+            _intField('MaxActiveSessions', l10n.adminMaxActiveSessions,
+                l10n.adminLeaveEmptyNoLimit),
         ],
       ),
       adminSection(
@@ -488,30 +591,75 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
           _policySwitch('EnableLiveTvAccess', l10n.adminAllowLiveTvAccess),
           _policySwitch(
               'EnableLiveTvManagement', l10n.adminAllowLiveTvManagement),
-          _policySwitch(
-              'EnableCollectionManagement', l10n.adminAllowCollectionManagement),
+          if (!_emby)
+            _policySwitch('EnableCollectionManagement',
+                l10n.adminAllowCollectionManagement),
           _policySwitch(
               'EnableSubtitleManagement', l10n.adminAllowSubtitleManagement),
-          _policySwitch('EnableLyricManagement', l10n.adminAllowLyricManagement),
+          if (_embyHas('EnableSubtitleDownloading'))
+            _policySwitch(
+                'EnableSubtitleDownloading', l10n.adminAllowSubtitleDownloading),
+          if (!_emby)
+            _policySwitch(
+                'EnableLyricManagement', l10n.adminAllowLyricManagement),
+          if (_embyHas('EnableUserPreferenceAccess'))
+            _policySwitch(
+                'EnableUserPreferenceAccess', l10n.adminAllowPreferenceAccess),
         ],
       ),
-      adminSection(
-        context,
-        title: l10n.authentication,
-        icon: Icons.lock_outline,
+      if (auth.isNotEmpty)
+        adminSection(
+          context,
+          title: l10n.authentication,
+          icon: Icons.lock_outline,
+          children: auth,
+        ),
+    ];
+  }
+
+  /// Emby counts 0 as unlimited. The stored value joins the list in case
+  /// it's past 50.
+  Widget _streamLimitRow(AppLocalizations l10n) {
+    final current = (_policy['SimultaneousStreamLimit'] as num?)?.toInt() ?? 0;
+    return adminFieldRow(
+      label: l10n.adminStreamingStreamLimit,
+      helper: l10n.adminSimultaneousStreamLimitHelp,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_authProviders.length > 1)
-            _providerDropdown(
-              label: l10n.adminAuthProvider,
-              policyKey: 'AuthenticationProviderId',
-              providers: _authProviders,
-            ),
-          if (_resetProviders.length > 1)
-            _providerDropdown(
-              label: l10n.adminPasswordResetProvider,
-              policyKey: 'PasswordResetProviderId',
-              providers: _resetProviders,
-            ),
+          DropdownButtonFormField<int>(
+            initialValue: current,
+            isExpanded: true,
+            decoration: adminInputDecoration(),
+            items: [
+              for (final n in {for (var i = 0; i <= 50; i++) i, current})
+                DropdownMenuItem(
+                  value: n,
+                  child: Text(n == 0 ? l10n.adminUnlimited : '$n'),
+                ),
+            ],
+            onChanged: (v) => _setPolicy('SimultaneousStreamLimit', v ?? 0),
+          ),
+          const PremiereNote(margin: EdgeInsets.only(top: 8)),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _authRows(AppLocalizations l10n) => [
+        if (_authProviders.length > 1)
+          _providerDropdown(
+            label: l10n.adminAuthProvider,
+            policyKey: 'AuthenticationProviderId',
+            providers: _authProviders,
+          ),
+        if (_resetProviders.length > 1)
+          _providerDropdown(
+            label: l10n.adminPasswordResetProvider,
+            policyKey: 'PasswordResetProviderId',
+            providers: _resetProviders,
+          ),
+        if (!_emby) ...[
           _intField('LoginAttemptsBeforeLockout',
               l10n.adminLoginAttemptsBeforeLockout, l10n.adminLoginAttemptsHint),
           adminFieldRow(
@@ -539,9 +687,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
             ),
           ),
         ],
-      ),
-    ];
-  }
+      ];
 
   static String _mbps(Object? bps) {
     if (bps is! num || bps <= 0) return '';
@@ -549,6 +695,21 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     return mbps == mbps.roundToDouble()
         ? mbps.toInt().toString()
         : mbps.toString();
+  }
+
+  /// Stored in bits per second, and an empty field is 0 (none).
+  Widget _mbpsField(String key, String label, String helper) {
+    return adminFieldRow(
+      label: label,
+      helper: helper,
+      child: TextFormField(
+        initialValue: _mbps(_policy[key]),
+        decoration: adminInputDecoration(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        onChanged: (v) =>
+            _setPolicy(key, ((double.tryParse(v.trim()) ?? 0) * 1e6).floor()),
+      ),
+    );
   }
 
   /// The server's ints aren't nullable, so an empty field is 0.
@@ -629,7 +790,11 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
             'EnableAllDevices',
             'EnabledDevices',
             l10n.adminEnableAllDevices,
-            [for (final d in _devices) (d.id, _deviceLabel(d))],
+            // Emby's policy holds the id the client reported.
+            [
+              for (final d in _devices)
+                (d.reportedDeviceId ?? d.id, _deviceLabel(d)),
+            ],
           ),
         ),
       adminSection(
@@ -738,6 +903,8 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
       ('Series', l10n.adminUnratedSeries),
     ];
     final blocked = _listOf('BlockUnratedItems');
+    // Emby has one tag list, which allows rather than blocks in this mode.
+    final inclusive = _policy['IsTagBlockingModeInclusive'] == true;
 
     return [
       adminSection(
@@ -787,17 +954,43 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
             ),
         ],
       ),
+      if (!_emby)
+        adminSection(
+          context,
+          title: l10n.adminAllowedTags,
+          icon: Icons.label_outline,
+          children: [
+            _buildTagEditor('AllowedTags', l10n.adminAllowedTagsHint, l10n),
+          ],
+        ),
       adminSection(
         context,
-        title: l10n.adminAllowedTags,
-        icon: Icons.label_outline,
-        children: [_buildTagEditor('AllowedTags', l10n.adminAllowedTagsHint, l10n)],
-      ),
-      adminSection(
-        context,
-        title: l10n.adminBlockedTags,
-        icon: Icons.label_off_outlined,
-        children: [_buildTagEditor('BlockedTags', l10n.adminBlockedTagsHint, l10n)],
+        title: inclusive ? l10n.adminAllowedTags : l10n.adminBlockedTags,
+        icon: inclusive ? Icons.label_outline : Icons.label_off_outlined,
+        children: [
+          if (_embyHas('IsTagBlockingModeInclusive'))
+            adminFieldRow(
+              label: l10n.adminTagMode,
+              child: DropdownButtonFormField<bool>(
+                initialValue: inclusive,
+                isExpanded: true,
+                decoration: adminInputDecoration(),
+                items: [
+                  DropdownMenuItem(
+                      value: false, child: Text(l10n.adminBlockedTags)),
+                  DropdownMenuItem(
+                      value: true, child: Text(l10n.adminAllowedTags)),
+                ],
+                onChanged: (v) =>
+                    _setPolicy('IsTagBlockingModeInclusive', v ?? false),
+              ),
+            ),
+          _buildTagEditor(
+            'BlockedTags',
+            inclusive ? l10n.adminAllowedTagsHint : l10n.adminBlockedTagsHint,
+            l10n,
+          ),
+        ],
       ),
       if (!_isAdmin)
         adminSection(

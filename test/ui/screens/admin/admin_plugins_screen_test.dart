@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/plugins/admin_plugins_screen.dart';
 import 'package:moonfin/ui/screens/admin/providers/admin_user_providers.dart';
 import 'package:server_core/server_core.dart';
@@ -20,6 +21,7 @@ class _FakePluginsApi extends Fake implements AdminPluginsApi {
     String? assemblyGuid,
     String? version,
     String? repositoryUrl,
+    String? updateClass,
   }) async {
     installs.add({
       'name': name,
@@ -51,6 +53,7 @@ void main() {
     api = _FakePluginsApi();
     final client = _MockMediaServerClient();
     when(() => client.adminPluginsApi).thenReturn(api);
+    when(() => client.baseUrl).thenReturn('http://emby.test/emby');
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<MediaServerClient>(client);
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
@@ -62,6 +65,7 @@ void main() {
     WidgetTester tester, {
     required List<PluginInfo> installedPlugins,
     List<PackageInfo> availablePackages = const [],
+    ServerType server = ServerType.jellyfin,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -76,7 +80,10 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: AdminPluginsScreen()),
+          home: AdminServerScope(
+            serverType: server,
+            child: const Scaffold(body: AdminPluginsScreen()),
+          ),
         ),
       ),
     );
@@ -182,5 +189,83 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.adminPluginInstallConfirmTitle), findsNothing);
     expect(api.installs.single['name'], 'Fanart');
+  });
+
+  group('on Emby', () {
+    const backup = PluginInfo(
+      name: 'Backup & Restore',
+      id: 'e711475e-efad-431b-8527-033ba9873a34',
+      version: '1.8.7.0',
+      hasImage: true,
+      imageTag: '1',
+    );
+
+    testWidgets('any plugin uninstalls, none turns off, nothing to filter', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        installedPlugins: const [backup],
+        server: ServerType.emby,
+      );
+
+      expect(find.text(l10n.adminPluginsRestartRequired), findsNothing);
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.uninstall), findsOneWidget);
+      expect(find.text(l10n.adminPluginsDisable), findsNothing);
+    });
+
+    testWidgets('the image is the plugin thumb with its tag', (tester) async {
+      await pumpScreen(
+        tester,
+        installedPlugins: const [backup],
+        server: ServerType.emby,
+      );
+
+      final image = tester.widget<Image>(find.byType(Image)).image;
+      expect(
+        (image as NetworkImage).url,
+        'http://emby.test/emby/Plugins/e711475e-efad-431b-8527-033ba9873a34'
+        '/Thumb?tag=1',
+      );
+    });
+
+    testWidgets('an upper case catalog id still finds the update', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        installedPlugins: const [backup],
+        availablePackages: [
+          PackageInfo.fromJson({
+            'name': 'Backup & Restore',
+            'guid': 'E711475E-EFAD-431B-8527-033BA9873A34',
+            'versions': [
+              {'versionStr': '1.9.0.0'},
+            ],
+          }),
+        ],
+        server: ServerType.emby,
+      );
+
+      expect(find.text(l10n.adminPluginsUpdateAvailable('1.9.0.0')),
+          findsOneWidget);
+    });
+
+    testWidgets('a premium package says it needs Premiere', (tester) async {
+      await pumpScreen(
+        tester,
+        installedPlugins: const [],
+        availablePackages: const [
+          PackageInfo(name: 'Backup & Restore', id: 'b', isPremium: true),
+          PackageInfo(name: 'Fanart', id: 'f'),
+        ],
+        server: ServerType.emby,
+      );
+      await openCatalog(tester);
+
+      expect(find.text(l10n.adminPluginNeedsPremiere), findsOneWidget);
+    });
   });
 }

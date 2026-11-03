@@ -528,10 +528,6 @@
     "@discoverySubjects": {
         "description": "Title for the book discovery subject picker panel"
     },
-    "pickDiscoverySubjects": "Elige qué temas mostrar en Descubrir.",
-    "@pickDiscoverySubjects": {
-        "description": "Instruction text in discovery subject picker"
-    },
     "apply": "Aplicar",
     "@apply": {
         "description": "Button label to apply selected options"
@@ -539,27 +535,6 @@
     "audiobookGenres": "Géneros de audiolibros",
     "@audiobookGenres": {
         "description": "Title for audiobook genre picker panel"
-    },
-    "pickAudiobookGenres": "Elige qué géneros mostrar en Descubrir audiolibros.",
-    "@pickAudiobookGenres": {
-        "description": "Instruction text in audiobook genre picker"
-    },
-    "discoverAudiobooks": "Descubrir audiolibros",
-    "@discoverAudiobooks": {
-        "description": "Section title for audiobook discovery"
-    },
-    "librivoxDescription": "Títulos populares de dominio público de LibriVox.",
-    "@librivoxDescription": {
-        "description": "Subtitle for audiobook discovery section"
-    },
-    "titlesCount": "{count} títulos",
-    "@titlesCount": {
-        "description": "Label showing number of titles",
-        "placeholders": {
-            "count": {
-                "type": "int"
-            }
-        }
     },
     "scrollLeft": "Desplazar a la izquierda",
     "@scrollLeft": {
@@ -736,10 +711,6 @@
     "discover": "Descubrir",
     "@discover": {
         "description": "Section title for book discovery"
-    },
-    "trendingTitlesOpenLibrary": "Títulos en tendencia por tema de Open Library.",
-    "@trendingTitlesOpenLibrary": {
-        "description": "Subtitle for book discovery section"
     },
     "noBookmarkedItems": "Aún no hay elementos marcados",
     "@noBookmarkedItems": {
@@ -3450,14 +3421,6 @@
     "@showLibrariesFromAllServers": {
         "description": "Description for multi-server libraries"
     },
-    "enableFolderView": "Habilitar vista de carpetas",
-    "@enableFolderView": {
-        "description": "Setting for enabling folder view"
-    },
-    "showFolderBrowsingOption": "Mostrar opción de exploración por carpetas",
-    "@showFolderBrowsingOption": {
-        "description": "Description for folder view"
-    },
     "libraryVisibility": "Visibilidad de la biblioteca",
     "@libraryVisibility": {
         "description": "Section title for library visibility"
@@ -4175,10 +4138,6 @@
     "featuredContentAppearance": "Contenido destacado, apariencia",
     "@featuredContentAppearance": {
         "description": "Media bar settings subtitle"
-    },
-    "posterSizeImageTypeFolderView": "Tamaño de póster, tipo de imagen, vista de carpetas",
-    "@posterSizeImageTypeFolderView": {
-        "description": "Library display settings subtitle"
     },
     "mdbListTmdbRatingSources": "MDBList, TMDB y fuentes de valoración",
     "@mdbListTmdbRatingSources": {
@@ -7300,7 +7259,6 @@
     "failedToExtractCbrArchive": "No se pudo extraer el archivo .cbr.",
     "cb7ExtractionUnavailable": "La extracción CB7 no está disponible en esta plataforma.",
     "cb7ExtractionPluginUnavailable": "El complemento de extracción CB7 no está disponible en esta plataforma.",
-    "closeGenrePanel": "Cerrar panel de género",
     "loadingShuffle": "Cargando reproducción aleatoria...",
     "libraryShuffleLabel": "ALEATORIO POR BIBLIOTECA",
     "randomShuffleLabel": "ALEATORIO TOTAL",
@@ -9018,5 +8976,21 @@
     "homeRowsPaddingDescription": "Personalizar el espaciado entre filas de inicio",
     "@homeRowsPaddingDescription": {
         "description": "Description for home rows padding setting"
+    },
+    "animeMarkerFiller": "Insignia en un episodio de anime que es de relleno, lo que significa que no está adaptada del manga original",
+    "@animeMarkerFiller": {
+        "description": "Badge on an anime episode that is filler, meaning it is not adapted from the source manga"
+    },
+    "animeMarkerMixed": "Insignia en un episodio de anime que mezcla material original con relleno, por lo que aún contiene historia",
+    "@animeMarkerMixed": {
+        "description": "Badge on an anime episode that mixes source material with filler, so it still contains story"
+    },
+    "animeMarkerAnimeCanon": "Insignia en un episodio de anime que no está en el manga original pero que es parte de la propia continuidad del anime",
+    "@animeMarkerAnimeCanon": {
+        "description": "Badge on an anime episode that is not in the source manga but is part of the anime's own continuity"
+    },
+    "animeMarkerMangaCanon": "Insignia en un episodio de anime adaptado del manga original",
+    "@animeMarkerMangaCanon": {
+        "description": "Badge on an anime episode adapted from the source manga"
     }
 }

@@ -36,6 +36,7 @@ class Destinations {
   static const startup = '/';
   static const serverSelect = '/server-select';
   static const embyConnect = '/emby-connect';
+  static const plexSignIn = '/plex-sign-in';
   static const webDiagnostics = '/_diag';
 
   static String webDiagnosticsRoute({
@@ -74,12 +75,13 @@ class Destinations {
   static const libraryBrowse = '/library/:libraryId';
   static const allGenres = '/genres';
   static const allFavorites = '/favorites';
-  static const folderView = '/folders';
   static const folderBrowse = '/folder/:folderId';
   static const collectionBrowse = '/collection/:collectionId';
   static const libraryViewRoute = '/library-view/:libraryId';
   static const musicBrowse = '/music/:libraryId';
+  static const musicCategoryBrowse = '/music/:libraryId/:category';
   static const bookBrowse = '/books/:libraryId';
+  static const bookCategoryBrowse = '/books/:libraryId/:category';
   static const genreBrowse = '/genre/:genreName';
   static const studioBrowse = '/studio/:studioName';
 
@@ -91,6 +93,7 @@ class Destinations {
   static const gameSystem = '/games/:libraryId/system/:systemId';
   static const gameDetail = '/game/:libraryId/:gameId';
   static const gamePlayer = '/game-player/:libraryId/:gameId';
+  static const rommAccount = '/romm-account';
 
   // Live TV
   static const liveTv = '/live-tv';
@@ -140,8 +143,16 @@ class Destinations {
   static const adminLogs = '/admin/logs';
   static const adminLogsFile = '/admin/logs/:fileName';
   static const adminLiveTv = '/admin/live-tv';
+  static const adminLiveTvChannels = '/admin/live-tv-channels';
   static const adminAnalytics = '/admin/analytics';
+  static const adminAnalyticsItems = '/admin/analytics/items';
   static const adminMetadataEdit = '/admin/metadata/:itemId';
+  static const adminPremiere = '/admin/premiere';
+  static const adminDatabase = '/admin/database';
+  static const adminCinemaIntros = '/admin/cinema-intros';
+  static const adminDlna = '/admin/dlna';
+  static const adminCameraUpload = '/admin/camera-upload';
+  static const adminConversions = '/admin/conversions';
   static const adminGroup = '/admin/group/:groupId';
 
   // Settings
@@ -277,11 +288,33 @@ class Destinations {
 
   static String collection(String collectionId) => '/collection/$collectionId';
   static String musicLibrary(String libraryId) => '/music/$libraryId';
+
+  /// One of a music library's category screens. [show] picks what it opens
+  /// on, such as `all` for every artist or a favorites tab.
+  static String musicCategory(
+    String libraryId,
+    String category, {
+    String? show,
+  }) {
+    final base = '/music/$libraryId/$category';
+    return show == null ? base : '$base?show=${Uri.encodeQueryComponent(show)}';
+  }
   static String bookLibrary(String libraryId, {String? collectionType}) {
     final base = '/books/$libraryId';
     return collectionType != null && collectionType.isNotEmpty
         ? '$base?collectionType=${Uri.encodeComponent(collectionType)}'
         : base;
+  }
+
+  /// A book library's [category] screen. Titles take the format to show as
+  /// [scope].
+  static String bookCategory(
+    String libraryId,
+    String category, {
+    String? scope,
+  }) {
+    final base = '/books/$libraryId/$category';
+    return scope == null ? base : '$base?scope=${Uri.encodeQueryComponent(scope)}';
   }
 
   static String photo(String itemId) => '/player/photo/$itemId';

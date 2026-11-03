@@ -80,11 +80,19 @@ class ActivityLogEntry {
         shortOverview: json['ShortOverview'] as String?,
         type: json['Type'] as String? ?? '',
         date: DateTime.parse(json['Date'] as String),
-        userId: json['UserId'] as String?,
+        // Emby sends its numeric internal user id.
+        userId: json['UserId']?.toString(),
         itemId: (json['ItemId'] as String?)?.isEmpty ?? true
             ? null
             : json['ItemId'] as String,
-        severity: json['Severity'] as String? ?? 'Information',
+        // Emby's level names, read as the ones the UI knows.
+        severity: switch (json['Severity'] as String?) {
+          null => 'Information',
+          'Info' => 'Information',
+          'Warn' => 'Warning',
+          'Fatal' => 'Critical',
+          final s => s,
+        },
       );
 }
 
@@ -363,12 +371,16 @@ class TaskTriggerInfo {
   final String? dayOfWeek;
   final int? maxRuntimeTicks;
 
+  /// The event an Emby `SystemEventTrigger` waits for, e.g. `WakeFromSleep`.
+  final String? systemEvent;
+
   const TaskTriggerInfo({
     required this.type,
     this.timeOfDayTicks,
     this.intervalTicks,
     this.dayOfWeek,
     this.maxRuntimeTicks,
+    this.systemEvent,
   });
 
   factory TaskTriggerInfo.fromJson(Map<String, dynamic> json) =>
@@ -378,6 +390,7 @@ class TaskTriggerInfo {
         intervalTicks: json['IntervalTicks'] as int?,
         dayOfWeek: json['DayOfWeek'] as String?,
         maxRuntimeTicks: json['MaxRuntimeTicks'] as int?,
+        systemEvent: json['SystemEvent'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -386,5 +399,6 @@ class TaskTriggerInfo {
         if (intervalTicks != null) 'IntervalTicks': intervalTicks,
         if (dayOfWeek != null) 'DayOfWeek': dayOfWeek,
         if (maxRuntimeTicks != null) 'MaxRuntimeTicks': maxRuntimeTicks,
+        if (systemEvent != null) 'SystemEvent': systemEvent,
       };
 }

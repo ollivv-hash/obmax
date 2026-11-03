@@ -158,4 +158,20 @@ void main() {
       'Green Lantern (2005)',
     ]);
   });
+
+  test('a series stacks at most three member covers', () {
+    final entries = bookSeriesEntries(
+      books: [
+        for (var i = 1; i <= 5; i++)
+          book('vol$i', 'One Piece', imageTag: i == 2 ? null : 'tag$i'),
+      ],
+      folders: folders,
+    );
+
+    expect(entries.single.rawData['StackCovers'], [
+      {'Id': 'vol1', 'Tag': 'tag1'},
+      {'Id': 'vol3', 'Tag': 'tag3'},
+      {'Id': 'vol4', 'Tag': 'tag4'},
+    ]);
+  });
 }

@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 import 'package:server_emby/server_emby.dart';
 import 'package:server_jellyfin/server_jellyfin.dart';
+import 'package:server_plex/server_plex.dart';
 
 import '../../util/server_url.dart';
 import '../offline/connectivity_aware_media_server_client.dart';
@@ -14,7 +16,10 @@ class MediaServerClientFactory {
   final DeviceInfo deviceInfo;
   final Map<String, MediaServerClient> _clients = {};
 
-  MediaServerClientFactory({required this.deviceInfo});
+  /// Called when a Jellyfin server answers a request with 403.
+  final void Function()? onForbidden;
+
+  MediaServerClientFactory({required this.deviceInfo, this.onForbidden});
 
   Map<String, MediaServerClient> get clients => Map.unmodifiable(_clients);
 
@@ -114,9 +119,23 @@ class MediaServerClientFactory {
         return JellyfinMediaServerClient(
           baseUrl: baseUrl,
           deviceInfo: deviceInfo,
+          interceptors: [
+            if (onForbidden != null)
+              InterceptorsWrapper(
+                onError: (error, handler) {
+                  if (error.response?.statusCode == 403) onForbidden!();
+                  handler.next(error);
+                },
+              ),
+          ],
         );
       case ServerType.emby:
         return EmbyMediaServerClient(
+          baseUrl: baseUrl,
+          deviceInfo: deviceInfo,
+        );
+      case ServerType.plex:
+        return PlexMediaServerClient(
           baseUrl: baseUrl,
           deviceInfo: deviceInfo,
         );

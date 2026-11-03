@@ -12,8 +12,6 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
   );
   bool _unavailable = false;
 
-  // OBMAX: same as upstream PR Moonfin-Client/Moonfin-Core#1930; take
-  // upstream's version once it is merged.
   // The file based keychain rejects readAll (a match-all query that returns
   // data fails with errSecParam), so the hosts are also listed under their
   // own key and getAll falls back to reading them one by one. The key sits

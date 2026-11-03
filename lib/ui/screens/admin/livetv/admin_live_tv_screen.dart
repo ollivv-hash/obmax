@@ -9,9 +9,11 @@ import '../../../util/error_message.dart';
 import '../../../widgets/adaptive/adaptive_dialog.dart';
 import '../../detail/modern/widgets/details_tab_bar.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
 import '../providers/admin_user_providers.dart';
 import '../widgets/admin_form_styles.dart';
 import '../widgets/admin_settings_search.dart';
+import '../widgets/premiere_note.dart';
 import 'live_tv_dialogs.dart';
 
 /// Live TV in two tabs: tuners and guide providers, which save at once, and
@@ -39,7 +41,14 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
   List<Map<String, dynamic>> _providers = const [];
   List<Map<String, dynamic>> _discovered = const [];
 
+  /// The guide sources Add offers. Emby lists its own.
+  List<String> _guideSources = const ['SchedulesDirect', 'xmltv'];
+
   AdminLiveTvApi get _api => GetIt.instance<MediaServerClient>().adminLiveTvApi;
+
+  EmbyAdminApi? get _emby => AdminServerScope.isEmby(context)
+      ? GetIt.instance<MediaServerClient>().embyAdminApi
+      : null;
 
   @override
   void initState() {
@@ -87,10 +96,20 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
     });
     try {
       final config = await _api.getLiveTvConfiguration();
+      final sources = await _emby
+          ?.getAvailableListingProviders()
+          .catchError((_) => [<String, dynamic>{'Id': 'xmltv'}]);
       if (!mounted) return;
       setState(() {
         _config = config;
         _setLists(config);
+        if (sources != null) {
+          // Only the sources this page has a form for.
+          _guideSources = [
+            for (final s in sources)
+              if (const {'xmltv', 'embygn'}.contains(s['Id'])) s['Id'] as String,
+          ];
+        }
         _tab = _tabFor(AdminSettingAnchor.pending.value) ?? _tab;
         _loading = false;
       });
@@ -170,7 +189,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
     if (!mounted) return;
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => LiveTvTunerDialog(api: _api, types: types, seed: seed),
+      builder: (_) => LiveTvTunerDialog(
+        api: _api,
+        types: types,
+        seed: seed,
+        emby: AdminServerScope.isEmby(context),
+      ),
     );
     if (saved != true || !mounted) return;
     _snack(AppLocalizations.of(context).adminLiveTvTunerSaved);
@@ -212,8 +236,17 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
     }
   }
 
-  /// [type] is 'xmltv' or 'SchedulesDirect'. A new XMLTV provider starts
-  /// from the server's default.
+  /// The name of a guide source type, null for one this page can't edit.
+  static String? _sourceName(String type, AppLocalizations l10n) =>
+      switch (type.toLowerCase()) {
+        'xmltv' => l10n.adminProviderXmltv,
+        'schedulesdirect' => l10n.adminProviderSchedulesDirect,
+        'embygn' => l10n.adminProviderEmbyGuide,
+        _ => null,
+      };
+
+  /// [type] is 'xmltv', 'SchedulesDirect' or Emby's 'embygn'. A new XMLTV
+  /// provider starts from the server's default.
   Future<void> _editProvider(
     String type, [
     Map<String, dynamic>? stored,
@@ -234,7 +267,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
       context: context,
       builder: (_) => xmltv
           ? LiveTvXmltvDialog(api: _api, seed: seed, tuners: _tuners)
-          : LiveTvSchedulesDirectDialog(api: _api, seed: seed, tuners: _tuners),
+          : LiveTvSchedulesDirectDialog(
+              api: _api,
+              seed: seed,
+              tuners: _tuners,
+              embyGuide: type.toLowerCase() == 'embygn',
+            ),
     );
     if (saved != true || !mounted) return;
     _snack(l10n.adminLiveTvProviderSaved);
@@ -262,6 +300,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
         builder: (_) => LiveTvChannelMapperDialog(
           api: _api,
           providerId: provider['Id'].toString(),
+          emby: _emby,
         ),
       );
 
@@ -332,6 +371,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
           title: l10n.adminDrawerLiveTv,
           icon: Icons.live_tv,
         ),
+        PremiereNote(message: (l) => l.adminPremiereNoteLiveTv),
         DetailsTabBar(
           segmented: true,
           wrap: PlatformDetection.useMobileUi,
@@ -421,14 +461,11 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
             _actionRow([
               MenuAnchor(
                 menuChildren: [
-                  MenuItemButton(
-                    onPressed: () => _editProvider('SchedulesDirect'),
-                    child: Text(l10n.adminProviderSchedulesDirect),
-                  ),
-                  MenuItemButton(
-                    onPressed: () => _editProvider('xmltv'),
-                    child: Text(l10n.adminProviderXmltv),
-                  ),
+                  for (final type in _guideSources)
+                    MenuItemButton(
+                      onPressed: () => _editProvider(type),
+                      child: Text(_sourceName(type, l10n)!),
+                    ),
                 ],
                 builder: (context, menu, _) => FilledButton.tonalIcon(
                   onPressed: () => menu.isOpen ? menu.close() : menu.open(),
@@ -471,11 +508,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
 
   Widget _providerTile(Map<String, dynamic> provider, AppLocalizations l10n) {
     final type = provider['Type']?.toString() ?? '';
-    final name = switch (type.toLowerCase()) {
-      'xmltv' => l10n.adminProviderXmltv,
-      'schedulesdirect' => l10n.adminProviderSchedulesDirect,
-      _ => null,
-    };
+    final name = _sourceName(type, l10n);
     final path = provider['Path']?.toString() ?? '';
     return ListTile(
       leading: const Icon(Icons.event_note_outlined),
@@ -519,7 +552,11 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
             context,
             title: l10n.adminLiveTvSectionGuide,
             icon: Icons.calendar_month_outlined,
-            children: [_guideDaysRow(l10n)],
+            children: [
+              _guideDaysRow(l10n),
+              if (_config!.containsKey('WakeServer'))
+                _switchRow('WakeServer', l10n.adminLiveTvWakeServer),
+            ],
           ),
           adminSection(
             context,
@@ -575,15 +612,17 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen>
               ),
             ],
           ),
-          adminSection(
-            context,
-            title: l10n.adminLiveTvSectionMetadata,
-            icon: Icons.description_outlined,
-            children: [
-              _switchRow('SaveRecordingNFO', l10n.adminSaveRecordingNfo),
-              _switchRow('SaveRecordingImages', l10n.adminSaveRecordingImages),
-            ],
-          ),
+          // Emby has neither.
+          if (_config!.containsKey('SaveRecordingNFO'))
+            adminSection(
+              context,
+              title: l10n.adminLiveTvSectionMetadata,
+              icon: Icons.description_outlined,
+              children: [
+                _switchRow('SaveRecordingNFO', l10n.adminSaveRecordingNfo),
+                _switchRow('SaveRecordingImages', l10n.adminSaveRecordingImages),
+              ],
+            ),
         ],
       ),
     );

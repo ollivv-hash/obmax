@@ -32,6 +32,18 @@
   "@animeMarkerSubbedAndDubbed": {
     "description": "Badge on anime that carries both the original Japanese audio and a dub, so it can be watched either way"
   },
+  "animeMarkerSubbedShort": "Sub",
+  "@animeMarkerSubbedShort": {
+    "description": "Short form of the Subbed badge"
+  },
+  "animeMarkerDubbedShort": "Dub",
+  "@animeMarkerDubbedShort": {
+    "description": "Short form of the Dubbed badge"
+  },
+  "animeMarkerSubbedAndDubbedShort": "Sub/Dub",
+  "@animeMarkerSubbedAndDubbedShort": {
+    "description": "Short form of the Subbed/Dubbed badge"
+  },
   "animeMarkerPending": "Pending",
   "@animeMarkerPending": {
     "description": "Badge on an anime episode whose filler information the server has matched but not downloaded yet"
@@ -85,6 +97,52 @@
   "@quickConnectInstruction": {
     "description": "Instruction text for Quick Connect code entry"
   },
+  "quickConnectScanHint": "Or scan this with a phone that's signed in to your server",
+  "@quickConnectScanHint": {
+    "description": "Caption under the Quick Connect QR code that opens the server's web page with the code filled in"
+  },
+  "quickConnectTapOrScanHint": "Tap to approve in your browser, or scan this with another device",
+  "@quickConnectTapOrScanHint": {
+    "description": "Caption under the Quick Connect QR code on a phone or tablet, where tapping the code opens the server's web page with the code filled in"
+  },
+  "timesUpTitle": "Time's up",
+  "@timesUpTitle": {
+    "description": "Title of the screen that covers the app when the user's access schedule doesn't allow the current time"
+  },
+  "timesUpMessage": "This account isn't available right now.",
+  "@timesUpMessage": {
+    "description": "Explanation on the Time's up screen"
+  },
+  "timesUpResumesToday": "You can use it again today at {time}.",
+  "@timesUpResumesToday": {
+    "description": "When access returns, on the Time's up screen, for a time later today",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "timesUpResumesTomorrow": "You can use it again tomorrow at {time}.",
+  "@timesUpResumesTomorrow": {
+    "description": "When access returns, on the Time's up screen, for a time tomorrow",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "timesUpResumesOn": "You can use it again on {day} at {time}.",
+  "@timesUpResumesOn": {
+    "description": "When access returns, on the Time's up screen, for a time on a later day",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "waitingForAuthorization": "Waiting for authorization...",
   "@waitingForAuthorization": {
     "description": "Quick Connect polling status text"
@@ -100,6 +158,10 @@
   "loginFailed": "Login failed",
   "@loginFailed": {
     "description": "Generic login failure message"
+  },
+  "loginForbidden": "This account can't sign in right now. It may be outside its allowed hours, locked or disabled. Try again later or ask an administrator.",
+  "@loginForbidden": {
+    "description": "Sign in error when the server refuses the account with a 403, which Jellyfin does for an access schedule, a lockout or a disabled account without saying which"
   },
   "quickConnectUnavailable": "QuickConnect unavailable: {detail}",
   "@quickConnectUnavailable": {
@@ -611,13 +673,41 @@
   "@customThemeSubtitle": {
     "description": "Description under custom themes section"
   },
-  "keyboardPreferSystemIme": "Prefer System Keyboard",
-  "@keyboardPreferSystemIme": {
-    "description": "Settings label for preferring the native system keyboard instead of the custom TV keyboard"
+  "keyboardStyle": "Keyboard Style",
+  "@keyboardStyle": {
+    "description": "Label for the setting that picks how the on-screen keyboard looks, or whether the TV's own keyboard is used"
   },
-  "keyboardPreferSystemImeDescription": "Use your device input method by default for text entry",
-  "@keyboardPreferSystemImeDescription": {
-    "description": "Settings subtitle for the system keyboard preference"
+  "keyboardStyleDescription": "Native uses your TV's own keyboard. Classic is the original Moonfin keyboard. Glass is a frosted panel with larger keys. Docked fills the bottom of the screen and shows what you type above the keys.",
+  "@keyboardStyleDescription": {
+    "description": "Explanation under the keyboard style setting"
+  },
+  "keyboardStyleNative": "Native",
+  "@keyboardStyleNative": {
+    "description": "Keyboard style option: the TV or device's own system keyboard"
+  },
+  "keyboardStyleClassic": "Classic",
+  "@keyboardStyleClassic": {
+    "description": "Keyboard style option: the original in-app keyboard"
+  },
+  "keyboardStyleGlass": "Glass",
+  "@keyboardStyleGlass": {
+    "description": "Keyboard style option: a frosted glass panel with larger keys"
+  },
+  "keyboardStyleDocked": "Docked",
+  "@keyboardStyleDocked": {
+    "description": "Keyboard style option: a full-width keyboard docked to the bottom of the screen"
+  },
+  "keyboardSpace": "space",
+  "@keyboardSpace": {
+    "description": "Label on the on-screen keyboard's space bar, lowercase like a printed key"
+  },
+  "keyboardHoldForAccents": "hold for accents",
+  "@keyboardHoldForAccents": {
+    "description": "On-screen keyboard hint next to an OK button cap: holding OK on a letter shows its accented versions"
+  },
+  "keyboardClose": "close",
+  "@keyboardClose": {
+    "description": "On-screen keyboard hint next to a Back button cap, lowercase like the hold for accents hint: Back closes the keyboard"
   },
   "controller": "Controller",
   "@controller": {
@@ -698,6 +788,34 @@
   "embyConnectNetworkError": "Network error while contacting Emby Connect or the selected server",
   "@embyConnectNetworkError": {
     "description": "Generic network error during Emby Connect flow"
+  },
+  "signInWithPlex": "Sign in with Plex",
+  "@signInWithPlex": {
+    "description": "Plex sign-in option label and title of the Plex sign-in screen"
+  },
+  "plexLinkInstructions": "Go to plex.tv/link on any device and enter this code",
+  "@plexLinkInstructions": {
+    "description": "Instructions above the code on the Plex sign-in screen"
+  },
+  "plexOpenLink": "Open plex.tv/link",
+  "@plexOpenLink": {
+    "description": "Button that opens plex.tv/link in the browser with the code filled in"
+  },
+  "plexWaitingForApproval": "Waiting for you to approve the code...",
+  "@plexWaitingForApproval": {
+    "description": "Status shown while the app waits for the Plex code to be approved"
+  },
+  "plexSignInWithPassword": "Sign in with a password",
+  "@plexSignInWithPassword": {
+    "description": "Button on the Plex sign-in screen that swaps the code for an email or username and password form"
+  },
+  "plexVerificationCode": "Verification code",
+  "@plexVerificationCode": {
+    "description": "Field for the account's two-step verification code, shown once Plex asks for it"
+  },
+  "plexNoServers": "No Plex servers found on this account",
+  "@plexNoServers": {
+    "description": "Shown when the Plex account has no servers"
   },
   "loadingLinkedServers": "Loading linked servers...",
   "@loadingLinkedServers": {
@@ -1099,10 +1217,6 @@
   "@discoverySubjects": {
     "description": "Title for the book discovery subject picker panel"
   },
-  "pickDiscoverySubjects": "Pick which subject feeds to show in Discover.",
-  "@pickDiscoverySubjects": {
-    "description": "Instruction text in discovery subject picker"
-  },
   "apply": "Apply",
   "@apply": {
     "description": "Button label to apply selected options"
@@ -1118,27 +1232,6 @@
   "audiobookGenres": "Audiobook Genres",
   "@audiobookGenres": {
     "description": "Title for audiobook genre picker panel"
-  },
-  "pickAudiobookGenres": "Pick which genres to show in Audiobook Discover.",
-  "@pickAudiobookGenres": {
-    "description": "Instruction text in audiobook genre picker"
-  },
-  "discoverAudiobooks": "Discover Audiobooks",
-  "@discoverAudiobooks": {
-    "description": "Section title for audiobook discovery"
-  },
-  "librivoxDescription": "Popular public domain titles from LibriVox.",
-  "@librivoxDescription": {
-    "description": "Subtitle for audiobook discovery section"
-  },
-  "titlesCount": "{count} titles",
-  "@titlesCount": {
-    "description": "Label showing number of titles",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
   },
   "scrollLeft": "Scroll left",
   "@scrollLeft": {
@@ -1319,10 +1412,6 @@
   "discover": "Discover",
   "@discover": {
     "description": "Section title for book discovery"
-  },
-  "trendingTitlesOpenLibrary": "Trending titles by subject from Open Library.",
-  "@trendingTitlesOpenLibrary": {
-    "description": "Subtitle for book discovery section"
   },
   "noBookmarkedItems": "No bookmarked items yet",
   "@noBookmarkedItems": {
@@ -2032,7 +2121,7 @@
   "@downloadSubtitlesLabel": {
     "description": "Label for the download subtitles option"
   },
-  "searchOpenSubtitlesPlugin": "Search using the OpenSubtitles plugin",
+  "searchOpenSubtitlesPlugin": "Search using OpenSubtitles",
   "@searchOpenSubtitlesPlugin": {
     "description": "Subtitle for the download subtitles option"
   },
@@ -2403,15 +2492,6 @@
       }
     }
   },
-  "channelsCount": "{count}ch",
-  "@channelsCount": {
-    "description": "Audio channel count label",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "mono": "Mono",
   "@mono": {
     "description": "Audio channel layout label for mono"
@@ -2642,10 +2722,6 @@
       }
     }
   },
-  "bitrateOverride": "Bitrate Override",
-  "@bitrateOverride": {
-    "description": "Label shown in stream info when a manual bitrate override is active"
-  },
   "audioDelay": "Audio Delay",
   "@audioDelay": {
     "description": "Title for audio delay adjuster"
@@ -2747,6 +2823,10 @@
   "keyNameBackspace": "Backspace",
   "@keyNameBackspace": {
     "description": "Key cap label for the Backspace key"
+  },
+  "keyNameDelete": "Delete",
+  "@keyNameDelete": {
+    "description": "Key cap label for the Delete key"
   },
   "keyNamePageUp": "Page Up",
   "@keyNamePageUp": {
@@ -2856,6 +2936,10 @@
   "@shortcutLeaveFullscreenOrStop": {
     "description": "What Esc does in the player"
   },
+  "shortcutHideControls": "Hide controls",
+  "@shortcutHideControls": {
+    "description": "What Backspace and Delete do in the player: hide the controls or the panel on top of them"
+  },
   "shortcutStopPlayback": "Stop playback",
   "@shortcutStopPlayback": {
     "description": "Player shortcut action"
@@ -2952,35 +3036,6 @@
   "@hdr": {
     "description": "Stream info label for HDR type"
   },
-  "hdrOutput": "HDR output",
-  "@hdrOutput": {
-    "description": "Stream info label for whether HDR is reaching the display untouched"
-  },
-  "hdrOutputActive": "Active — {format}",
-  "@hdrOutputActive": {
-    "description": "Stream info value when HDR passthrough is running, e.g. 'Active — HDR10 (PQ, BT.2020)'",
-    "placeholders": {
-      "format": {
-        "type": "String"
-      }
-    }
-  },
-  "hdrOutputActiveTonemapped": "Active — tone-mapped to SDR for this display",
-  "@hdrOutputActiveTonemapped": {
-    "description": "Stream info value when native output is engaged but the window sits on a display without HDR, so the renderer is tone-mapping"
-  },
-  "hdrOutputContentSdr": "Inactive — content is SDR",
-  "@hdrOutputContentSdr": {
-    "description": "Stream info value when the title itself is not HDR"
-  },
-  "hdrOutputDisabled": "Inactive — turned off in settings",
-  "@hdrOutputDisabled": {
-    "description": "Stream info value when the video renderer setting keeps video inside the app"
-  },
-  "hdrOutputFailed": "Inactive — could not start, using the standard path",
-  "@hdrOutputFailed": {
-    "description": "Stream info value when the native HDR window could not be created"
-  },
   "videoRenderer": "Video Renderer",
   "@videoRenderer": {
     "description": "Settings label for choosing where Windows draws video, in its own window or inside the app"
@@ -3001,14 +3056,6 @@
   "@videoRendererInApp": {
     "description": "Video renderer option that draws every title inside the app and converts HDR to SDR"
   },
-  "codec": "Codec",
-  "@codec": {
-    "description": "Stream info label for codec"
-  },
-  "videoBitrate": "Video Bitrate",
-  "@videoBitrate": {
-    "description": "Stream info label for video bitrate"
-  },
   "track": "Track",
   "@track": {
     "description": "Stream info label for track name"
@@ -3016,14 +3063,6 @@
   "channels": "Channels",
   "@channels": {
     "description": "Stream info label for audio channels"
-  },
-  "audioBitrate": "Audio Bitrate",
-  "@audioBitrate": {
-    "description": "Stream info label for audio bitrate"
-  },
-  "sampleRate": "Sample Rate",
-  "@sampleRate": {
-    "description": "Stream info label for audio sample rate"
   },
   "format": "Format",
   "@format": {
@@ -3058,6 +3097,14 @@
   "epubUnavailableOnPlatform": "EPUB rendering in-app is not available on this platform yet.",
   "@epubUnavailableOnPlatform": {
     "description": "Fallback message when EPUB cannot render on current platform"
+  },
+  "bookReadingUnavailableTitle": "Books can't be read on Apple TV",
+  "@bookReadingUnavailableTitle": {
+    "description": "Title of the dialog shown on Apple TV when the user tries to open a book or comic, which tvOS has no reader for"
+  },
+  "bookReadingUnavailableMessage": "Open it in Moonfin on a phone, tablet or computer to read it. Audiobooks still play here.",
+  "@bookReadingUnavailableMessage": {
+    "description": "Body of the dialog shown on Apple TV when the user tries to open a book or comic"
   },
   "formatCannotRenderInApp": "This format (.{extension}) cannot be rendered in-app yet.",
   "@formatCannotRenderInApp": {
@@ -3414,6 +3461,50 @@
   "noUpcomingSeriesRecording": "Series recording is scheduled, but the guide has no upcoming episodes",
   "@noUpcomingSeriesRecording": {
     "description": "A series recording rule exists but no future episode timer is available"
+  },
+  "seriesRecordingSkipsShowing": "The series recording will skip this showing",
+  "@seriesRecordingSkipsShowing": {
+    "description": "A series recording rule exists, but this showing won't record, for example because it is a repeat or the episode is already in the library"
+  },
+  "seriesRecordingEpisodesQuestion": "Which episodes should be recorded?",
+  "@seriesRecordingEpisodesQuestion": {
+    "description": "Prompt in the dialog that chooses which episodes a series recording takes"
+  },
+  "seriesRecordingAllEpisodes": "All Episodes",
+  "@seriesRecordingAllEpisodes": {
+    "description": "Series recording choice that records every showing, repeats included"
+  },
+  "seriesRecordingAllEpisodesDescription": "Every showing, including repeats",
+  "@seriesRecordingAllEpisodesDescription": {
+    "description": "Explains the All Episodes series recording choice"
+  },
+  "seriesRecordingNotRecordedEpisodes": "Episodes Not Already Recorded",
+  "@seriesRecordingNotRecordedEpisodes": {
+    "description": "Series recording choice that skips episodes already in the library"
+  },
+  "seriesRecordingNotRecordedEpisodesDescription": "Skips episodes already in your library and records each episode once",
+  "@seriesRecordingNotRecordedEpisodesDescription": {
+    "description": "Explains the Episodes Not Already Recorded series recording choice"
+  },
+  "seriesRecordingNewEpisodesOnly": "New Episodes Only",
+  "@seriesRecordingNewEpisodesOnly": {
+    "description": "Series recording choice that records only first airings"
+  },
+  "seriesRecordingNewEpisodesOnlyDescription": "First airings only, no repeats",
+  "@seriesRecordingNewEpisodesOnlyDescription": {
+    "description": "Explains the New Episodes Only series recording choice"
+  },
+  "seriesRecordingSettings": "Series Settings",
+  "@seriesRecordingSettings": {
+    "description": "Action that changes which episodes an existing series recording takes"
+  },
+  "seriesRecordingUpdated": "Series recording updated",
+  "@seriesRecordingUpdated": {
+    "description": "Confirmation after changing a series recording's settings"
+  },
+  "failedToUpdateSeriesRecording": "Unable to update series recording",
+  "@failedToUpdateSeriesRecording": {
+    "description": "Error after changing a series recording's settings failed"
   },
   "recordCurrentEpisode": "Record This Episode",
   "@recordCurrentEpisode": {
@@ -4129,14 +4220,6 @@
   "@scaleFocusedCards": {
     "description": "Description for focus expansion animation"
   },
-  "backgroundBackdrops": "Background Backdrops",
-  "@backgroundBackdrops": {
-    "description": "Setting for background backdrops"
-  },
-  "showBackdropImages": "Show backdrop images behind content",
-  "@showBackdropImages": {
-    "description": "Description for background backdrops"
-  },
   "seriesThumbnails": "Display Series Thumbnails",
   "@seriesThumbnails": {
     "description": "Setting for series thumbnails"
@@ -4352,6 +4435,18 @@
   "seasonalDensityHeavy": "Heavy",
   "@seasonalDensityHeavy": {
     "description": "Seasonal effect density: most particles"
+  },
+  "seasonalFollower": "Focus Follower",
+  "@seasonalFollower": {
+    "description": "Setting title: shows the holiday piece, like Halloween's planchette, that follows the selected item on Home"
+  },
+  "seasonalFollowerDescription": "A holiday piece, like Halloween's planchette, follows what you select on Home",
+  "@seasonalFollowerDescription": {
+    "description": "Subtitle for the Focus Follower setting in the TV layout"
+  },
+  "seasonalFollowerPointerDescription": "A holiday piece, like Halloween's planchette, replaces the mouse pointer on Home",
+  "@seasonalFollowerPointerDescription": {
+    "description": "Subtitle for the Focus Follower setting in the desktop layout, where the piece takes the place of the mouse pointer"
   },
   "seasonalRow": "Seasonal Row",
   "@seasonalRow": {
@@ -4667,6 +4762,22 @@
   "@playerSwipeGesturesDescription": {
     "description": "Description for player swipe gestures"
   },
+  "invertGestureIndicators": "Invert Gesture Indicators",
+  "@invertGestureIndicators": {
+    "description": "Setting title for inverting placement of brightness and volume gesture indicators"
+  },
+  "invertGestureIndicatorsDescription": "Place brightness and volume visual indicators on same or opposite side of screen from swipe",
+  "@invertGestureIndicatorsDescription": {
+    "description": "Description explaining gesture indicator placement relative to the swipe side"
+  },
+  "gestureIndicatorSame": "Same",
+  "@gestureIndicatorSame": {
+    "description": "Option to display gesture indicators on the same side as the swipe"
+  },
+  "gestureIndicatorInverted": "Inverted",
+  "@gestureIndicatorInverted": {
+    "description": "Option to display gesture indicators on the opposite side from the swipe"
+  },
   "osdButtons": "Player Buttons",
   "@osdButtons": {
     "description": "Settings screen for choosing which buttons the player shows"
@@ -4883,6 +4994,14 @@
   "@detailSectionSeerrStats": {
     "description": "Details screen Seerr section: TMDB score, status, budget and revenue"
   },
+  "detailSectionSeerrStreaming": "Streaming services",
+  "@detailSectionSeerrStreaming": {
+    "description": "Details screen Seerr section: logos of the services streaming the title in the user's region"
+  },
+  "seerrStreamingOn": "Streaming on",
+  "@seerrStreamingOn": {
+    "description": "Heading over the logos of the services streaming a Seerr title"
+  },
   "detailSectionSeerrRecommendations": "Recommendations",
   "@detailSectionSeerrRecommendations": {
     "description": "Details screen Seerr section: recommended titles"
@@ -4914,6 +5033,14 @@
   "detailSectionBirthplace": "Birthplace",
   "@detailSectionBirthplace": {
     "description": "Details screen section: a person's place of birth"
+  },
+  "detailSectionPersonLinks": "Links",
+  "@detailSectionPersonLinks": {
+    "description": "Details screen section: buttons that open a person's IMDb, TMDB and social media pages"
+  },
+  "detailSectionPersonLinksSubtitle": "IMDb, TMDB and social media",
+  "@detailSectionPersonLinksSubtitle": {
+    "description": "Subtitle under the person links section switch"
   },
   "detailSectionGuestAppearances": "Guest appearances",
   "@detailSectionGuestAppearances": {
@@ -5007,26 +5134,6 @@
   "preferAudioDescriptionDescription": "Prefer audio description tracks over normal tracks.",
   "@preferAudioDescriptionDescription": {
     "description": "Description for preferring audio description tracks setting"
-  },
-  "transcodingAudio": "Transcoding (Audio)",
-  "@transcodingAudio": {
-    "description": "Label for audio-only transcode playback method"
-  },
-  "directStreamRemux": "Direct Stream (Remux)",
-  "@directStreamRemux": {
-    "description": "Play method label for direct stream with remuxing"
-  },
-  "transcodingBitrateOrResolution": "Transcoding (Bitrate or Resolution)",
-  "@transcodingBitrateOrResolution": {
-    "description": "Play method label for transcoding due to bitrate or resolution"
-  },
-  "transcodingVideoAndAudio": "Transcoding (Video & Audio)",
-  "@transcodingVideoAndAudio": {
-    "description": "Play method label for transcoding both video and audio"
-  },
-  "transcodingVideo": "Transcoding (Video)",
-  "@transcodingVideo": {
-    "description": "Play method label for transcoding video"
   },
   "autoServerDefault": "Auto (Server Default)",
   "@autoServerDefault": {
@@ -5127,6 +5234,14 @@
   "settingsAudioFallbackCodecDescription": "Select the target format to transcode multi-channel audio when the source stream cannot be direct-played or passed through.",
   "@settingsAudioFallbackCodecDescription": {
     "description": "Description for audio fallback codec setting"
+  },
+  "transcodeAudioCodecs": "Transcode Audio Codecs",
+  "@transcodeAudioCodecs": {
+    "description": "Setting that lists the audio codecs the server converts instead of the device playing them"
+  },
+  "transcodeAudioCodecsDescription": "The server converts audio in these formats instead of sending it as is.",
+  "@transcodeAudioCodecsDescription": {
+    "description": "Description for the transcode audio codecs setting"
   },
   "settingsAudioFallbackCodecAuto": "Auto Detect\n(Recommended)",
   "@settingsAudioFallbackCodecAuto": {
@@ -5305,46 +5420,6 @@
       }
     }
   },
-  "settingsAudioDiagnostics": "Diagnostics",
-  "@settingsAudioDiagnostics": {
-    "description": "Section title for playback diagnostics"
-  },
-  "settingsAudioDiagnosticsVideoLevel": "Video Level",
-  "@settingsAudioDiagnosticsVideoLevel": {
-    "description": "Diagnostics label for video level"
-  },
-  "settingsAudioDiagnosticsVideoRange": "Video Range",
-  "@settingsAudioDiagnosticsVideoRange": {
-    "description": "Diagnostics label for video range"
-  },
-  "settingsAudioDiagnosticsSubtitleCodec": "Subtitle Codec",
-  "@settingsAudioDiagnosticsSubtitleCodec": {
-    "description": "Diagnostics label for subtitle codec"
-  },
-  "settingsAudioDiagnosticsAllowedAudioCodecs": "Allowed Audio Codecs",
-  "@settingsAudioDiagnosticsAllowedAudioCodecs": {
-    "description": "Diagnostics label for allowed audio codecs"
-  },
-  "settingsAudioDiagnosticsHlsMpegTsAudioCodecs": "HLS MPEG-TS Audio Codecs",
-  "@settingsAudioDiagnosticsHlsMpegTsAudioCodecs": {
-    "description": "Diagnostics label for HLS MPEG-TS audio codecs"
-  },
-  "settingsAudioDiagnosticsHlsFmp4AudioCodecs": "HLS fMP4 Audio Codecs",
-  "@settingsAudioDiagnosticsHlsFmp4AudioCodecs": {
-    "description": "Diagnostics label for HLS fMP4 audio codecs"
-  },
-  "settingsAudioDiagnosticsAudioSpdifPassthrough": "audio-spdif passthrough",
-  "@settingsAudioDiagnosticsAudioSpdifPassthrough": {
-    "description": "Diagnostics label for audio-spdif passthrough codecs"
-  },
-  "settingsAudioDiagnosticsActiveAudioRoute": "Active Audio Route",
-  "@settingsAudioDiagnosticsActiveAudioRoute": {
-    "description": "Diagnostics label for active audio route"
-  },
-  "settingsAudioDiagnosticsRouteHdAudioSupport": "Route HD Audio Support",
-  "@settingsAudioDiagnosticsRouteHdAudioSupport": {
-    "description": "Diagnostics label for route HD audio support"
-  },
   "nightMode": "Night Mode",
   "@nightMode": {
     "description": "Setting for night mode"
@@ -5506,6 +5581,10 @@
   "@preferredSecondarySubtitleLanguage": {
     "description": "Preferred language used to sort secondary subtitle tracks in the picker. It doesn't turn subtitles on."
   },
+  "secondarySubtitlesEnabledSubtitle": "Show a second subtitle track at the same time. The subtitle menu then asks for the primary or secondary track first",
+  "@secondarySubtitlesEnabledSubtitle": {
+    "description": "Subtitle of the setting that turns secondary subtitles on, explaining the extra step it adds to the subtitle menu"
+  },
   "defaultToNoSubtitles": "Default to No Subtitles",
   "@defaultToNoSubtitles": {
     "description": "Setting for defaulting to no subtitles"
@@ -5518,15 +5597,19 @@
   "@subtitleSize": {
     "description": "Setting for subtitle size"
   },
-  "primarySubtitleSlot": "Primary",
+  "primarySubtitleSlot": "Primary Track",
   "@primarySubtitleSlot": {
     "description": "Label for the primary subtitle selection slot"
   },
-  "secondarySubtitleSlot": "Secondary",
+  "secondarySubtitleSlot": "Secondary Track",
   "@secondarySubtitleSlot": {
     "description": "Label for the secondary subtitle selection slot"
   },
-  "secondarySubtitleTrack": "Secondary Subtitle Track",
+  "secondarySubtitleTrack": "Secondary Subtitles",
+  "secondaryDelayAdjustment": "Secondary Delay Adjustment",
+  "@secondaryDelayAdjustment": {
+    "description": "Title of the secondary subtitle delay menu. This adjustment is added to the primary subtitle delay."
+  },
   "@secondarySubtitleTrack": {
     "description": "Title of the picker for the secondary subtitle track"
   },
@@ -5957,6 +6040,14 @@
   "@showLibrariesInToolbar": {
     "description": "Setting for showing libraries in toolbar"
   },
+  "showLibrariesIndividually": "Show Libraries Individually",
+  "@showLibrariesIndividually": {
+    "description": "Setting that puts each library in the navigation bar as its own button instead of grouping them under the Libraries menu"
+  },
+  "showLibrariesIndividuallySubtitle": "Show each library as its own button in the navigation bar instead of in the Libraries menu",
+  "@showLibrariesIndividuallySubtitle": {
+    "description": "Subtitle for the Show Libraries Individually setting"
+  },
   "navbarAlwaysExpanded": "Always Expand Navbar Labels",
   "@navbarAlwaysExpanded": {
     "description": "Setting to keep every top navbar heading's text label visible at all times, tvOS-style"
@@ -6061,7 +6152,7 @@
   "@libraryView": {
     "description": "Section title for library view settings"
   },
-  "libraryStyle": "Library Style",
+  "libraryStyle": "Video Library Style",
   "@libraryStyle": {
     "description": "Label for the setting that picks the library page header layout"
   },
@@ -6085,6 +6176,87 @@
   "@libraryStyleDocked": {
     "description": "Library style option: a side panel on TV and desktop, a bottom bar on phones"
   },
+  "bookLibraryStyle": "Book Library Style",
+  "@bookLibraryStyle": {
+    "description": "Label for the setting that picks the book and audiobook library layout"
+  },
+  "bookLibraryStyleDescription": "Classic is the original shelves under a featured title. Reading Room leads with what you're reading on large cards. Bookstore browses the whole library in a grid.",
+  "@bookLibraryStyleDescription": {
+    "description": "Explanation under the book library style setting"
+  },
+  "bookLibraryStyleClassic": "Classic",
+  "@bookLibraryStyleClassic": {
+    "description": "Book library style option: the original shelves"
+  },
+  "bookLibraryStyleReadingRoom": "Reading Room",
+  "@bookLibraryStyleReadingRoom": {
+    "description": "Book library style option: large Continue cards over a few shelves"
+  },
+  "bookLibraryStyleBookstore": "Bookstore",
+  "@bookLibraryStyleBookstore": {
+    "description": "Book library style option: browse entries over a title grid"
+  },
+  "musicLibraryStyle": "Music Library Style",
+  "@musicLibraryStyle": {
+    "description": "Label for the setting that picks the music library layout"
+  },
+  "musicLibraryStyleDescription": "Classic is the original rows under a Jump Back In card. Quick Access starts with a grid of your recent albums and playlists. Immersive leads with the album you're listening to.",
+  "@musicLibraryStyleDescription": {
+    "description": "Explanation under the music library style setting"
+  },
+  "musicLibraryStyleClassic": "Classic",
+  "@musicLibraryStyleClassic": {
+    "description": "Music library style option: the original rows"
+  },
+  "musicLibraryStyleQuickAccess": "Quick Access",
+  "@musicLibraryStyleQuickAccess": {
+    "description": "Music library style option: a grid of recent albums and playlists over the rows"
+  },
+  "musicLibraryStyleImmersive": "Immersive",
+  "@musicLibraryStyleImmersive": {
+    "description": "Music library style option: a full-width album hero over the rows"
+  },
+  "jumpBackIn": "Jump Back In",
+  "@jumpBackIn": {
+    "description": "Heading over the albums and playlists the user played recently in a music library"
+  },
+  "yourPlaylists": "Your Playlists",
+  "@yourPlaylists": {
+    "description": "Heading over the user's playlists in a music library"
+  },
+  "fromThisAlbum": "From This Album",
+  "@fromThisAlbum": {
+    "description": "Heading over the track list of the album shown in the music library hero"
+  },
+  "searchMusic": "Search Music",
+  "@searchMusic": {
+    "description": "Placeholder and label for the search control in a music library"
+  },
+  "bookSeriesCount": "{count, plural, =1{1 series} other{{count} series}}",
+  "@bookSeriesCount": {
+    "description": "How many series a book library holds",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "bookInProgressCount": "{count} in progress",
+  "@bookInProgressCount": {
+    "description": "How many books or audiobooks are started but not finished",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "bookBrowseAllTitles": "{count, plural, =1{Browse 1 title} other{Browse all {count} titles}}",
+  "@bookBrowseAllTitles": {
+    "description": "Link from the book library to the full title grid",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "searchBooks": "Search books",
+  "@searchBooks": {
+    "description": "Button in the book library that opens search within it"
+  },
   "libraryShowLabel": "Show",
   "@libraryShowLabel": {
     "description": "Library button that opens the played status filter, followed by its current value such as All or Unwatched"
@@ -6096,14 +6268,6 @@
   "libraryJumpToLetter": "Jump to letter",
   "@libraryJumpToLetter": {
     "description": "Label of the alphabet in a library, which scrolls to the first item starting with the chosen letter"
-  },
-  "enableFolderView": "Enable Folder View",
-  "@enableFolderView": {
-    "description": "Setting for enabling folder view"
-  },
-  "showFolderBrowsingOption": "Show folder browsing option",
-  "@showFolderBrowsingOption": {
-    "description": "Description for folder view"
   },
   "groupItemsIntoCollections": "Group Items into Collections",
   "@groupItemsIntoCollections": {
@@ -6206,6 +6370,14 @@
   "@mediaBarModeDescription": {
     "description": "Description for media bar style setting"
   },
+  "peekHomeRows": "Peek Home Rows",
+  "@peekHomeRows": {
+    "description": "Title of the media bar setting that lets the first home row show over the bottom of the media bar"
+  },
+  "peekHomeRowsDescription": "Show the top half of the first row along the bottom of the media bar",
+  "@peekHomeRowsDescription": {
+    "description": "Description of the Peek Home Rows media bar setting"
+  },
   "mediaBarModeMoonfin": "OB Max",
   "@mediaBarModeMoonfin": {
     "description": "Media bar style option: Moonfin"
@@ -6306,11 +6478,19 @@
   "@enableTrailerAudio": {
     "description": "Description for trailer audio"
   },
+  "trailerVolume": "Trailer Volume",
+  "@trailerVolume": {
+    "description": "Setting for how loud media bar trailers play"
+  },
+  "trailerVolumeDescription": "How loud media bar trailers play",
+  "@trailerVolumeDescription": {
+    "description": "Description for the trailer volume slider"
+  },
   "trailerCaptions": "Trailer Captions",
   "@trailerCaptions": {
     "description": "Setting for YouTube trailer captions"
   },
-  "trailerCaptionsDescription": "Show captions on YouTube trailers in the media bar",
+  "trailerCaptionsDescription": "Show captions on YouTube trailers",
   "@trailerCaptionsDescription": {
     "description": "Description for YouTube trailer captions"
   },
@@ -6337,6 +6517,14 @@
   "enablePreviewAudio": "Enable audio for media previews",
   "@enablePreviewAudio": {
     "description": "Description for preview audio"
+  },
+  "previewVolume": "Preview Volume",
+  "@previewVolume": {
+    "description": "Setting for how loud media previews on cards play"
+  },
+  "previewVolumeDescription": "How loud media previews on cards play",
+  "@previewVolumeDescription": {
+    "description": "Description for the preview volume slider"
   },
   "latestMedia": "Recently Added Media",
   "@latestMedia": {
@@ -6410,6 +6598,22 @@
   "@combineBothRows": {
     "description": "Description for merge continue watching and next up"
   },
+  "continueWatchingDefaultAction": "Default Action",
+  "@continueWatchingDefaultAction": {
+    "description": "Setting for default click action on Continue Watching and Next Up items"
+  },
+  "continueWatchingDefaultActionDescription": "What selecting a Continue Watching or Next Up item does",
+  "@continueWatchingDefaultActionDescription": {
+    "description": "Description for Continue Watching and Next Up default click action setting"
+  },
+  "goToDetailsScreen": "Go to Details",
+  "@goToDetailsScreen": {
+    "description": "Option to navigate to the details screen for an item"
+  },
+  "playImmediately": "Play immediately",
+  "@playImmediately": {
+    "description": "Option to play an item immediately"
+  },
   "nextUpMaxDays": "Max days in Next Up",
   "@nextUpMaxDays": {
     "description": "Setting for how far back the Next Up row reaches"
@@ -6440,6 +6644,14 @@
   "homeRowsPaddingDescription": "Customize padding between home rows",
   "@homeRowsPaddingDescription": {
     "description": "Description for home rows padding setting"
+  },
+  "homeRowsGenresAndStudios": "Genres and Studios",
+  "@homeRowsGenresAndStudios": {
+    "description": "Home Rows editor: heading of the group of disabled genre and studio rows"
+  },
+  "homeRowsExternalLists": "External Lists",
+  "@homeRowsExternalLists": {
+    "description": "Home Rows editor: heading of the group of disabled rows from IMDb, TMDB, Letterboxd and MDBList lists"
   },
   "perRowSettings": "Per-Row Settings",
   "@perRowSettings": {
@@ -6492,6 +6704,14 @@
   "enablePinCode": "Enable PIN Code",
   "@enablePinCode": {
     "description": "Setting for enabling PIN code"
+  },
+  "pinSynced": "PIN synced",
+  "@pinSynced": {
+    "description": "Shown under the PIN switch when the PIN is kept on the server, so it applies on every device"
+  },
+  "pinResetFailed": "The PIN on the server could not be cleared. If it is still set, ask a server administrator to remove it.",
+  "@pinResetFailed": {
+    "description": "Shown on sign in when Forgot PIN could not clear a PIN kept on the server"
   },
   "requirePinToAccess": "Require a PIN to access your account",
   "@requirePinToAccess": {
@@ -7112,10 +7332,6 @@
   "featuredContentAppearance": "Featured content, appearance",
   "@featuredContentAppearance": {
     "description": "Media bar settings subtitle"
-  },
-  "posterSizeImageTypeFolderView": "Poster size, image type, folder view",
-  "@posterSizeImageTypeFolderView": {
-    "description": "Library display settings subtitle"
   },
   "gbValue": "{value} GB",
   "@gbValue": {
@@ -7809,6 +8025,185 @@
   "adminDrawerLiveTv": "Live TV",
 
   "adminExitTooltip": "Exit Admin",
+  "adminPremiereNoteLiveTv": "Live TV needs Emby Premiere. Without it the server doesn't import channels or record anything.",
+  "adminPremiereNoteBackups": "Backup & Restore needs Emby Premiere once its trial ends.",
+  "adminGeneralRunAtStartup": "Run the server at startup",
+  "adminGeneralLaunchWebApp": "Open the web app in a browser when the server starts",
+  "adminGeneralBannerText": "Home screen banner text",
+  "adminGeneralBannerTextHelp": "Shown to every user on their home screen",
+  "adminGeneralSectionMaintenance": "Maintenance mode",
+  "adminGeneralMaintenanceMode": "Put the server into maintenance mode",
+  "adminGeneralMaintenanceModeHelp": "Users only see the maintenance message.",
+  "adminGeneralMaintenanceMessage": "Maintenance message",
+  "adminGeneralMaintenanceMessageHelp": "Leave it blank for a general message in each user's language.",
+  "adminGeneralSectionUpdates": "Automatic updates",
+  "adminGeneralAutoUpdate": "Update the server automatically",
+  "adminGeneralAutoRestart": "Restart automatically to apply updates",
+  "adminGeneralAutoRestartHelp": "The server only restarts while no users are active.",
+  "adminTaskTriggerSystemEvent": "After a system event ({event})",
+  "@adminTaskTriggerSystemEvent": {"placeholders": {"event": {"type": "String"}}},
+  "adminPluginNeedsPremiere": "Needs Emby Premiere after a 14-day free trial",
+  "adminEmbyBackupsHelp": "Emby backs up through its Backup & Restore plugin.",
+  "adminEmbyBackupsNoPlugin": "The Backup & Restore plugin isn't installed. Install it from the plugin catalog to back up this server.",
+  "adminEmbyBackupNow": "Back up now",
+  "adminEmbyFullBackup": "Full backup",
+  "adminEmbyLightBackups": "Database backups",
+  "adminEmbyBackupServerVersion": "Emby {version}",
+  "@adminEmbyBackupServerVersion": {"placeholders": {"version": {"type": "String"}}},
+  "adminEmbyRestoreConfirm": "Restore {name}? It replaces this server's libraries, settings, users and passwords, and the server shuts down when it's done. You may need to start it again yourself.",
+  "@adminEmbyRestoreConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "adminEmbyRestoreServerId": "Restore the server ID",
+  "adminEmbyRestoreServerIdHelp": "Turn this off when you restore the same backup onto more than one server.",
+  "adminEmbyRestoreShuttingDown": "The restore is done and the server is shutting down. Start it again if it doesn't restart by itself.",
+  "adminHiddenRemotely": "Hide from login screens when connected remotely",
+  "adminHiddenFromUnusedDevices": "Hide from login screens on devices they've never signed in on",
+  "adminSimultaneousStreamLimitHelp": "Limits how many videos this user can play at once.",
+  "adminUnlimited": "Unlimited",
+  "adminAutoRemoteQuality": "Auto remote quality (Mbps)",
+  "adminAutoRemoteQualityHelp": "Used remotely when the player is set to auto quality. Leave empty to detect it.",
+  "adminAllowCameraUpload": "Allow camera upload",
+  "adminAllowSubtitleDownloading": "Allow subtitle downloading",
+  "adminAllowMediaConversion": "Allow media conversion",
+  "adminAllowSyncTranscoding": "Allow downloads that need transcoding",
+  "adminAllowSharingPersonalItems": "Allow sharing playlists with other users",
+  "adminAllowPreferenceAccess": "Allow changing their own password and profile image",
+  "adminTagMode": "Tag mode",
+  "adminEmbyConnect": "Emby Connect",
+  "adminEmbyConnectUser": "Emby Connect username or email",
+  "adminEmbyConnectHelp": "Lets this user sign in from any Emby app without knowing the server address.",
+  "adminEmbyConnectLink": "Link",
+  "adminEmbyConnectUnlink": "Unlink",
+  "adminEmbyConnectLinked": "Linked to Emby Connect",
+  "adminEmbyConnectPending": "Invitation sent. The link is made once they accept it.",
+  "adminEmbyConnectUnlinked": "Emby Connect link removed",
+  "adminEmbyConnectNotFound": "No Emby Connect account has that username or email.",
+  "adminLibImportPlaylists": "Import playlist files",
+  "adminLibExcludeFromSearch": "Exclude from global search",
+  "adminLibForcedSubtitlesOnly": "Download forced subtitles only",
+  "adminLibImportCollections": "Import collections from metadata downloaders",
+  "adminLibThumbnailInterval": "Preview thumbnail interval",
+  "adminLibThumbnailEverySeconds": "Every {count} seconds",
+  "@adminLibThumbnailEverySeconds": {"placeholders": {"count": {"type": "int"}}},
+  "adminLibThumbnailAtChapters": "At chapter markers",
+  "adminLibSaveThumbnailsWithMedia": "Save preview thumbnails into media folders",
+  "adminLibrarySectionMarkers": "Intro markers",
+  "adminLibIntroDetection": "Detect intros",
+  "adminLibIntroDetectionDuringScan": "Detect intros during the library scan",
+  "adminProviderEmbyGuide": "Emby Guide Data",
+  "adminLiveTvEmbyGuideSelectLineup": "Select a lineup. If none are listed, check the postal code. Lineups need Emby Premiere.",
+  "adminLiveTvWakeServer": "Wake the server for recordings",
+  "adminDrawerLiveTvChannels": "Live TV Channels",
+  "adminPageDescLiveTvChannels": "Turn channels on and off and set their order",
+  "adminLiveTvChannelsEmpty": "No channels yet. They show up here once a tuner is set up and the server has imported its channels.",
+  "adminTranscodingHwaAdvanced": "Advanced",
+  "adminTranscodingHwaHelp": "Advanced lets you pick and order the hardware codecs.",
+  "adminTranscodingHwDecoders": "Preferred hardware decoders",
+  "adminTranscodingHwEncoders": "Preferred hardware encoders",
+  "adminTranscodingTempPathHelp": "Where the transcoder keeps its working files. Leave it empty to use the server's data folder.",
+  "adminTranscodingThrottleHelp": "Slows transcoding down once enough is buffered, to lower CPU use.",
+  "adminTranscodingDownmixHelp": "Raises the volume when audio is downmixed. 1 keeps the original volume.",
+  "adminTranscodingFontExtraction": "Allow font extraction on the fly",
+  "adminTranscodingMaxResolution": "Max transcoding resolution",
+  "adminTranscodingMaxResolutionHelp": "A limit on every transcode, whatever quality the app asks for.",
+  "adminTranscodingToneMapSoftware": "Tone mapping in software transcodes",
+  "adminTranscodingToneMapHardware": "Tone mapping in hardware transcodes",
+  "adminTranscodingToneMapHelp": "Keeps HDR video from looking dim and washed out when it's transcoded.",
+  "adminNetworkingLocalAddress": "Local IP address",
+  "adminNetworkingLocalAddressHelp": "The local address the server gives to apps. Leave it empty to detect it automatically.",
+  "adminNetworkingBehindProxy": "HTTPS is handled by a reverse proxy",
+  "adminNetworkingExternalDomain": "External domain",
+  "adminNetworkingExternalDomainHelp": "A domain or dynamic DNS name for remote connections, without the protocol or port. A custom certificate needs it.",
+  "adminNetworkingUpnp": "Enable automatic port mapping",
+  "adminNetworkingUpnpHelp": "Tries to map the public port to the local port with UPnP. Some routers don't support it.",
+  "adminNetworkingProxyHeaders": "Read proxy headers for client addresses",
+  "adminNetworkingProxyHeadersHelp": "Uses headers like X-Forwarded-For to find each client's address. Only turn this on behind a reverse proxy.",
+  "adminNetworkingProxyHeadersRemote": "Only when they hold remote addresses",
+  "adminNetworkingIpv4Only": "Use IPv4 for outgoing requests",
+  "adminNetworkingIpv4OnlyHelp": "For when metadata providers and other services can't be reached over IPv6.",
+  "adminOnePerLine": "One per line",
+  "adminStreamingStreamLimit": "Max simultaneous video streams",
+  "adminStreamingStreamLimitHelp": "How many videos can play at once across the server. 0 means no limit.",
+  "adminSyncJobsConversions": "Conversion jobs",
+  "adminSyncJobsDownloads": "Download jobs",
+  "adminSyncJobsEmpty": "No jobs",
+  "adminSyncJobCancel": "Cancel job",
+  "adminSyncJobCancelConfirm": "Cancel {name} and remove it from the list?",
+  "@adminSyncJobCancelConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "adminSyncJobConverting": "Converting",
+  "adminSyncJobReady": "Ready to transfer",
+  "adminSyncJobTransferring": "Transferring",
+  "adminSyncJobCompletedWithError": "Completed with errors",
+  "adminSyncJobItemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@adminSyncJobItemCount": {"placeholders": {"count": {"type": "int"}}},
+  "adminDrawerDatabase": "Database",
+  "adminPageDescDatabase": "Cache size and upkeep",
+  "adminDatabaseWarning": "These are advanced options. Leave them at their defaults unless you have a reason to change them.",
+  "adminDatabaseCacheSize": "Database cache size (MB)",
+  "adminDatabaseCacheSizeHelp": "How much of each database file the server keeps in memory. More can make the server faster. Takes effect after a restart.",
+  "adminDatabaseOptimize": "Optimize the database when the server shuts down",
+  "adminDatabaseOptimizeHelp": "Usually this does nothing, but now and then it runs an analysis that helps the server's queries. Shutdowns can take longer.",
+  "adminDatabaseAnalysisLimit": "Analysis row limit",
+  "adminDatabaseAnalysisLimitHelp": "About how many rows of each index the optimize step reads. More rows work better but can slow shutdowns.",
+  "adminDatabaseVacuum": "Vacuum the database on the next startup",
+  "adminDatabaseVacuumHelp": "Rebuilds the database file so it takes up the least space, which can help performance. The server can't be used while it runs and shows no progress, so don't force it closed. It turns itself back off after that startup.",
+  "adminDrawerCinemaIntros": "Cinema Intros",
+  "adminPageDescCinemaIntros": "Trailers and intros before playback",
+  "adminCinemaIntrosPlayBefore": "Play intros before",
+  "adminCinemaIntrosUpcoming": "Include trailers from new and upcoming movies",
+  "adminCinemaIntrosOlder": "Include trailers from older movies",
+  "adminCinemaIntrosLibrary": "Include trailers from movies in my libraries",
+  "adminCinemaIntrosLibraryHelp": "Needs local trailers set up.",
+  "adminCinemaIntrosCount": "Number of trailers to play",
+  "adminCinemaIntrosParental": "Smart parental control",
+  "adminCinemaIntrosParentalHelp": "Only picks trailers rated the same as or lower than what's being watched.",
+  "adminCinemaIntrosUnwatchedOnly": "Only play intros before unwatched content",
+  "adminCinemaIntrosSimilarOnly": "Only play trailers similar to what's being watched",
+  "adminCinemaIntrosSimilarOnlyHelp": "Based on shared genres, tags, studios and so on.",
+  "adminCinemaIntrosCustom": "Custom intros",
+  "adminCinemaIntrosCustomPath": "Custom intros folder",
+  "adminCinemaIntrosCustomPathHelp": "A folder of videos. One is picked at random and plays after the trailers.",
+  "adminCinemaIntrosCodecPath": "Codec intros folder",
+  "adminCinemaIntrosCodecPathHelp": "A folder of videos. One whose file name matches the video codec, audio codec, audio profile or a tag plays before the main feature.",
+  "adminDrawerDlna": "DLNA",
+  "adminPageDescDlna": "Play To and the DLNA server",
+  "adminDlnaPlayTo": "Enable DLNA Play To",
+  "adminDlnaPlayToHelp": "Emby can find devices on your network and control them remotely.",
+  "adminDlnaServer": "Enable the DLNA server",
+  "adminDlnaServerHelp": "Lets the server stream media to DLNA devices.",
+  "adminDlnaDefaultUser": "Default user",
+  "adminDlnaDefaultUserHelp": "Whose libraries connected devices see. A device profile can override it.",
+  "adminDlnaDebugLog": "Enable DLNA debug logging",
+  "adminDlnaDebugLogHelp": "Makes large log files. Only turn it on while troubleshooting.",
+  "adminDrawerCameraUpload": "Camera Upload",
+  "adminPageDescCameraUpload": "Where photos from phones are saved",
+  "adminCameraUploadPath": "Camera upload folder",
+  "adminCameraUploadPathHelp": "Leave it blank to use the default folder. A custom folder also has to be added as a library.",
+  "adminCameraUploadSubfolders": "Make a subfolder for each device",
+  "adminDrawerConversions": "Conversions",
+  "adminPageDescConversions": "Converted media and downloads",
+  "adminConversionsTempPath": "Temporary file folder",
+  "adminConversionsTempPathHelp": "Where media is kept while it's being converted.",
+  "adminConversionsFullSpeed": "Convert at full speed",
+  "adminConversionsFullSpeedHelp": "Conversions run slowly by default to keep the load down.",
+  "adminDrawerPremiere": "Emby Premiere",
+  "adminPageDescPremiere": "License status and key",
+  "adminPremiereActive": "Premiere is active on this server.",
+  "adminPremiereInactive": "This server has no Premiere key.",
+  "adminPremiereKeyInvalid": "A key is set but isn't active. It may be mistyped or expired.",
+  "adminPremiereCurrentKey": "Current key",
+  "adminPremiereNewKey": "New key",
+  "adminPremiereNewKeyHint": "Paste the key from your Emby Premiere email.",
+  "adminPremiereSaveKey": "Save key",
+  "adminPremiereRemoveKey": "Remove key",
+  "adminPremiereKeyRejected": "Emby saved the key but didn't accept it.",
+  "adminPremiereLoadFailed": "Couldn't load the Premiere status",
+  "embyPremiereRequiredTitle": "Emby Premiere required",
+  "embyPremiereRequiredBody": "This needs an active Emby Premiere subscription on the server.",
+  "embyPremiereRequiredSaveBody": "This needs an active Emby Premiere subscription. Emby keeps the setting but won't use it until Premiere is active.",
+  "embyPremiereLearnMore": "Learn more",
+  "embyPremiereSaveAnyway": "Save anyway",
+  "embyPremiereEnterKey": "Enter key",
+  "adminPremiereNote": "Needs Emby Premiere. The server keeps this setting but won't use it until Premiere is active.",
   "adminExternalIdLabel": "{name} Id",
   "@adminExternalIdLabel": {"placeholders": {"name": {"type": "String"}}},
   "adminExternalIdTypePerson": "Person",
@@ -8169,7 +8564,7 @@
   "adminDeleteDevice": "Delete Device",
   "adminDeviceDeleted": "Device deleted",
   "adminDeviceDeleteFailed": "Failed to delete device: {error}",
-  "adminRemoveDeviceConfirm": "Remove device '{name}'? The user will need to sign in again on this device.",
+  "adminRemoveDeviceConfirm": "Remove device \"{name}\"? The user will need to sign in again on this device.",
   "@adminRemoveDeviceConfirm": {
     "placeholders": {
       "name": {
@@ -10498,6 +10893,14 @@
   "@mapDolbyVisionP7Subtitle": {
     "description": "Setting subtitle for forcing the DV P7 strip path"
   },
+  "stripDolbyVisionHdr10PlusTitle": "Play Dolby Vision with HDR10+ as HDR10+",
+  "@stripDolbyVisionHdr10PlusTitle": {
+    "description": "Setting title: drop the Dolby Vision layer from videos that carry both Dolby Vision and HDR10+"
+  },
+  "stripDolbyVisionHdr10PlusSubtitle": "Drop the Dolby Vision layer from videos that also have HDR10+. Turn this on if those videos play with sound but a black screen.",
+  "@stripDolbyVisionHdr10PlusSubtitle": {
+    "description": "Setting subtitle for dropping Dolby Vision from Dolby Vision plus HDR10+ videos"
+  },
 
   "subtitlesUseEmbeddedStyles": "Use Embedded Subtitle Styles",
   "@subtitlesUseEmbeddedStyles": {
@@ -10524,9 +10927,13 @@
   "@showMediaDetailsOnLibraryPageDescription": {
     "description": "Setting description to show/hide focused media details at the top of the library page"
   },
-  "hideBackdropsInLibraries": "Hide Backdrops While Browsing",
-  "@hideBackdropsInLibraries": {
-    "description": "Setting title to show/hide backdrops when browsing library pages"
+  "libraryCardTitles": "Titles Under Posters",
+  "@libraryCardTitles": {
+    "description": "Setting that shows or hides the title and details under each card in library grids"
+  },
+  "libraryCardTitlesDescription": "Show each item's title and details below its artwork in library grids.",
+  "@libraryCardTitlesDescription": {
+    "description": "Description of the Titles Under Posters setting"
   },
   "useDetailedSubHeadings": "Use Detailed Sub-Headings",
   "@useDetailedSubHeadings": {
@@ -10656,6 +11063,22 @@
   "audioRowsSorting": "Audio Rows sorting",
   "audioRowsSortingDescription": "Sort Audio rows by date added, release date, alphabetically, and more.",
   "audioRowsSortOrderDescription": "Sort Audio rows in ascending or descending order.",
+  "sorting": "Sorting",
+  "imdbRowsSorting": "IMDb Row Sorting",
+  "imdbRowsSortingDescription": "Sort IMDb rows by name, release date, rating, and more.",
+  "imdbRowsSortOrderDescription": "Sort IMDb rows in ascending or descending order.",
+  "tmdbRowsSorting": "TMDB Row Sorting",
+  "tmdbRowsSortingDescription": "Sort TMDB rows by name, release date, rating, and more.",
+  "tmdbRowsSortOrderDescription": "Sort TMDB rows in ascending or descending order.",
+  "seerrRowsSorting": "Seerr Row Sorting",
+  "seerrRowsSortingDescription": "Sort Seerr rows by name, release date, rating, and more.",
+  "seerrRowsSortOrderDescription": "Sort Seerr rows in ascending or descending order.",
+  "externalRowSortDefault": "Default (List Order)",
+  "externalRowSortName": "Name",
+  "externalRowSortReleaseDate": "Release Date",
+  "externalRowSortRating": "Rating",
+  "externalRowSortPopularity": "Popularity",
+  "externalRowSortShuffle": "Shuffle",
   "audioPlaylists": "Audio Playlists",
   "appearance": "Appearance",
   "layout": "Layout",
@@ -10683,8 +11106,20 @@
   "playerRouting": "Player Routing",
   "preferSoftwareDecoders": "Prefer Software Decoders",
   "preferSoftwareDecodersSubtitle": "Use FFmpeg (audio) and libgav1 (AV1) before hardware decoders. Disable if HDMI audio passthrough breaks.",
+  "hevcSoftwareDirectPlay": "Direct Play HEVC (Software Decode)",
+  "hevcSoftwareDirectPlaySubtitle": "Play HEVC up to 1080p from the original file instead of asking the server to transcode it. This Apple TV decodes it in software, so heavy 10-bit or high bitrate files may stutter.",
+  "av1SoftwareUhdDirectPlay": "Direct Play 4K AV1 (Software Decode)",
+  "av1SoftwareUhdDirectPlaySubtitle": "Play AV1 above 1080p, including HDR10, from the original file instead of asking the server to transcode it. This device decodes AV1 in software, so heavy 4K or high bitrate files may stutter.",
   "useExternalPlayer": "Always Use External Player",
   "useExternalPlayerSubtitle": "Open video playback in your selected external app on Android TV.",
+  "externalPlayerLiveTvOnly": "Live TV Only",
+  "@externalPlayerLiveTvOnly": {
+    "description": "Setting that limits the external player to Live TV channels"
+  },
+  "externalPlayerLiveTvOnlySubtitle": "Use the external player for Live TV and keep everything else in the built-in player.",
+  "@externalPlayerLiveTvOnlySubtitle": {
+    "description": "Description for the Live TV Only external player setting"
+  },
   "automaticQueuing": "Automatic Queuing",
   "preferSdhSubtitles": "Prefer SDH Subtitles",
   "preferSdhSubtitlesSubtitle": "Prioritize SDH/CC subtitle tracks when auto-selecting.",
@@ -10763,6 +11198,10 @@
   "guestAppearances": "Guest Appearances",
   "appearancesSeerr": "Appearances (Seerr)",
   "crewContributionsSeerr": "Crew Contributions (Seerr)",
+  "personWebsite": "Official website",
+  "@personWebsite": {
+    "description": "Tooltip for the button on a person page that opens their own website"
+  },
   "watchWithGroup": "Watch with group",
   "disk": "Disk",
   "openInBrowser": "Open in Browser",
@@ -11829,6 +12268,17 @@
   "analyticsLibraryDetails": "Library Details",
   "analyticsLibraryBreakdown": "Library Breakdown",
   "analyticsNoLibrariesAvailable": "No libraries are available.",
+  "analyticsLibraryShare": "Share of items by library",
+  "analyticsTopRating": "Most common rating",
+  "analyticsTypicalRuntime": "Typical runtime",
+  "analyticsShareOfItems": "{percent}% of items",
+  "@analyticsShareOfItems": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
   "adminServerAdministrationTitle": "Server Administration",
   "adminServerPathData": "Data",
   "adminServerPathImageCache": "Image Cache",
@@ -11917,7 +12367,6 @@
   "failedToExtractCbrArchive": "Failed to extract .cbr archive.",
   "cb7ExtractionUnavailable": "CB7 extraction is not available on this platform.",
   "cb7ExtractionPluginUnavailable": "CB7 extraction plugin is not available on this platform.",
-  "closeGenrePanel": "Close genre panel",
   "loadingShuffle": "Loading shuffle...",
   "libraryShuffleLabel": "LIBRARY SHUFFLE",
   "randomShuffleLabel": "RANDOM SHUFFLE",
@@ -12122,7 +12571,7 @@
   "@dismiss": {
     "description": "Dismiss button text"
   },
-  "libraryWriteAccessProactiveBody": "Your '{libraryName}' library is configured to save artwork directly into the media folders ('Save artwork into media folders' is enabled). However, Jellyfin has tested write access and does not have permission to write files into this directory:\n\n{failedPath}",
+  "libraryWriteAccessProactiveBody": "Your \"{libraryName}\" library is configured to save artwork directly into the media folders ('Save artwork into media folders' is enabled). However, Jellyfin has tested write access and does not have permission to write files into this directory:\n\n{failedPath}",
   "@libraryWriteAccessProactiveBody": {
     "description": "Proactive warning message about server write access",
     "placeholders": {
@@ -12214,10 +12663,20 @@
   "transcodeInterlacedVideoNotSupported": "Interlaced video is not supported.",
   "transcodeSecondaryAudioNotSupported": "Secondary audio stream requires transcoding.",
   "transcodeDirectPlayError": "Direct play is not supported for this media format.",
+  "sortServerOrder": "Server Order",
   "sortAlphabetical": "Alphabetical",
   "sortReleaseAscending": "Release Order (Ascending)",
   "sortReleaseDescending": "Release Order (Descending)",
   "sortCustomDragDrop": "Custom (Drag-and-Drop)",
+  "sortCurrent": "Sort: {option}",
+  "@sortCurrent": {
+    "description": "Label beside a sort button showing the sort that is active",
+    "placeholders": {
+      "option": {
+        "type": "String"
+      }
+    }
+  },
   "playlistSortOptions": "Playlist Sort Options",
   "resetSort": "Reset Sort",
   "rewatchSeasonEpisode": "Rewatch S{season}:E{episode}",
@@ -12480,6 +12939,10 @@
   "showAlphabeticalFilters": "Show Alphabet",
   "@showAlphabeticalFilters": {
     "description": "Checkbox label for toggling alphabetical picker visibility in Sort and Filter options"
+  },
+  "libraryFolderView": "Folder View",
+  "@libraryFolderView": {
+    "description": "Checkbox in a library's Sort and Filter options that lists the library one folder at a time instead of all its items at once"
   },
   "personalRatingStyle": "Personal Rating Style",
   "@personalRatingStyle": {
@@ -12791,6 +13254,66 @@
   "@setupTourBulletMore": {
     "description": "Closing bullet on the setup screen settings list"
   },
+  "setupStepOf": "Step {current} of {total}",
+  "@setupStepOf": {
+    "description": "Progress label at the top of each setup wizard step",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setupCurrent": "Current",
+  "@setupCurrent": {
+    "description": "Tag beside the option that is chosen right now in a setup wizard list"
+  },
+  "setupTvHint": "Up and down to preview · OK to choose · Back twice to skip",
+  "@setupTvHint": {
+    "description": "Remote control hint at the bottom of the setup wizard on TVs"
+  },
+  "setupNavbarTopHint": "Tabs across the top of the screen.",
+  "@setupNavbarTopHint": {
+    "description": "What the Top Bar navigation position gives you"
+  },
+  "setupNavbarLeftHint": "A slim rail of icons down the left side.",
+  "@setupNavbarLeftHint": {
+    "description": "What the Left Sidebar navigation position gives you"
+  },
+  "setupNavbarBottomHint": "Tabs along the bottom edge, in easy reach of your thumb.",
+  "@setupNavbarBottomHint": {
+    "description": "What the Bottom Bar navigation position gives you on phones"
+  },
+  "setupMediaBarMoonfinHint": "Large artwork with the title, details and overview laid over it.",
+  "@setupMediaBarMoonfinHint": {
+    "description": "What the Moonfin media bar style looks like"
+  },
+  "setupMediaBarMakdHint": "Large artwork led by a big title logo.",
+  "@setupMediaBarMakdHint": {
+    "description": "What the MakD media bar style looks like"
+  },
+  "setupMediaBarBookshelfHint": "Titles shelved as book spines, with the featured one face out.",
+  "@setupMediaBarBookshelfHint": {
+    "description": "What the Bookshelf media bar style looks like"
+  },
+  "setupMediaBarGalleryHint": "The featured title opened up, with the next few lined up beside it.",
+  "@setupMediaBarGalleryHint": {
+    "description": "What the Gallery media bar style looks like"
+  },
+  "setupMediaBarBannerHint": "A shorter banner above your rows, so more of them fit on screen.",
+  "@setupMediaBarBannerHint": {
+    "description": "What the Banner media bar style looks like"
+  },
+  "setupMediaBarAyaHint": "Artwork first in a framed panel, with your rows right underneath.",
+  "@setupMediaBarAyaHint": {
+    "description": "What the Aya media bar style looks like"
+  },
+  "setupMediaBarOffHint": "No featured area. Home opens straight onto your rows.",
+  "@setupMediaBarOffHint": {
+    "description": "What turning the media bar off does to the Home screen"
+  },
   "runSetupAgain": "Run setup again",
   "@runSetupAgain": {
     "description": "Starts the first-run setup wizard again from settings"
@@ -12891,8 +13414,8 @@
   "@smartDownloadsEnable": {
     "description": "Switch that swaps a watched downloaded episode for the next episodes of the series"
   },
-  "smartDownloadsEnableSubtitle": "When you finish an episode on any device, OB Max downloads the next ones. Downloaded episodes are deleted once watched.",
-  "@smartDownloadsEnableSubtitle": {
+  "smartDownloadsEnableDescription": "When you finish an episode on any device, Moonfin downloads the next ones. Episodes it downloads are deleted once watched.",
+  "@smartDownloadsEnableDescription": {
     "description": "Explains the smart downloads switch, including that watched episodes are deleted"
   },
   "smartDownloadsKeepReady": "Episodes to Keep Downloaded",
@@ -12936,9 +13459,25 @@
   "@autoDownloadDelete": {
     "description": "Setting that picks how soon an auto-downloaded episode is removed after it was watched"
   },
-  "autoDownloadDeleteSubtitle": "When to remove automatically downloaded episodes after you watch them",
-  "@autoDownloadDeleteSubtitle": {
+  "autoDownloadDeleteFollowedSubtitle": "When to remove episodes downloaded for series you follow, after you watch them",
+  "@autoDownloadDeleteFollowedSubtitle": {
     "description": "Explains the delete-after-watching setting"
+  },
+  "removeWatchedDownloads": "Remove Watched Downloads",
+  "@removeWatchedDownloads": {
+    "description": "Storage setting that picks how soon an episode or movie the user downloaded themselves is removed after it was watched"
+  },
+  "removeWatchedDownloadsSubtitle": "When to remove episodes and movies you downloaded yourself. Only those you watch after turning this on are removed",
+  "@removeWatchedDownloadsSubtitle": {
+    "description": "Explains the remove-watched-downloads setting"
+  },
+  "keepDownloaded": "Keep Downloaded",
+  "@keepDownloaded": {
+    "description": "Toggle on the download sheet that stops watched downloads of this title from being removed automatically"
+  },
+  "keepDownloadedSubtitle": "Never remove this automatically after watching",
+  "@keepDownloadedSubtitle": {
+    "description": "Explains the keep-downloaded toggle"
   },
   "autoDownloadDeleteNever": "Never",
   "@autoDownloadDeleteNever": {
@@ -13342,6 +13881,8 @@
   "@navYou": {
     "description": "Bottom bar tab that opens the user's own menu with their profile, extra destinations and settings"
   },
+  "cinemaSkipPrerolls": "Cinema Mode Skip Button",
+  "cinemaSkipPrerollsDescription": "Show a Skip button during Cinema Mode trailers, commercials, and other pre-rolls.",
   "detailsPage": "Details Page",
   "@detailsPage": {
     "description": "Settings entry and screen for options that shape the details page"
@@ -13582,5 +14123,911 @@
   "librarySortLength": "Length",
   "@librarySortLength": {
     "description": "Sort option for music: by track or album length"
+  },
+  "homeScreenBackdrop": "Home Screen Backdrop",
+  "@homeScreenBackdrop": {
+    "description": "Setting to show or hide the backdrop image behind the home screen"
+  },
+  "homeScreenBackdropFullScreen": "Full Screen",
+  "@homeScreenBackdropFullScreen": {
+    "description": "Home Screen Backdrop option that fills the whole screen with the focused item's backdrop"
+  },
+  "homeScreenBackdropCorner": "Corner",
+  "@homeScreenBackdropCorner": {
+    "description": "Home Screen Backdrop option that shows the focused item's backdrop in the top right corner, fading into the background like the Google TV home screen"
+  },
+  "homeScreenBackdropTop": "Top",
+  "@homeScreenBackdropTop": {
+    "description": "Home Screen Backdrop option that shows the focused item's backdrop across the top half of the screen, fading into the background toward the bottom"
+  },
+  "detailsScreenBackdrop": "Details Screen Backdrop",
+  "@detailsScreenBackdrop": {
+    "description": "Setting to show or hide the backdrop image behind the item details screen"
+  },
+  "detailsBackdropSize": "Backdrop Size",
+  "@detailsBackdropSize": {
+    "description": "Setting on phones for how big the backdrop image behind the item details screen is drawn"
+  },
+  "detailsBackdropFullScreen": "Full Screen",
+  "@detailsBackdropFullScreen": {
+    "description": "Backdrop Size option that zooms the backdrop to fill the whole details screen"
+  },
+  "detailsBackdropFit": "Fit",
+  "@detailsBackdropFit": {
+    "description": "Backdrop Size option that shows the whole backdrop across the top of the details screen, fading into the page below it"
+  },
+  "libraryBackdrops": "Library Backdrops",
+  "@libraryBackdrops": {
+    "description": "Setting to show or hide backdrop images while browsing library pages"
+  },
+  "playbackInfoChannel": "Channel",
+  "@playbackInfoChannel": {
+    "description": "Playback information row label: the Live TV channel being watched"
+  },
+  "playbackInfoProgram": "Program",
+  "@playbackInfoProgram": {
+    "description": "Playback information row label: the Live TV program on now"
+  },
+  "playbackInfoWhy": "Why",
+  "@playbackInfoWhy": {
+    "description": "Playback information row label: why the server isn't sending the original file as is"
+  },
+  "playbackInfoQualityLimit": "Quality Limit",
+  "@playbackInfoQualityLimit": {
+    "description": "Playback information row label: the maximum streaming bitrate the user picked"
+  },
+  "playbackInfoFrameRate": "Frame Rate",
+  "@playbackInfoFrameRate": {
+    "description": "Playback information row label: video frames per second"
+  },
+  "playbackInfoDelivery": "Delivery",
+  "@playbackInfoDelivery": {
+    "description": "Playback information row label: how the subtitles reach the player (embedded, external, burned in)"
+  },
+  "playbackInfoFile": "File",
+  "@playbackInfoFile": {
+    "description": "Playback information section header for the media file"
+  },
+  "playbackInfoTechnical": "Technical",
+  "@playbackInfoTechnical": {
+    "description": "Playback information section header for details aimed at developers and testers"
+  },
+  "playbackInfoDevice": "Device",
+  "@playbackInfoDevice": {
+    "description": "Playback information row label: this device's model and operating system"
+  },
+  "playbackInfoAudioRoute": "Audio Route",
+  "@playbackInfoAudioRoute": {
+    "description": "Playback information row label: where the sound goes, like HDMI or Bluetooth"
+  },
+  "playbackInfoSurround51": "5.1 surround",
+  "@playbackInfoSurround51": {
+    "description": "Playback information value: six channel surround audio"
+  },
+  "playbackInfoSurround71": "7.1 surround",
+  "@playbackInfoSurround71": {
+    "description": "Playback information value: eight channel surround audio"
+  },
+  "playbackInfoChannelCount": "{count} channels",
+  "@playbackInfoChannelCount": {
+    "description": "Playback information value: an audio channel count with no common layout name",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playbackInfoBurnedIn": "Burned in by the server",
+  "@playbackInfoBurnedIn": {
+    "description": "Playback information value: the server draws the subtitles into the video picture"
+  },
+  "playbackInfoOriginal": "{value} (original {original})",
+  "@playbackInfoOriginal": {
+    "description": "Playback information value: the bitrate being sent, with the file's own bitrate after it",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "original": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoConvertedFrom": "{value} (converted from {source})",
+  "@playbackInfoConvertedFrom": {
+    "description": "Playback information value: what the player gets, with what the file had before the server converted it",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoResolutionConverted": "{name} ({size}, converted from {source})",
+  "@playbackInfoResolutionConverted": {
+    "description": "Playback information value: the resolution being sent, like 1080p (1920x1080, converted from 4K)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoNoteDirectPlay": "Playing the original file as is.",
+  "@playbackInfoNoteDirectPlay": {
+    "description": "Playback information note under the play method for direct play"
+  },
+  "playbackInfoNoteDirectStream": "The server is repackaging the file without converting it.",
+  "@playbackInfoNoteDirectStream": {
+    "description": "Playback information note under the play method for direct stream"
+  },
+  "playbackInfoNoteTranscodeVideo": "The server is converting the video so this device can play it.",
+  "@playbackInfoNoteTranscodeVideo": {
+    "description": "Playback information note under the play method when only the video is transcoded"
+  },
+  "playbackInfoNoteTranscodeAudio": "The server is converting the audio so this device can play it.",
+  "@playbackInfoNoteTranscodeAudio": {
+    "description": "Playback information note under the play method when only the audio is transcoded"
+  },
+  "playbackInfoNoteTranscodeBoth": "The server is converting the video and audio so this device can play it.",
+  "@playbackInfoNoteTranscodeBoth": {
+    "description": "Playback information note under the play method when the video and the audio are transcoded"
+  },
+  "playbackInfoNoteTranscodeUnknown": "The server is converting this file so this device can play it.",
+  "@playbackInfoNoteTranscodeUnknown": {
+    "description": "Playback information note under the play method for a transcode when it isn't known what is converted"
+  },
+  "playbackInfoNoteOffline": "Playing a downloaded copy.",
+  "@playbackInfoNoteOffline": {
+    "description": "Playback information note under the play method when a download plays"
+  },
+  "playbackInfoWhyForced": "Transcoding is forced in settings",
+  "@playbackInfoWhyForced": {
+    "description": "Playback information reason: a setting turned off direct play, so the server has to transcode"
+  },
+  "playbackInfoWhyBitrate": "The bitrate is above the streaming limit",
+  "@playbackInfoWhyBitrate": {
+    "description": "Playback information reason: the file's bitrate is over the streaming limit, used when the two numbers can't be shown"
+  },
+  "playbackInfoWhyContainer": "This device can't play this file type",
+  "@playbackInfoWhyContainer": {
+    "description": "Playback information reason: the container format isn't supported, used when the file type isn't known"
+  },
+  "playbackInfoWhyVideo": "This device can't play this video format",
+  "@playbackInfoWhyVideo": {
+    "description": "Playback information reason: the video format isn't supported, used when the server gives no detail or the detail isn't known"
+  },
+  "playbackInfoWhyHdr": "This device can't display this HDR format",
+  "@playbackInfoWhyHdr": {
+    "description": "Playback information reason: the HDR format isn't supported, used when the HDR type isn't known"
+  },
+  "playbackInfoWhyAudio": "This device can't play this audio format",
+  "@playbackInfoWhyAudio": {
+    "description": "Playback information reason: the audio format isn't supported, used when the server gives no detail or the detail isn't known"
+  },
+  "playbackInfoWhySubtitles": "Subtitles are being burned into the video",
+  "@playbackInfoWhySubtitles": {
+    "description": "Playback information reason: the player can't show the subtitles, so the server draws them into the video, used when the subtitle format isn't known"
+  },
+  "playbackInfoWhyOther": "The file couldn't be played directly",
+  "@playbackInfoWhyOther": {
+    "description": "Playback information reason: any other server reason"
+  },
+  "playbackInfoWhyBitrateLimit": "{bitrate} is above the {limit} streaming limit",
+  "@playbackInfoWhyBitrateLimit": {
+    "description": "Playback information reason: the file's bitrate, like 68.4 Mbps, is over the streaming limit, like 20 Mbps",
+    "placeholders": {
+      "bitrate": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyContainerName": "This device can't open {container} files",
+  "@playbackInfoWhyContainerName": {
+    "description": "Playback information reason: the container format, like MKV, isn't supported",
+    "placeholders": {
+      "container": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyVideoCodec": "This device can't play {codec} video",
+  "@playbackInfoWhyVideoCodec": {
+    "description": "Playback information reason: the video codec, like HEVC or AV1, isn't supported",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyVideoProfile": "This device can't play {codec} {profile} video",
+  "@playbackInfoWhyVideoProfile": {
+    "description": "Playback information reason: the video codec's profile, like HEVC Main 10, isn't supported",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      },
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyVideoLevel": "This device can't play {codec} level {level} video",
+  "@playbackInfoWhyVideoLevel": {
+    "description": "Playback information reason: the video codec's level, like HEVC level 5.1, isn't supported",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      },
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyVideoBitDepth": "This device can't play {bits}-bit video",
+  "@playbackInfoWhyVideoBitDepth": {
+    "description": "Playback information reason: the video bit depth, like 10-bit, isn't supported",
+    "placeholders": {
+      "bits": {
+        "type": "int"
+      }
+    }
+  },
+  "playbackInfoWhyVideoResolution": "This device can't play {resolution} video",
+  "@playbackInfoWhyVideoResolution": {
+    "description": "Playback information reason: the video resolution, like 4K or 1080p, isn't supported",
+    "placeholders": {
+      "resolution": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyVideoFrameRate": "This device can't play {fps} fps video",
+  "@playbackInfoWhyVideoFrameRate": {
+    "description": "Playback information reason: the video frame rate in frames per second, like 59.94, isn't supported",
+    "placeholders": {
+      "fps": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyInterlaced": "This device can't play interlaced video",
+  "@playbackInfoWhyInterlaced": {
+    "description": "Playback information reason: interlaced video isn't supported"
+  },
+  "playbackInfoWhyAnamorphic": "This device can't play anamorphic video",
+  "@playbackInfoWhyAnamorphic": {
+    "description": "Playback information reason: anamorphic video isn't supported"
+  },
+  "playbackInfoWhyHdrName": "This device can't display {range}",
+  "@playbackInfoWhyHdrName": {
+    "description": "Playback information reason: the HDR format, like Dolby Vision Profile 7 or HDR10+, isn't supported",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyAudioCodec": "This device can't play {format} audio",
+  "@playbackInfoWhyAudioCodec": {
+    "description": "Playback information reason: the audio codec, like Dolby TrueHD or DTS, isn't supported",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyAudioProfile": "This device can't play {fullFormat}",
+  "@playbackInfoWhyAudioProfile": {
+    "description": "Playback information reason: the full audio format, like Dolby TrueHD with Atmos or DTS-HD Master Audio, isn't supported",
+    "placeholders": {
+      "fullFormat": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyAudioChannels": "This device can't play {channels} audio",
+  "@playbackInfoWhyAudioChannels": {
+    "description": "Playback information reason: the audio channel layout, like 7.1 or 3-channel, isn't supported",
+    "placeholders": {
+      "channels": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyAudioSampleRate": "This device can't play {rate} kHz audio",
+  "@playbackInfoWhyAudioSampleRate": {
+    "description": "Playback information reason: the audio sample rate in kilohertz, like 96 or 44.1, isn't supported",
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoWhyAudioBitDepth": "This device can't play {bits}-bit audio",
+  "@playbackInfoWhyAudioBitDepth": {
+    "description": "Playback information reason: the audio bit depth, like 24-bit, isn't supported",
+    "placeholders": {
+      "bits": {
+        "type": "int"
+      }
+    }
+  },
+  "playbackInfoWhyAudioExternal": "The audio track is in a separate file",
+  "@playbackInfoWhyAudioExternal": {
+    "description": "Playback information reason: the picked audio track is an external file"
+  },
+  "playbackInfoWhySecondaryAudio": "This device can only play the first audio track",
+  "@playbackInfoWhySecondaryAudio": {
+    "description": "Playback information reason: the device can't switch to an audio track other than the first"
+  },
+  "playbackInfoWhySubtitleFormat": "{format} subtitles are being burned into the video",
+  "@playbackInfoWhySubtitleFormat": {
+    "description": "Playback information reason: the player can't show this subtitle format, like PGS or ASS, so the server draws the subtitles into the video",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackInfoDroppedFrames": "Dropped Frames",
+  "@playbackInfoDroppedFrames": {
+    "description": "Playback information row label: how many video frames the player skipped"
+  },
+  "playFromServer": "Play from Server",
+  "@playFromServer": {
+    "description": "Long-press menu action on a downloaded video: play it by streaming from the server instead of the downloaded copy, for example to get a higher quality than the download"
+  },
+  "settingsApplePlayerUi": "Video player",
+  "@settingsApplePlayerUi": {
+    "description": "Settings label on iPhone, iPad and Apple TV for choosing which player plays video"
+  },
+  "settingsApplePlayerUiDescription": "The native Apple style player has no casting, audio delay or PiP button, and its rotation lock is only in Live TV",
+  "@settingsApplePlayerUiDescription": {
+    "description": "Settings description for the video player choice, listing what the native Apple style player lacks"
+  },
+  "settingsApplePlayerUiStandard": "Standard",
+  "@settingsApplePlayerUiStandard": {
+    "description": "Option for the regular Moonfin video player on iPhone and iPad"
+  },
+  "settingsApplePlayerUiNative": "Native Apple style",
+  "@settingsApplePlayerUiNative": {
+    "description": "Option for the native video player that the Apple TV app uses, offered on iPhone and iPad"
+  },
+  "playerTransportPosition": "Play buttons",
+  "@playerTransportPosition": {
+    "description": "Settings label for where the play, skip and seek buttons sit in the video player"
+  },
+  "playerTransportPositionDescription": "Show play, skip and seek in the middle of the video or docked in the bottom bar",
+  "@playerTransportPositionDescription": {
+    "description": "Settings description for where the video player's play buttons sit"
+  },
+  "playerTransportOnScreen": "On screen",
+  "@playerTransportOnScreen": {
+    "description": "Option that puts the play, skip and seek buttons in the middle of the video"
+  },
+  "playerTransportDocked": "Docked",
+  "@playerTransportDocked": {
+    "description": "Option that puts the play, skip and seek buttons in the bottom bar with the other player buttons"
+  },
+  "incompleteRecording": "Incomplete",
+  "@incompleteRecording": {
+    "description": "Badge and detail label for a Live TV recording that was written for less than its scheduled length"
+  },
+  "incompleteRecordingMinutes": "{recorded} of {expected} min",
+  "@incompleteRecordingMinutes": {
+    "description": "How many minutes of an incomplete Live TV recording were written, out of its scheduled length with padding",
+    "placeholders": {
+      "recorded": {
+        "type": "int",
+        "example": "23"
+      },
+      "expected": {
+        "type": "int",
+        "example": "37"
+      }
+    }
+  },
+  "completeShowingScheduled": "Complete showing scheduled {dateTime}",
+  "@completeShowingScheduled": {
+    "description": "Detail line status: a later complete showing of the incomplete episode will be recorded",
+    "placeholders": {
+      "dateTime": {
+        "type": "String",
+        "example": "Thu 8:00 PM"
+      }
+    }
+  },
+  "completeCopyRecorded": "Complete copy recorded {dateTime}",
+  "@completeCopyRecorded": {
+    "description": "Detail line status: a complete copy of the incomplete episode has since been recorded",
+    "placeholders": {
+      "dateTime": {
+        "type": "String",
+        "example": "Thu 8:00 PM"
+      }
+    }
+  },
+  "noCompleteShowingFound": "No complete showing found",
+  "@noCompleteShowingFound": {
+    "description": "Detail line status: no later complete showing of the incomplete episode was found in the guide"
+  },
+  "keepAsComplete": "Keep as Complete",
+  "@keepAsComplete": {
+    "description": "Action that clears the Incomplete mark on a Live TV recording for everyone on the server"
+  },
+  "keptAsComplete": "Marked as complete",
+  "@keptAsComplete": {
+    "description": "Snackbar confirmation after Keep as Complete"
+  },
+  "unableToKeepAsComplete": "Unable to mark as complete",
+  "@unableToKeepAsComplete": {
+    "description": "Snackbar shown when Keep as Complete fails"
+  },
+  "recordPromptTitle": "Record {name}",
+  "@recordPromptTitle": {
+    "description": "Title of the Record prompt for a program that is already airing",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "recordPromptStarted": "{minutes, plural, =1{This showing started 1 minute ago, so the recording will miss the start.} other{This showing started {minutes} minutes ago, so the recording will miss the start.}}",
+  "@recordPromptStarted": {
+    "description": "First line of the Record prompt, saying how long ago the program started",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "recordPromptAlsoRecordLater": "Also record the future showing to get a complete recording?",
+  "@recordPromptAlsoRecordLater": {
+    "description": "Record prompt question when a future showing is shown below it"
+  },
+  "recordPromptSearchLater": "Also record a future showing automatically once one is found, to get a complete recording?",
+  "@recordPromptSearchLater": {
+    "description": "Record prompt question when no future showing is known yet and Moonfin will look for one"
+  },
+  "recordPromptNow": "Now",
+  "@recordPromptNow": {
+    "description": "Label of the Record prompt card for the program that is airing now"
+  },
+  "recordPromptLater": "Future showing",
+  "@recordPromptLater": {
+    "description": "Label of the Record prompt card for the future showing that would also be recorded"
+  },
+  "recordPromptAired": "{minutes, plural, =1{1 min already aired} other{{minutes} min already aired}}",
+  "@recordPromptAired": {
+    "description": "Beside the progress bar on the Record prompt's Now card",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "recordPromptUncertainMatch": "Matched by title and description only. Check it's the same program.",
+  "@recordPromptUncertainMatch": {
+    "description": "Caution under the future showing when it has no season and episode numbers to confirm it is the same program"
+  },
+  "recordPromptDescriptionsDiffer": "The descriptions differ, so this may be a different program.",
+  "@recordPromptDescriptionsDiffer": {
+    "description": "Caution under the future showing when its description differs from the program airing now"
+  },
+  "recordPromptSameEpisode": "Same episode (S{season}E{episode})",
+  "@recordPromptSameEpisode": {
+    "description": "Note under the future showing when its season and episode match the program airing now",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "recordPromptAlreadyScheduled": "Already set to record",
+  "@recordPromptAlreadyScheduled": {
+    "description": "Note in the future showing's card when a recording is already scheduled for it, by anyone"
+  },
+  "recordPromptTomorrow": "Tomorrow",
+  "@recordPromptTomorrow": {
+    "description": "When the future showing airs, used in the Record Now and ... button"
+  },
+  "recordNowOnly": "Record Now Only",
+  "@recordNowOnly": {
+    "description": "Record prompt choice: only record the program that is airing now"
+  },
+  "recordNowAnd": "Record Now and {when}",
+  "@recordNowAnd": {
+    "description": "Record prompt choice: record now and the future showing. The placeholder is a time today, Tomorrow, a weekday or a short date",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "recordNowAndLater": "Record Now and Future Showing",
+  "@recordNowAndLater": {
+    "description": "Record prompt choice when no future showing is known yet: record now and let Moonfin find a future showing"
+  },
+  "recordOnlyLater": "Record {when} Only",
+  "@recordOnlyLater": {
+    "description": "Record prompt choice: skip the airing now and record only the future showing. The placeholder is a time today, Tomorrow, a weekday or a short date",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "recordLaterShowingOnly": "Record Future Showing Only",
+  "@recordLaterShowingOnly": {
+    "description": "Record prompt choice when no future showing is known yet: skip the airing now and let Moonfin record a future showing"
+  },
+  "laterShowingOnlyRequested": "The future showing will be recorded.",
+  "@laterShowingOnlyRequested": {
+    "description": "Snackbar after choosing to record only the future showing"
+  },
+  "unableToRequestLaterShowingOnly": "Couldn't request the future showing, so nothing will be recorded.",
+  "@unableToRequestLaterShowingOnly": {
+    "description": "Snackbar when only the future showing was chosen and asking for it failed"
+  },
+  "laterShowingRequested": "Recording started. A future showing will be recorded too.",
+  "@laterShowingRequested": {
+    "description": "Snackbar after recording now and asking for a future showing"
+  },
+  "unableToRequestLaterShowing": "Recording started, but couldn't request a future showing.",
+  "@unableToRequestLaterShowing": {
+    "description": "Snackbar when the recording started but asking for a future showing failed"
+  },
+  "trailerCount": "{count, plural, =1{1 trailer} other{{count} trailers}}",
+  "@trailerCount": {
+    "description": "How many trailers the trailer picker lists, shown in its header",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trailerNumber": "Trailer {number}",
+  "@trailerNumber": {
+    "description": "Fallback name in the trailer picker for a trailer the server gave no name, numbered by its place in the list",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "subtitled": "Subtitled",
+  "@subtitled": {
+    "description": "Chip in the trailer picker on a trailer that has subtitles burned into the video"
+  },
+  "rommAccount": "RomM account",
+  "@rommAccount": {
+    "description": "Title of the screen, and the button on a game library, for linking the user's own RomM account"
+  },
+  "rommAccountIntro": "Link your RomM account to play from your own RomM library and keep your saves in RomM.",
+  "@rommAccountIntro": {
+    "description": "Explains what linking a RomM account does, shown above the Link button"
+  },
+  "rommLinkAccount": "Link RomM account",
+  "@rommLinkAccount": {
+    "description": "Button that starts linking a RomM account"
+  },
+  "rommLinkInstructions": "Sign in to RomM and enter this code to link your account.",
+  "@rommLinkInstructions": {
+    "description": "Instructions above the code while a RomM link waits for approval"
+  },
+  "rommLinkScanOrVisit": "Scan the QR code with your phone, or go to {url}",
+  "@rommLinkScanOrVisit": {
+    "description": "Shown on TV beside the QR code while a RomM link waits for approval",
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "rommOpen": "Open RomM",
+  "@rommOpen": {
+    "description": "Button that opens the RomM approval page in the browser with the code filled in"
+  },
+  "rommWaitingForApproval": "Waiting for you to approve the code in RomM...",
+  "@rommWaitingForApproval": {
+    "description": "Status shown while the app waits for the RomM code to be approved"
+  },
+  "rommLinkedAs": "Linked as {username}",
+  "@rommLinkedAs": {
+    "description": "Shown when the user's RomM account is linked",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "rommLinked": "Your RomM account is linked.",
+  "@rommLinked": {
+    "description": "Shown when the user's RomM account is linked and the server sent no user name"
+  },
+  "rommUnlinkNote": "Unlinking stops Moonfin from using your RomM key. The key stays in RomM until you remove it from your API tokens there.",
+  "@rommUnlinkNote": {
+    "description": "Explains what Unlink does on the RomM account screen"
+  },
+  "rommUnlink": "Unlink",
+  "@rommUnlink": {
+    "description": "Button that unlinks the user's RomM account"
+  },
+  "rommLinkExpired": "The code expired before it was approved. Link again to get a new one.",
+  "@rommLinkExpired": {
+    "description": "Error when a RomM link code ran out of time"
+  },
+  "rommLinkDenied": "The link was turned down in RomM.",
+  "@rommLinkDenied": {
+    "description": "Error when the user declined the RomM link request"
+  },
+  "rommUnreachable": "Moonfin couldn't reach RomM. Try again in a moment.",
+  "@rommUnreachable": {
+    "description": "Error when the server couldn't reach RomM while linking"
+  },
+  "rommNotAvailable": "This server has no RomM library.",
+  "@rommNotAvailable": {
+    "description": "Shown on the RomM account screen when the server has no RomM library"
+  },
+  "rommAccountLoadFailed": "Couldn't load your RomM account.",
+  "@rommAccountLoadFailed": {
+    "description": "Error when the RomM account status couldn't be loaded from the server"
+  },
+  "reviews": "Reviews",
+  "@reviews": {
+    "description": "Title of the row, tab and card on the details screen that lists TMDB user reviews"
+  },
+  "detailSectionReviews": "Reviews",
+  "@detailSectionReviews": {
+    "description": "Details screen section: user reviews from TMDB"
+  },
+  "spotlightReviewsCount": "{count, plural, =1{1 review} other{{count} reviews}}",
+  "@spotlightReviewsCount": {
+    "description": "How many reviews a title has, under the Reviews card on the details screen",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readOnTmdb": "Read on TMDB",
+  "@readOnTmdb": {
+    "description": "Button in an opened review that opens the review on the TMDB website"
+  },
+  "addServerButtonSubtitle": "By address, or with a Plex or Emby Connect account",
+  "@addServerButtonSubtitle": {
+    "description": "Second line of the Add Server button on the server screen"
+  },
+  "addServerChooseHow": "Choose how you'd like to connect.",
+  "@addServerChooseHow": {
+    "description": "Subtitle of the first step of the Add Server dialog"
+  },
+  "addServerAddressChoice": "Jellyfin or Emby on your network or online",
+  "@addServerAddressChoice": {
+    "description": "Add Server dialog: what the Server Address option is for"
+  },
+  "addServerPlexChoice": "Use your Plex account to find its servers",
+  "@addServerPlexChoice": {
+    "description": "Add Server dialog: what the Sign in with Plex option does"
+  },
+  "addServerAddressHelp": "The same address you'd open in a browser, including the port.",
+  "@addServerAddressHelp": {
+    "description": "Add Server dialog: help under the Connect to Server title"
+  },
+  "addServerDetectNote": "Works with Jellyfin and Emby. A Plex address opens the Plex sign-in.",
+  "@addServerDetectNote": {
+    "description": "Add Server dialog: note under the address field"
+  },
+  "addServerChecking": "Checking {address}",
+  "@addServerChecking": {
+    "description": "Add Server dialog: shown under the field while the typed address is being tried",
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "addServerUnreachableDetail": "Check the address and port, and that the server is running.",
+  "@addServerUnreachableDetail": {
+    "description": "Add Server dialog: detail under Unable to connect to server"
+  },
+  "addServerFound": "Server found",
+  "@addServerFound": {
+    "description": "Add Server dialog: title once the address answered"
+  },
+  "addServerFoundNote": "Continue to choose who's signing in.",
+  "@addServerFoundNote": {
+    "description": "Add Server dialog: under the server that was found"
+  },
+  "addServerUseDifferentAddress": "Use a different address",
+  "@addServerUseDifferentAddress": {
+    "description": "Add Server dialog: goes back to the address field instead of keeping the server that was found"
+  },
+  "musicArtistCount": "{count, plural, =1{1 artist} other{{count} artists}}",
+  "@musicArtistCount": {
+    "description": "Count next to the title of a music library's Artists screen",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "musicSongCount": "{count, plural, =1{1 song} other{{count} songs}}",
+  "@musicSongCount": {
+    "description": "Count of songs, next to the Songs screen title and under a playlist",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "musicPlaylistCount": "{count, plural, =1{1 playlist} other{{count} playlists}}",
+  "@musicPlaylistCount": {
+    "description": "Count next to the title of a music library's Playlists screen",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "musicPlayCount": "{count, plural, =1{1 play} other{{count} plays}}",
+  "@musicPlayCount": {
+    "description": "How many times a song was played, at the end of a Most Played row",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allArtists": "All Artists",
+  "@allArtists": {
+    "description": "Artists screen switch: every artist, not only those credited on albums"
+  },
+  "libraryZToA": "Z to A",
+  "@libraryZToA": {
+    "description": "Sort order from Z to A"
+  },
+  "musicSortYear": "Year",
+  "@musicSortYear": {
+    "description": "Albums screen sort: by release year, newest first"
+  },
+  "musicFilter": "Filter",
+  "@musicFilter": {
+    "description": "Albums screen button that opens the genre filter"
+  },
+  "musicGenreFilterTitle": "Filter by Genre",
+  "@musicGenreFilterTitle": {
+    "description": "Title of the genre list the Albums screen's Filter button opens"
+  },
+  "openAlbum": "Open Album",
+  "@openAlbum": {
+    "description": "Button that opens an album's details screen"
+  },
+  "openPlaylist": "Open Playlist",
+  "@openPlaylist": {
+    "description": "Button that opens a playlist's details screen, where its order can be changed"
+  },
+  "allSongsAToZ": "All Songs A to Z",
+  "@allSongsAToZ": {
+    "description": "Songs screen button that opens the full list of songs by name"
+  },
+  "musicMix": "Mix",
+  "@musicMix": {
+    "description": "Small label over a music mix card, as in a playlist the app put together"
+  },
+  "musicMixEverything": "Everything",
+  "@musicMixEverything": {
+    "description": "Songs screen mix card that shuffles the whole library"
+  },
+  "musicMixEverythingSubtitle": "300 songs at random",
+  "@musicMixEverythingSubtitle": {
+    "description": "Line under the Everything mix card"
+  },
+  "mostPlayed": "Most Played",
+  "@mostPlayed": {
+    "description": "Songs screen mix card and list of the songs played most"
+  },
+  "musicMixMostPlayedSubtitle": "Your top 100",
+  "@musicMixMostPlayedSubtitle": {
+    "description": "Line under the Most Played mix card"
+  },
+  "musicMixFreshArrivals": "Fresh Arrivals",
+  "@musicMixFreshArrivals": {
+    "description": "Songs screen mix card of the newest songs in the library"
+  },
+  "musicMixFreshArrivalsSubtitle": "The newest 100 songs",
+  "@musicMixFreshArrivalsSubtitle": {
+    "description": "Line under the Fresh Arrivals mix card"
+  },
+  "musicMixRediscover": "Rediscover",
+  "@musicMixRediscover": {
+    "description": "Songs screen mix card of favorite songs that haven't been played in a while"
+  },
+  "musicMixRediscoverSubtitle": "Favorites you haven't played lately",
+  "@musicMixRediscoverSubtitle": {
+    "description": "Line under the Rediscover mix card"
+  },
+  "musicSortMostAlbums": "Most Albums",
+  "@musicSortMostAlbums": {
+    "description": "Genres screen order: the genres with the most albums first"
+  },
+  "bookSeriesPosition": "Book {index} of {total}",
+  "@bookSeriesPosition": {
+    "description": "Series screen: where the reader is in a series, the next unread book's number and how many books it has",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "bookFavoriteCount": "{count, plural, =1{1 favorite} other{{count} favorites}}",
+  "@bookFavoriteCount": {
+    "description": "Book library Favorites screen header count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookSortZToA": "Z to A",
+  "@bookSortZToA": {
+    "description": "Authors screen order, from Z back to A"
+  },
+  "bookSortMostTitles": "Most Titles",
+  "@bookSortMostTitles": {
+    "description": "Book genres screen order: the genres with the most titles first"
+  },
+  "bookSurpriseMe": "Surprise Me",
+  "@bookSurpriseMe": {
+    "description": "Button on a book genre that opens a random unread title from it"
+  },
+  "bookShuffleAudiobooks": "Shuffle Audiobooks",
+  "@bookShuffleAudiobooks": {
+    "description": "Button on an author that plays one of their audiobooks at random"
+  },
+  "bookStartReading": "Start Reading",
+  "@bookStartReading": {
+    "description": "Button on an author that opens their first unread book"
+  },
+  "bookOtherBooks": "Other Books",
+  "@bookOtherBooks": {
+    "description": "Heading over an author's books that aren't part of a series"
+  },
+  "bookDiscoverSearchBooks": "Search Open Library",
+  "@bookDiscoverSearchBooks": {
+    "description": "Placeholder in the Discover search field for books"
+  },
+  "bookDiscoverSearchAudiobooks": "Search LibriVox",
+  "@bookDiscoverSearchAudiobooks": {
+    "description": "Placeholder in the Discover search field for audiobooks"
+  },
+  "bookDiscoverFeatured": "Featured",
+  "@bookDiscoverFeatured": {
+    "description": "Label over the highlighted title at the top of Discover"
+  },
+  "bookReaderControlsAutoHide": "Controls hide automatically",
+  "@bookReaderControlsAutoHide": {
+    "description": "Comic reader toggle while its bars fade out on their own"
+  },
+  "bookReaderControlsStayVisible": "Controls stay visible",
+  "@bookReaderControlsStayVisible": {
+    "description": "Comic reader toggle while its bars stay on screen"
   }
 }
