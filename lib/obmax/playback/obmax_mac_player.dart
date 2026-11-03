@@ -10,7 +10,7 @@ import '../../util/platform_detection.dart';
 /// AetherEngine reads ahead 8 to 16 MB over the network, a few seconds of a
 /// high bitrate film, and stalls over a remote link that a browser plays
 /// through. mpv keeps up to 256 MiB ahead on desktop, and fixed those stalls
-/// on the Mac that reported them, so it is the default since 2.0.6.
+/// on the Mac that reported them, so it is the default since 2.1.0.
 ///
 /// The backends are built once at startup, so the choice applies after a
 /// restart: [useMpv] is read once and kept for the app's lifetime.

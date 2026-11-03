@@ -98,7 +98,7 @@ Les fichiers de nos PR **#1893** (WebSocket mTLS), **#1894** (import du certific
 
 - `flutter analyze lib test` : **0 erreur** (12 avertissements, tous dans du code Moonfin).
 - Les erreurs de `flutter analyze` à la racine viennent des tests internes des paquets de Moonfin (`packages/*/test`), qui ont besoin de leurs propres dépendances : sans rapport avec OB Max.
-- Tests de l'app : voir le résumé de la branche.
+- `flutter test` : **5 706 tests réussis, 5 échecs attendus** : un test du bouton Cast (masqué par OB Max) et quatre de l'écran de chargement de Moonfin (OB Max affiche « Chargement… » avec son logo au lieu de « LOADING STREAM… »). Ces écarts viennent de choix OB Max antérieurs, pas du rattrapage.
 - `mpv par défaut sur Mac` (commit `a1bfc8363`) : déjà sur la branche, puisqu'elle part d'`obmax/main`. La préférence garde la même clé (`obmax_macos_mpv_player`) avec `true` par défaut : jamais touchée → mpv ; désactivée à la main → reste désactivée.
 
 ## 7. Points à valider
