@@ -43,7 +43,7 @@ Voir les commandes `logcat` de `SPIKE_REPORT.md` §4. Côté serveur, une ligne 
 | S6 | Lecture à distance (4G / hors LAN) sans coupure « Chargement… » | ☐ | — | — | ☐ | ☐ | |
 | S7 | Contrôle à distance depuis le web Jellyfin (WebSocket) | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | S8 | Seerr : demande depuis un compte non admin | ☐ | ☐ | — | ☐ | ☐ | Statut « En attente » et notification Discord. |
-| S9 | Interface 100 % en français, aucune mention « Moonfin » hors Licences, fonctions masquées toujours absentes | ☐ | ☐ | ☐ | ☐ | ☐ | Absents : musique, livres, Live TV, jeux, RomM, Cast, lecteur externe, Plex, ajout de serveur. |
+| S9 | Interface 100 % en français, aucune mention « Moonfin » hors Licences, fonctions masquées toujours absentes | ☐ | ☐ | ☐ | ☐ | ☐ | Absents : musique, livres, Live TV, jeux, RomM, Cast, lecteur externe, Plex, ajout de serveur, liens IMDb/TMDB/réseaux sociaux sur les fiches des acteurs, critiques TMDB. |
 | S10 | Nouveautés upstream classées « Garder » : fonctionnent avec le mTLS | ☐ | ☐ | ☐ | ☐ | ☐ | Lecteur : bouton Épisodes, décalages audio et sous-titres, deux sous-titres, nouvel écran Infos de lecture. Mini-lecteur (Mac, Windows). PIN synchronisé, QR Quick Connect. |
 | S11 | Panneau admin : visible pour un admin, masqué sinon | ☐ | ☐ | — | ☐ | ☐ | Panneau refait par Moonfin 3.0. |
 | S12 | Mac : mpv par défaut, choix utilisateur conservé | — | — | — | — | ☐ | Jamais touché → mpv ; désactivé à la main en 2.0.5 → reste désactivé. |

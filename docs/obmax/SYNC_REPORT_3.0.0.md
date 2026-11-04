@@ -78,20 +78,19 @@ Les fichiers de nos PR **#1893** (WebSocket mTLS), **#1894** (import du certific
 | Musique, livres (nouvelles pages de catégories `/music/…`, `/books/…`), Live TV (retour en arrière, enregistrements), jeux | Déjà masqués : préfixes de routes et filtre des bibliothèques. |
 | Listes externes IMDb/TMDB dans la bannière | Désactivées par défaut (`mediaBarExternalLists` vide) et leur réglage n'est pas dans le panneau OB Max. |
 | Pages d'administration propres à Emby | Affichées seulement sur un serveur Emby. |
+| Liens des personnes (IMDb, TMDB, réseaux sociaux, site officiel) | Décision du 04/11/2026 : non proposés. `ObMaxFeatures.hiddenDetailSections`, appliqué dans `DetailSection.isOffered` (pas de réglage, pas d'appel au plugin) et dans `DetailSectionVisibility.shows` (aucun style de fiche ne les affiche). |
+| Critiques TMDB et lien « Lire sur TMDB » | Idem, décision du 04/11/2026. |
 | Assistant de premier lancement (nouvelles étapes) | Toujours désactivé. |
 
 ### À arbitrer
 
-| Nouveauté | Pourquoi |
-|---|---|
-| **Liens des personnes** (IMDb, TMDB, et avec une clé TMDB dans le plugin : Instagram, X, Facebook, TikTok, YouTube, site officiel) sur les fiches des acteurs, hors TV, **activés par défaut** | Ouvrent des sites tiers dans le navigateur. Aucune donnée OB Max ne part, mais c'est une porte vers l'extérieur. Masquables via la section « Liens » ou un point d'accroche. |
-| **Critiques TMDB** sur les fiches (avec lien « Lire sur TMDB ») | Les critiques arrivent par le plugin (sur le serveur) et n'apparaissent que si le plugin a une clé TMDB. Le lien ouvre TMDB dans le navigateur. |
+Aucun point restant. Les liens des personnes et les critiques TMDB, soumis à arbitrage, sont masqués (tableau ci-dessus) : ils ouvraient des sites tiers dans le navigateur.
 
 ## 5. Points d'accroche
 
 - **Retiré** : `lib/auth/store/client_certificate_store_io.dart` (PR #1930 fusionnée).
 - **Adaptés** : choix du backend et surface vidéo (`ObMaxMacPlayer.usesAether`), garde de l'administration (`adminServerSupported()`), voile de l'accueil (autour du `FullscreenBackdropSwitcher`).
-- **Ajoutés** : `ObMaxFeatures.plex` et les routes `/plex-sign-in`, `/romm-account` dans `lib/obmax/obmax_features.dart` (code OB Max, sans nouveau point d'accroche).
+- **Ajoutés** : `ObMaxFeatures.plex` et les routes `/plex-sign-in`, `/romm-account` dans `lib/obmax/obmax_features.dart` (code OB Max, sans nouveau point d'accroche) ; `lib/preference/detail_section_layout.dart`, deux points d'accroche (`isOffered`, `shows`) pour `ObMaxFeatures.hiddenDetailSections`.
 - **Traductions** : 272 clés traduites en français (aucune clé manquante). Nouvelle mention « Moonfin » remplacée : `smartDownloadsEnableDescription`. Restent, comme avant : le dossier `Téléchargements/Moonfin` et l'URL du code source. Aucun nouveau « Moonfin » écrit en dur dans le code Dart visible.
 
 ## 6. Vérifications
@@ -104,6 +103,6 @@ Les fichiers de nos PR **#1893** (WebSocket mTLS), **#1894** (import du certific
 ## 7. Points à valider
 
 1. **Tag 3.0.0 et merge** : validés le 03/11/2026.
-2. **Liens des personnes et critiques TMDB** : garder ou masquer (§4).
+2. **Liens des personnes et critiques TMDB** : masqués (décision du 04/11/2026).
 3. **Plugin Moonbase** : passer de 2.4.0 à 3.0.0 sur Jellyfin avant la recette. Moonfin le recommande ; l'app n'exige aucune version minimale et l'accès à Seerr n'a pas changé.
-4. **Avertissement « FlutterSecureStorage bad base-64 »** : **non lié au rattrapage** (bibliothèque et options inchangées). Il vient du décodage d'une valeur stockée sur Android. Point d'attention : `flutter_secure_storage` 10 active `resetOnError` par défaut. Une valeur illisible fait alors effacer la clé concernée, voire **tout le stockage** lors d'une lecture globale (`readAll`), certificat compris, ce qui obligerait l'appareil à se réactiver. C'est le comportement de la 2.0.5 comme de la 3.0.0. Une correction (par exemple `resetOnError: false` pour le stockage des certificats) touche le stockage sécurisé : à décider, pour la 2.2 plutôt que dans cette version de maintenance.
+4. **Avertissement « FlutterSecureStorage bad base-64 »** : **non lié au rattrapage** (bibliothèque et options inchangées). Il vient du décodage d'une valeur stockée sur Android. Point d'attention : `flutter_secure_storage` 10 active `resetOnError` par défaut. Une valeur illisible fait alors effacer la clé concernée, voire **tout le stockage** lors d'une lecture globale (`readAll`), certificat compris, ce qui obligerait l'appareil à se réactiver. C'est le comportement de la 2.0.5 comme de la 3.0.0. Une correction (par exemple `resetOnError: false` pour le stockage des certificats) touche le stockage sécurisé : **reportée à la 2.2** (décision du 04/11/2026).

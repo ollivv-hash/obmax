@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 
 import '../data/services/plugin_sync_service.dart';
 import '../l10n/app_localizations.dart';
+import '../obmax/obmax_features.dart'; // OBMAX
 import '../util/platform_detection.dart';
 import 'button_layout.dart';
 import 'preference_constants.dart';
@@ -220,6 +221,7 @@ enum DetailSection {
   /// Whether this device and server can show it at all. A TV has no browser
   /// to open a person's links in, and reviews need a plugin that serves them.
   bool get isOffered => switch (this) {
+    _ when ObMaxFeatures.hiddenDetailSections.contains(id) => false, // OBMAX
     DetailSection.personLinks => !PlatformDetection.isTV,
     DetailSection.reviews =>
       GetIt.instance.isRegistered<PluginSyncService>() &&
@@ -293,7 +295,9 @@ class DetailSectionVisibility {
 
   final Set<String> _hidden;
 
-  bool shows(DetailSection section) => !_hidden.contains(section.id);
+  bool shows(DetailSection section) =>
+      !ObMaxFeatures.hiddenDetailSections.contains(section.id) && // OBMAX
+      !_hidden.contains(section.id);
 
   @override
   bool operator ==(Object other) =>
