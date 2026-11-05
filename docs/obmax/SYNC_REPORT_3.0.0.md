@@ -60,6 +60,7 @@ Les fichiers de nos PR **#1893** (WebSocket mTLS), **#1894** (import du certific
 | Windows : lecture dans la fenêtre native de mpv par défaut (réglage « Video Renderer ») | Mêmes propriétés mpv, donc même certificat ; à vérifier en recette (S4). |
 | Réglage « Sous-titres secondaires » dans *Lecture > Sous-titres* | Écran déjà ouvert par le panneau OB Max. |
 | Arrière-plan de la fiche (taille, plein écran), sous-titres des bandes-annonces | *Personnalisation > Fiche détaillée*. |
+| Affiches des rangées « Modernes » (TV, ordinateur) deux fois moins hautes qu'en 2.0.5 : elles suivent désormais la « Taille des visuels » comme les rangées classiques | Décision du 05/11/2026 : nouvel écran *Personnalisation > Affichage* (taille des visuels, type et espacement des rangées, rangées étendues, visuel de la série, description ; sur TV et ordinateur, taille de l'interface et animations), pour que chacun règle la taille. Pas de thèmes, d'édition des rangées ni de sources externes. |
 | Choix de bandes-annonces avec vignettes YouTube (`i.ytimg.com`) | OB Max lit déjà les bandes-annonces YouTube dans la bannière : même service tiers. |
 | Section « Services de streaming » (via Seerr) | Passe par le plugin, sur le serveur. |
 | Code PIN synchronisé par le plugin Moonbase | Passe par le serveur ; copie locale si le serveur ne répond pas. |

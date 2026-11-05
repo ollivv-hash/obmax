@@ -48,3 +48,4 @@ Voir les commandes `logcat` de `SPIKE_REPORT.md` §4. Côté serveur, une ligne 
 | S11 | Panneau admin : visible pour un admin, masqué sinon | ☐ | ☐ | — | ☐ | ☐ | Panneau refait par Moonfin 3.0. |
 | S12 | Mac : mpv par défaut, choix utilisateur conservé | — | — | — | — | ☐ | Jamais touché → mpv ; désactivé à la main en 2.0.5 → reste désactivé. |
 | S13 | Dashboard Jellyfin : le client apparaît comme « OB Max », version 2.1.0 | ☐ | ☐ | ☐ | ☐ | ☐ | |
+| S14 | *Personnalisation > Affichage* : la taille des visuels change les affiches de l'accueil ; type de rangée, espacement et taille de l'interface s'appliquent | ☐ | ☐ | ☐ | ☐ | ☐ | Moonfin 3.0 a réduit de moitié les affiches Modernes : « Très grande » ou « Grands-parents » s'approche de la 2.0.5. |
