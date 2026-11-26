@@ -16,8 +16,11 @@ import '../../util/platform_detection.dart';
 /// impact at 0.98 s with OB / MAX), so [play] is called in the same frame as
 /// the splash timeline's `forward()`, with no offset.
 ///
-/// Nothing here may hold the splash back: [load] never throws and gives up
-/// after [loadBudget], in which case the splash runs silent.
+/// Nothing here may hold the splash back: [load] never throws and returns
+/// within [loadBudget]. A jingle still loading by then keeps loading, and
+/// [play] starts it late, seeked to where the animation is, as long as that
+/// is within [lateStartLimit] (leading silence only). Past that, or on any
+/// failure, the splash runs silent.
 class ObMaxSplashSound {
   /// "Son au démarrage", on by default everywhere.
   static final preference = Preference(
@@ -32,6 +35,13 @@ class ObMaxSplashSound {
   static const _fallbackAsset = 'obmax/splash/obmax_splash.ogg';
 
   static const loadBudget = Duration(milliseconds: 300);
+
+  /// How late the jingle may still start, seeked into the file. The first
+  /// sound is at 0.72 s, so up to here only leading silence is skipped and
+  /// nothing is heard out of sync. A Shield needs more than [loadBudget] at
+  /// cold start (the asset is copied to a temporary file, then prepared).
+  static const lateStartLimit = Duration(milliseconds: 700);
+
   static const fadeOut = Duration(milliseconds: 150);
 
   /// The jingle is 2.6 s long; past this the player is released regardless.
@@ -52,23 +62,38 @@ class ObMaxSplashSound {
   bool _ready = false;
   bool _released = false;
 
+  /// Still loading after [loadBudget]: completes with whether it got ready.
+  Future<bool>? _pending;
+
   /// [load] got the jingle ready and [play] has not been called yet.
   @visibleForTesting
   bool get isReady => _ready;
 
-  /// Prepares the jingle. Completes within [loadBudget] whatever happens;
-  /// [play] is then a no-op unless everything went through in time.
+  /// Prepares the jingle. Completes within [loadBudget] whatever happens.
   Future<void> load() async {
     if (!isSupported) return;
+    final watch = Stopwatch()..start();
+    final preparing = _prepare().then(
+      (ready) {
+        if (ready) {
+          debugPrint(
+            'OB Max splash sound: ready in ${watch.elapsedMilliseconds} ms',
+          );
+        }
+        return ready;
+      },
+      onError: (Object e) {
+        debugPrint('OB Max splash sound: not played ($e)');
+        return false;
+      },
+    );
     try {
-      _ready = await _prepare().timeout(loadBudget);
-    } catch (e) {
-      debugPrint('OB Max splash sound: not played ($e)');
-      _ready = false;
+      _ready = await preparing.timeout(loadBudget);
+      if (!_ready) unawaited(_release());
+    } on TimeoutException {
+      // Keeps loading; play() decides whether it can still start in sync.
+      _pending = preparing;
     }
-    // Too slow or failed: let the preparation finish in the background, then
-    // drop the player.
-    if (!_ready) unawaited(_release());
   }
 
   Future<bool> _prepare() async {
@@ -118,14 +143,43 @@ class ObMaxSplashSound {
   /// Starts the jingle, if [load] got it ready. Call it right next to the
   /// timeline's `forward()`.
   void play() {
+    if (_released) return;
     final player = _player;
-    if (!_ready || _released || player == null) return;
-    _ready = false;
+    if (_ready && player != null) {
+      _ready = false;
+      unawaited(_start(player, Duration.zero));
+      return;
+    }
+    final pending = _pending;
+    if (pending == null) return;
+    _pending = null;
+    final sinceStart = Stopwatch()..start();
     unawaited(
-      player.resume().catchError((Object e) {
-        debugPrint('OB Max splash sound: play failed ($e)');
+      pending.then((ready) async {
+        final player = _player;
+        if (!ready || _released || player == null) return _release();
+        final late = sinceStart.elapsed;
+        if (late > lateStartLimit) {
+          debugPrint(
+            'OB Max splash sound: ready ${late.inMilliseconds} ms after '
+            'the animation started, not played',
+          );
+          return _release();
+        }
+        await _start(player, late);
       }),
     );
+  }
+
+  /// Starts [player] at [position] into the jingle.
+  Future<void> _start(AudioPlayer player, Duration position) async {
+    try {
+      if (position > Duration.zero) await player.seek(position);
+      if (_released) return;
+      await player.resume();
+    } catch (e) {
+      debugPrint('OB Max splash sound: play failed ($e)');
+    }
   }
 
   /// The splash is going away. With [fade] (skipped by a key or a tap) the
@@ -146,7 +200,9 @@ class ObMaxSplashSound {
           }
           await player.stop();
         } else {
-          await player.onPlayerComplete.first.timeout(
+          // then<void>: the stream's runtime type is not void, and a
+          // void onTimeout on it throws, which used to cut the tail.
+          await player.onPlayerComplete.first.then<void>((_) {}).timeout(
             _maxPlayTime,
             onTimeout: () {},
           );

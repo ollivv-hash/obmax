@@ -59,6 +59,21 @@ void main() {
     await sound.finish(fade: false);
   });
 
+  test('slow load: returns within budget, a late failure stays silent', () async {
+    SharedPreferences.setMockInitialValues({});
+    messenger.setMockMethodCallHandler(ringer, (call) async {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return 2; // normal
+    });
+    final sound = await load();
+    expect(sound.isReady, isFalse);
+    // The animation starts while the jingle is still loading.
+    sound.play();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(sound.isReady, isFalse);
+    await sound.finish(fade: false);
+  });
+
   test('not on Linux', () {
     debugDefaultTargetPlatformOverride = TargetPlatform.linux;
     expect(ObMaxSplashSound.isSupported, isFalse);
