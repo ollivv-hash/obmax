@@ -286,6 +286,13 @@ class _ObMaxCustomizationScreen extends StatelessWidget {
                   const _NavigationCategoryScreen(),
                 ),
               ),
+              if (ObMaxSplashSound.isSupported)
+                SwitchPreferenceTile(
+                  preference: ObMaxSplashSound.preference,
+                  title: l10n.obmaxSplashSoundSetting,
+                  subtitle: l10n.obmaxSplashSoundSettingSubtitle,
+                  icon: Icons.music_note,
+                ),
             ],
           ),
         ],

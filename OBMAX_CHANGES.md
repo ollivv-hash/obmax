@@ -69,6 +69,9 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 | `lib/di/modules/playback_module.dart`, `lib/ui/screens/playback/video_player_screen.dart`, `lib/ui/widgets/video_mini_player.dart`, `lib/playback/media_kit_player_backend.dart` | Réglage « Lire avec mpv » sur Mac (`ObMaxMacPlayer`, `lib/obmax/playback/obmax_mac_player.dart`), actif par défaut depuis 2.0.6 : macOS lit avec mpv comme Windows au lieu d'AetherEngine (backend, surface vidéo, mini-lecteur), avec le décodage matériel. AetherEngine ne lit que 8 à 16 Mo d'avance et se coupait à distance sur un film à fort débit. Pris en compte au redémarrage. |
 | `lib/ui/screens/settings/settings_side_panel.dart` (lecteur) | Import de `obmax_mac_player.dart` pour l'interrupteur du panneau OB Max. |
 | `lib/data/services/app_update_service.dart` | Le vérificateur de mises à jour desktop (DMG) lit les releases OB Max (`kObMaxReleasesRepo`) au lieu de celles de Moonfin. |
+| `pubspec.yaml` (son du splash, 2.2) | Dépendance `audioplayers` (MIT) pour le jingle du splash (`lib/obmax/splash/obmax_splash_sound.dart`). `dependency_overrides` : `audioplayers_linux` → `packages/audioplayers_linux_disabled`, plugin Dart vide qui évite GStreamer au build Linux (pas de son sur Linux). Android : du Kotlin seulement, aucun `.so`, donc le contrôle ABI de `release.ps1` n'est pas touché. `pubspec.lock` suit. |
+| `lib/l10n/app_en.arb`, `app_fr.arb` (son du splash) | Clés `obmaxSplashSoundSetting` et `obmaxSplashSoundSettingSubtitle` (« Son au démarrage »). Les `app_localizations*.dart` sont régénérés. |
+| `lib/ui/screens/settings/settings_side_panel.dart` (son du splash) | Import de `obmax_splash_sound.dart` pour l'interrupteur « Son au démarrage » de *Personnalisation*. |
 
 ## Ressources ajoutées (pas de conflit possible)
 
@@ -77,6 +80,7 @@ Les deux premiers commits d'`obmax/main` sont identiques aux branches `upstream-
 
 - `.github/README.md` : page d'accueil OB Max du dépôt. GitHub l'affiche à la place du `README.md` de Moonfin, qui reste inchangé.
 - `docs/obmax/` : publication (`RELEASE.md`), conception de l'activation (`V2_SPEC.md`), recette (`TEST_CHECKLIST.md`), guide des invités (`guide-installation.html`).
+- `packages/audioplayers_linux_disabled/` : remplaçant vide d'`audioplayers_linux` (voir `pubspec.yaml` ci-dessus). À supprimer si OB Max veut un jour du son sur Linux.
 - `.github/workflows/obmax-macos.yml` : build du `.dmg` macOS. Les workflows de Moonfin restent dans le dépôt mais sont désactivés dans les réglages GitHub Actions d'`ollivv-hash/obmax`.
 
 ## Valeurs privées (hors dépôt)

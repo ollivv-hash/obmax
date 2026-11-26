@@ -14125,5 +14125,7 @@
     "librarySortTrackNumber": "Numéro de piste",
     "librarySortGenre": "Genre",
     "librarySortFoldersFirst": "Dossiers en premier",
-    "librarySortLength": "Durée"
+    "librarySortLength": "Durée",
+    "obmaxSplashSoundSetting": "Son au démarrage",
+    "obmaxSplashSoundSettingSubtitle": "Jouer le jingle OB Max au lancement de l’application"
 }

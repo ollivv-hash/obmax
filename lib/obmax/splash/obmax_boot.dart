@@ -63,6 +63,8 @@ class _ObMaxBootHostState extends State<_ObMaxBootHost> {
           textDirection: TextDirection.ltr,
           child: ObMaxSplash(
             ready: app != null,
+            // Only reached from main(): a cold start.
+            playSound: true,
             onFinished: () => setState(() => _splashDone = true),
           ),
         );

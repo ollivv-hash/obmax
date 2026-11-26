@@ -14478,4 +14478,11 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get librarySortLength => 'Length';
+
+  @override
+  String get obmaxSplashSoundSetting => 'Startup sound';
+
+  @override
+  String get obmaxSplashSoundSettingSubtitle =>
+      'Play the OB Max jingle when the app starts';
 }
