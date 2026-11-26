@@ -1,0 +1,23 @@
+# OB Max: stands in for audioplayers_linux, so the Linux build does not need
+# GStreamer. The splash jingle (lib/obmax/splash/obmax_splash_sound.dart) is the
+# only user of audioplayers and is off on Linux. A Dart-only plugin with an
+# empty registerWith: no native code, nothing to link.
+name: audioplayers_linux
+description: OB Max stub of audioplayers_linux (no sound on Linux).
+version: 4.3.0
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: audioplayers
+    platforms:
+      linux:
+        dartPluginClass: AudioplayersLinuxDisabled

@@ -14623,4 +14623,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get librarySortLength => 'Durée';
+
+  @override
+  String get obmaxSplashSoundSetting => 'Son au démarrage';
+
+  @override
+  String get obmaxSplashSoundSettingSubtitle =>
+      'Jouer le jingle OB Max au lancement de l’application';
 }

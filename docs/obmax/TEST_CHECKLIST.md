@@ -23,6 +23,21 @@ Pour une install neuve, désinstaller d'abord toute version précédente d'OB Ma
 | R13 | Admin Jellyfin : panneau admin visible ; compte non admin : masqué | ✅ | ✅ | *Réglages > Administration* pour un admin, absent pour les autres. Sur la Shield, les écrans ne sont pas adaptés à la télécommande : vérifier qu'on peut au moins naviguer et revenir. |
 | R14 | Dashboard Jellyfin : le client apparaît comme « OB Max » | ✅ | ✅ | Tableau de bord > Appareils / Activité. |
 
+## 2.2 — Son au démarrage
+
+Spec : `docs/obmax/SON_SPLASH_SPEC.md`. Lecture par `audioplayers` (flux média, sans focus audio sur Android, catégorie `ambient` sur iOS). Pas de son sur Linux, le web ni l'Apple TV.
+
+| # | Test | Android tél. | Shield | Box 32 bits | Windows | Mac | Comment vérifier |
+|---|---|---|---|---|---|---|---|
+| J1 | Démarrage à froid : son synchronisé | ☐ | ☐ | ☐ | ☐ | ☐ | « ah » à l'allumage de l'étoile, « aaahhh » + impact à l'arrivée de OB / MAX. Tuer l'app (pas seulement la quitter) avant chaque essai. |
+| J2 | Retour depuis l'arrière-plan : pas de son | ☐ | ☐ | ☐ | ☐ | ☐ | Accueil, bouton Home, rouvrir OB Max depuis les apps récentes. |
+| J3 | Splash passé par une touche / un tap : fondu puis silence | ☐ | ☐ | ☐ | ☐ | ☐ | Appuyer pendant l'animation, une fois l'app prête (deuxième lancement) : le son s'éteint en 150 ms, sans clic. |
+| J4 | Réglage désactivé : aucun son | ☐ | ☐ | ☐ | ☐ | ☐ | *Personnalisation > Son au démarrage* désactivé, tuer puis relancer. |
+| J5 | Téléphone en silencieux / vibreur : aucun son | ☐ | — | — | — | — | Tester les deux modes. |
+| J6 | Musique en cours dans une autre app : pas coupée | ☐ | — | — | — | — | Lancer Spotify/Deezer puis OB Max : la musique continue (aucun focus audio demandé, elle n'est même pas baissée). |
+| J7 | Box lente : pas de décalage audible, splash jamais bloqué | — | — | ☐ | — | — | Si le son n'est pas prêt en 300 ms, le splash part sans son : c'est voulu. `adb logcat \| grep "OB Max splash sound"` donne la raison. |
+| J8 | Build release : contrôle ABI de `release.ps1` OK, taille APK notée | ☐ | ☐ | ☐ | — | — | Comparer avec la 2.0.5 : ________ Ko de plus (attendu : moins de 100 Ko). |
+
 ## En cas d'échec
 
 Voir les commandes `logcat` de `SPIKE_REPORT.md` §4. Côté serveur, une ligne Caddy `TLS handshake error … client didn't provide a certificate` signe un problème de certificat.
