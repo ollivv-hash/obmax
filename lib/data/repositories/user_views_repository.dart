@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../preference/user_preferences.dart';
 import '../models/aggregated_library.dart';
 
 /// The user's own views. Anything hidden from My Media is left out unless
@@ -92,10 +94,25 @@ class UserViewsRepository extends ChangeNotifier {
         _client,
       ).whenComplete(() => _inFlightViews = null);
 
-  Future<Map<String, dynamic>> _hiddenResponse() =>
-      _inFlightHiddenResponse ??= _client.userViewsApi
-          .getUserViews(includeHidden: true)
-          .whenComplete(() => _inFlightHiddenResponse = null);
+  // Kept for the session, since every screen's nav chrome asks for the views
+  // when it mounts. [invalidateViews] and a configuration change drop it.
+  Map<String, dynamic>? _hiddenResponseCache;
+
+  Future<Map<String, dynamic>> _hiddenResponse() {
+    final cached = _hiddenResponseCache;
+    if (cached != null) return Future.value(cached);
+    return _inFlightHiddenResponse ??= _client.userViewsApi
+        .getUserViews(includeHidden: true)
+        .then((response) => _hiddenResponseCache = response)
+        .whenComplete(() => _inFlightHiddenResponse = null);
+  }
+
+  /// Has the next read ask the server again, and tells the nav chrome to
+  /// reload its libraries.
+  void invalidateViews() {
+    _hiddenResponseCache = null;
+    notifyListeners();
+  }
 
   Future<List<AggregatedLibrary>> getAllViewsIncludingHidden() async =>
       _parseUserViews(await _hiddenResponse());
@@ -130,16 +147,38 @@ class UserViewsRepository extends ChangeNotifier {
   Future<Set<String>> getMyMediaExcludes() async =>
       await _excludesFrom(cachedUserConfiguration()) ?? const {};
 
-  Future<UserConfiguration> getUserConfiguration() =>
-      _inFlightConfig ??= _client.usersApi
-          .getUserConfiguration()
-          .then((config) => _cachedConfig = config)
-          .whenComplete(() => _inFlightConfig = null);
+  Future<UserConfiguration> getUserConfiguration() {
+    final initiatingProfileScope =
+        GetIt.instance.isRegistered<UserPreferences>()
+            ? GetIt.instance<UserPreferences>().activeProfileScopeSuffix()
+            : null;
+    return _inFlightConfig ??= _client.usersApi
+        .getUserConfiguration()
+        .then((config) {
+          _cachedConfig = config;
+          if (GetIt.instance.isRegistered<UserPreferences>()) {
+            final prefs = GetIt.instance<UserPreferences>();
+            if (!prefs.containsPreference(
+                  UserPreferences.hideWatchedInRecentRows,
+                  scopedOnly: true,
+                ) &&
+                config.hidePlayedInLatest) {
+              prefs.seedHideWatchedFromServer(
+                config,
+                expectedProfileScope: initiatingProfileScope,
+              );
+            }
+          }
+          return config;
+        })
+        .whenComplete(() => _inFlightConfig = null);
+  }
 
   Future<void> updateUserConfiguration(UserConfiguration config) async {
     await _client.usersApi.updateUserConfiguration(config);
     _cachedConfig = config;
-    notifyListeners();
+    // The server orders the views by this configuration.
+    invalidateViews();
   }
 
   void invalidateConfigCache() => _cachedConfig = null;

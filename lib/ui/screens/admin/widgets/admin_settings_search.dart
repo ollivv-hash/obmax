@@ -114,14 +114,14 @@ class _AdminSettingsSearchState extends State<AdminSettingsSearch> {
     _focus.unfocus();
     AdminSettingAnchor.pending.value = entry.anchor;
     final here = GoRouterState.of(context).uri.path;
-    if (here != page.route) context.go(page.route);
+    if (here != page.route) context.push(page.route);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final entries = adminSearchEntries();
+    final entries = adminSearchEntries(AdminServerScope.of(context));
     final query = _controller.text.trim();
     final results = query.length < 2
         ? const <AdminSearchEntry>[]

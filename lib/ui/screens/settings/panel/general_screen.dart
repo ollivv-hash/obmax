@@ -85,6 +85,17 @@ class _GeneralScreenState extends State<_GeneralScreen> {
                   subtitle: l10n.settingsTwentyFourHourClockSubtitle,
                   icon: Icons.schedule,
                 ),
+                EnumPreferenceTile<DateFormatSetting>(
+                  preference: UserPreferences.dateFormat,
+                  title: l10n.settingsDateFormat,
+                  description: l10n.settingsDateFormatDescription,
+                  icon: Icons.calendar_today_outlined,
+                  labelOf: (v) => switch (v) {
+                    DateFormatSetting.system => l10n.dateFormatSystem,
+                    DateFormatSetting.monthDay => l10n.dateFormatMonthDay,
+                    DateFormatSetting.dayMonth => l10n.dateFormatDayMonth,
+                  },
+                ),
               ],
             ),
             if (showInput) ...[
@@ -92,11 +103,17 @@ class _GeneralScreenState extends State<_GeneralScreen> {
               adaptiveListSection(
                 children: [
                   if (PlatformDetection.isTV)
-                    SwitchPreferenceTile(
-                      preference: UserPreferences.preferSystemImeKeyboard,
-                      title: l10n.keyboardPreferSystemIme,
-                      subtitle: l10n.keyboardPreferSystemImeDescription,
+                    EnumPreferenceTile<KeyboardStyle>(
+                      preference: UserPreferences.keyboardStyle,
+                      title: l10n.keyboardStyle,
+                      description: l10n.keyboardStyleDescription,
                       icon: Icons.keyboard_alt_outlined,
+                      labelOf: (v) => switch (v) {
+                        KeyboardStyle.native => l10n.keyboardStyleNative,
+                        KeyboardStyle.classic => l10n.keyboardStyleClassic,
+                        KeyboardStyle.glass => l10n.keyboardStyleGlass,
+                        KeyboardStyle.docked => l10n.keyboardStyleDocked,
+                      },
                     ),
                   if (showSiriSensitivity)
                     EnumPreferenceTile<SiriRemoteSwipeSensitivity>(
@@ -135,6 +152,13 @@ class _GeneralScreenState extends State<_GeneralScreen> {
                     subtitle: l10n.showConfirmationBeforeExiting,
                     icon: Icons.exit_to_app,
                   ),
+                  if (PlatformDetection.isAndroid && !PlatformDetection.isTV)
+                    SwitchPreferenceTile(
+                      preference: UserPreferences.remoteMediaNotification,
+                      title: l10n.remoteMediaNotificationTitle,
+                      subtitle: l10n.remoteMediaNotificationSubtitle,
+                      icon: Icons.cast_connected,
+                    ),
                 ],
               ),
             ],

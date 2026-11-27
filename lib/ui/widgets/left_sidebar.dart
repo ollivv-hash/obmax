@@ -36,7 +36,7 @@ import 'settings/settings_panel.dart';
 import '../screens/downloads/downloads_panel.dart';
 import 'downloads_nav_slot.dart';
 import 'friends_nav_slot.dart';
-import '../screens/syncplay/syncplay_screen.dart';
+import '../screens/watch_party/watch_together_route.dart';
 import '../screens/settings/settings_side_panel.dart';
 import 'seerr_icons.dart';
 import 'server_messages_dialog.dart';
@@ -50,8 +50,8 @@ import '../../data/models/aggregated_item.dart';
 import '../../data/services/media_server_client_factory.dart';
 import '../navigation/app_router.dart';
 import 'offline_aware_image.dart';
-import 'paced_network_image.dart';
 import 'adaptive/sf_symbol.dart';
+import 'user_avatar_image.dart';
 
 const _kExpandedWidthDesktop = 240.0;
 const _kExpandedWidthMobile = 260.0;
@@ -63,6 +63,10 @@ const _kBackdropEdgeBlendWidthTV =
     _kExpandedWidthTV - _kExpandedBackdropWidthTV;
 
 class LeftSidebar extends StatefulWidget {
+  /// The room the menu button takes in a phone's top left corner, its 40
+  /// point circle and the 8 around it.
+  static const double mobileMenuExtent = 56;
+
   final String? activeRoute;
   final FocusNode? contentFocusNode;
   final bool showBackButton;
@@ -107,7 +111,10 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
   bool _showLabels = false;
   bool _librariesExpanded = false;
   bool _canExpandViaFocus = false;
-  bool _skipExpandOnNextFocusFromNavigation = false;
+  // Set when a rail item opens a screen.
+  bool _openedRouteFromRail = false;
+  // Armed on Back; the next focus change uses or clears it.
+  bool _awaitingPopFocusRestore = false;
   // Tracked per instance instead of reading the shared isFocusedNotifier,
   // where a stale value from another route's sidebar would break focus-gain
   // detection and leave focus stuck in a collapsed rail.
@@ -205,6 +212,8 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
     // that it targets this live one.
     NavigationLayout.focusNavbarNotifier.value = _focusNavbarCallback;
     NavigationLayout.focusNavbarAvatarNotifier.value = _focusAvatarCallback;
+    _awaitingPopFocusRestore = _openedRouteFromRail;
+    _openedRouteFromRail = false;
   }
 
   @override
@@ -406,8 +415,8 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
   void _onSidebarFocusNodeChanged() {
     final hasFocus = _sidebarFocus.hasFocus;
     if (hasFocus && !_sidebarHadFocus) {
-      if (_skipExpandOnNextFocusFromNavigation) {
-        _skipExpandOnNextFocusFromNavigation = false;
+      if (_awaitingPopFocusRestore) {
+        _awaitingPopFocusRestore = false;
         _focusHomeTimer?.cancel();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -437,9 +446,22 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
     LeftSidebar.isFocusedNotifier.value = hasFocus;
   }
 
+  void _openLibrary(AggregatedLibrary lib) {
+    _onNavigate();
+    _markNavigationAwayFromSidebar();
+    context.navigateTopLevel(
+      libraryRoute(
+        lib.id,
+        lib.collectionType,
+        lib.name,
+        serverId: lib.serverId,
+      ),
+    );
+  }
+
   void _markNavigationAwayFromSidebar() {
     if (PlatformDetection.isTV || (PlatformDetection.isDesktop || (PlatformDetection.isWeb && !PlatformDetection.useMobileUi))) {
-      _skipExpandOnNextFocusFromNavigation = true;
+      _openedRouteFromRail = true;
     }
   }
 
@@ -530,6 +552,8 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
   }
 
   void _trackPreviousFocus() {
+    // Runs after the rail's listener, so a restore into it is already handled.
+    _awaitingPopFocusRestore = false;
     final primary = FocusManager.instance.primaryFocus;
     if (primary == null || _sidebarFocus.hasFocus) return;
     _previousFocus = primary;
@@ -560,7 +584,7 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
       return false;
     }
     final context = node.context;
-    if (context == null) {
+    if (context == null || !context.mounted) {
       return false;
     }
     final renderObject = context.findRenderObject();
@@ -893,7 +917,6 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
           _onNavigate();
           await showServerMessagesDialog(context);
           if (!mounted) return;
-          _markNavigationAwayFromSidebar();
           _serverMessagesFocusNode.requestFocus();
         },
       ),
@@ -918,7 +941,6 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
           _onNavigate();
           await FriendsNavSlot.open(context);
           if (!mounted) return;
-          _markNavigationAwayFromSidebar();
           _friendsFocusNode.requestFocus();
         },
       ),
@@ -937,7 +959,8 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
     final navLibraries = _navLibraries;
     final showLibraries =
         !kidsMode && _prefs.get(UserPreferences.showLibrariesInToolbar);
-    final showFolders = _prefs.get(UserPreferences.enableFolderView);
+    final showLibrariesIndividually =
+        _prefs.get(UserPreferences.showLibrariesIndividually);
     final showSyncPlay =
         !kidsMode &&
         _prefs.get(UserPreferences.syncPlayEnabled) &&
@@ -1078,28 +1101,11 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
                       context.navigateTopLevel(Destinations.liveTvGuide);
                     },
                   ),
-                if (showFolders)
-                  _SidebarItem(
-                    key: const ValueKey('sidebar-folders'),
-                    icon: Icons.folder_rounded,
-                    label: l10n.folders,
-                    baseColor: nextMainSidebarColor(),
-                    showLabel: _showLabels,
-                    onPressed: () {
-                      _onNavigate();
-                      if (_isActive(Destinations.folderView)) {
-                        _exitSidebarToContent();
-                        return;
-                      }
-                      _markNavigationAwayFromSidebar();
-                      context.navigateTopLevel(Destinations.folderView);
-                    },
-                  ),
                 if (showSyncPlay)
                   _SidebarItem(
                     key: const ValueKey('sidebar-syncplay'),
                     icon: Icons.groups_rounded,
-                    label: l10n.syncPlay,
+                    label: l10n.watchParties,
                     baseColor: nextMainSidebarColor(),
                     showLabel: _showLabels,
                     onPressed: () {
@@ -1107,7 +1113,7 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
                       _markNavigationAwayFromSidebar();
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => const SyncPlayScreen(),
+                          builder: (_) => watchTogetherScreen(),
                         ),
                       );
                     },
@@ -1133,7 +1139,38 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
                       context.navigateTopLevel(Destinations.seerrDiscover);
                     },
                   ),
-                if (showLibraries && navLibraries.isNotEmpty) ...[
+                if (!kidsMode &&
+                    _prefs.get(UserPreferences.showCalendarButton) &&
+                    GetIt.instance<PluginSyncService>().calendarAvailable)
+                  _SidebarItem(
+                    key: const ValueKey('sidebar-calendar'),
+                    baseColor: nextMainSidebarColor(),
+                    icon: Icons.calendar_month_rounded,
+                    label: l10n.calendar,
+                    showLabel: _showLabels,
+                    onPressed: () {
+                      _onNavigate();
+                      if (_isActive(Destinations.calendar)) {
+                        _exitSidebarToContent();
+                        return;
+                      }
+                      _markNavigationAwayFromSidebar();
+                      context.navigateTopLevel(Destinations.calendar);
+                    },
+                  ),
+                if (showLibraries && showLibrariesIndividually)
+                  for (final lib in navLibraries)
+                    _SidebarItem(
+                      // Two servers can share a library id, so the key is the
+                      // library itself.
+                      key: ObjectKey(lib),
+                      icon: libraryIcon(lib),
+                      label: lib.name,
+                      baseColor: nextMainSidebarColor(),
+                      showLabel: _showLabels,
+                      onPressed: () => _openLibrary(lib),
+                    )
+                else if (showLibraries && navLibraries.isNotEmpty) ...[
                   _SidebarItem(
                     key: const ValueKey('sidebar-libraries'),
                     baseColor: nextMainSidebarColor(),
@@ -1178,18 +1215,7 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
                                     label: lib.name,
                                     baseColor: nextLibrarySidebarColor(),
                                     showLabel: _showLabels,
-                                    onPressed: () {
-                                      _onNavigate();
-                                      _markNavigationAwayFromSidebar();
-                                      context.navigateTopLevel(
-                                        libraryRoute(
-                                          lib.id,
-                                          lib.collectionType,
-                                          lib.name,
-                                          serverId: lib.serverId,
-                                        ),
-                                      );
-                                    },
+                                    onPressed: () => _openLibrary(lib),
                                   ),
                                 )
                                 .toList(),
@@ -1234,7 +1260,6 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
                       const SettingsSidePanel(),
                     );
                     if (!mounted) return;
-                    _markNavigationAwayFromSidebar();
                     _settingsFocusNode.requestFocus();
                   },
                 ),
@@ -1344,27 +1369,12 @@ class _LeftSidebarState extends State<LeftSidebar> with RouteAware {
         ),
       ),
       child: ClipOval(
-        child: _userImageUrl != null
-            ? Image(
-                // The server sends the avatar at its stored size, so decode
-                // at the painted size instead of a full bitmap per user.
-                image: ResizeImage.resizeIfNeeded(
-                  ArtworkDecode.widthFor(
-                    40,
-                    MediaQuery.devicePixelRatioOf(context),
-                  ),
-                  null,
-                  PacedNetworkImage(
-                    _userImageUrl!,
-                    headers: serverImageHeaders,
-                  ),
-                ),
-                fit: BoxFit.cover,
-                width: 40,
-                height: 40,
-                errorBuilder: (_, _, _) => fallback,
-              )
-            : fallback,
+        // Decoded at the painted size, SVG presets drawn as vectors.
+        child: UserAvatarImage(
+          url: _userImageUrl,
+          size: 40,
+          fallback: fallback,
+        ),
       ),
     );
 
@@ -1901,60 +1911,86 @@ class _SidebarMusicCardState extends State<SidebarMusicCard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
-            onTap: () => appRouter.push(Destinations.audioPlayer),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: AppRadius.circular(8),
-                  child: SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: artUrl != null
-                        ? OfflineAwareImage(
-                            imageUrl: artUrl,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: AppColorScheme.onSurface.withValues(alpha: 0.1),
-                            child: Icon(
-                              Icons.music_note,
-                              color: AppColorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
+          // The rail opens as it takes focus, so this row is the D-pad's way
+          // into the full player.
+          Focus(
+            onKeyEvent: (node, event) {
+              if (isActivateKey(event)) {
+                appRouter.push(Destinations.audioPlayer);
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: Builder(
+              builder: (context) {
+                final focused = Focus.of(context).hasFocus;
+                return GestureDetector(
+                  onTap: () => appRouter.push(Destinations.audioPlayer),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 90),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      borderRadius: AppRadius.circular(10),
+                      color: focused
+                          ? AppColorScheme.onSurface.withValues(alpha: 0.15)
+                          : Colors.transparent,
+                    ),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: AppRadius.circular(8),
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: artUrl != null
+                                ? OfflineAwareImage(
+                                    imageUrl: artUrl,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    color: AppColorScheme.onSurface.withValues(alpha: 0.1),
+                                    child: Icon(
+                                      Icons.music_note,
+                                      color: AppColorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
                           ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        style: TextStyle(
-                          color: AppColorScheme.onSurface,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (artist.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          artist,
-                          style: TextStyle(
-                            color: AppColorScheme.onSurface.withValues(alpha: 0.6),
-                            fontSize: 11,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.name,
+                                style: TextStyle(
+                                  color: AppColorScheme.onSurface,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (artist.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  artist,
+                                  style: TextStyle(
+                                    color: AppColorScheme.onSurface.withValues(alpha: 0.6),
+                                    fontSize: 11,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 12),

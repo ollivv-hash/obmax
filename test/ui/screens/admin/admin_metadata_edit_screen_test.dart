@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/metadata/admin_metadata_edit_screen.dart';
 import 'package:server_core/server_core.dart';
 
@@ -144,7 +145,10 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    ServerType server = ServerType.jellyfin,
+  }) async {
     tester.view.physicalSize = const Size(1400, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -152,7 +156,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: AdminMetadataEditScreen(itemId: 'm1')),
+        home: AdminServerScope(
+          serverType: server,
+          child: const Scaffold(body: AdminMetadataEditScreen(itemId: 'm1')),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -250,6 +257,11 @@ void main() {
     admin.editor = {...admin.editor, 'ContentTypeOptions': const []};
     await pump(tester);
 
+    expect(find.text(l10n.adminContentType), findsNothing);
+  });
+
+  testWidgets('Emby has no content type action', (tester) async {
+    await pump(tester, server: ServerType.emby);
     expect(find.text(l10n.adminContentType), findsNothing);
   });
 

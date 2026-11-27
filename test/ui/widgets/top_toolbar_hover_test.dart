@@ -14,6 +14,7 @@ import 'package:moonfin/preference/seerr_preferences.dart';
 import 'package:moonfin/preference/user_preferences.dart';
 import 'package:moonfin/ui/widgets/navigation_layout.dart';
 import 'package:moonfin/ui/widgets/top_toolbar.dart';
+import 'package:moonfin/util/game_library.dart';
 import 'package:moonfin/util/platform_detection.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,8 +29,10 @@ class _FakeUserRepository extends Fake implements UserRepository {
 
 class _FakeUserViewsRepository extends ChangeNotifier
     implements UserViewsRepository {
+  List<AggregatedLibrary> views = [];
+
   @override
-  Future<List<AggregatedLibrary>> getUserViews() async => [];
+  Future<List<AggregatedLibrary>> getUserViews() async => views;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -39,6 +42,9 @@ class _FakePluginSyncService extends ChangeNotifier
     implements PluginSyncService {
   @override
   bool get seerrAvailable => false;
+
+  @override
+  bool get calendarAvailable => false;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -106,6 +112,7 @@ void main() {
       SeerrPreferences(store, _FakeSessionRepository()),
     );
     getIt.registerSingleton<PlaybackManager>(_FakePlaybackManager());
+    getIt.registerSingleton<GameLibraryRegistry>(GameLibraryRegistry());
   });
 
   tearDown(() async {
@@ -166,5 +173,57 @@ void main() {
     await tester.pump();
 
     expect(_homeLabel, findsNothing);
+  });
+
+  testWidgets('the libraries label stays out while its dropdown is open', (
+    tester,
+  ) async {
+    (GetIt.instance<UserViewsRepository>() as _FakeUserViewsRepository).views =
+        const [
+          AggregatedLibrary(
+            id: 'movies',
+            name: 'Movies',
+            collectionType: 'movies',
+            serverId: 's1',
+          ),
+        ];
+    await pumpToolbar(tester);
+    await tester.pump();
+
+    final librariesButton = find.byKey(const ValueKey('toolbar_libraries'));
+    final librariesLabel = find.descendant(
+      of: librariesButton,
+      matching: find.text('Libraries'),
+    );
+    final mouse = await _mouseOver(tester, librariesButton);
+    await tester.pump();
+    await mouse.down(tester.getCenter(librariesButton));
+    await mouse.up();
+    await tester.pump();
+    expect(find.text('Movies'), findsOneWidget);
+
+    // Collapsing the label would recenter the toolbar and slide the menu out
+    // from under a pointer heading down into it.
+    await mouse.moveTo(const Offset(2000, 2000));
+    await tester.pump();
+
+    expect(librariesLabel, findsOneWidget);
+  });
+
+  testWidgets("a TV toolbar keeps only its own margin from the screen's sides", (
+    tester,
+  ) async {
+    PlatformDetection.setInterfaceLayout(InterfaceLayout.tv);
+    tester.view.padding = const FakeViewPadding(left: 48, right: 48);
+    await pumpToolbar(tester);
+
+    final overscan = find.byWidgetPredicate(
+      (widget) =>
+          widget is Padding &&
+          widget.padding ==
+              const EdgeInsets.symmetric(horizontal: 48, vertical: 27),
+    );
+    expect(tester.getTopLeft(overscan).dx, 0);
+    expect(tester.getTopRight(overscan).dx, 1600);
   });
 }

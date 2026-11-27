@@ -528,10 +528,6 @@
     "@discoverySubjects": {
         "description": "Title for the book discovery subject picker panel"
     },
-    "pickDiscoverySubjects": "Изаберите које ће се тематске категорије приказивати у одељку „Откриј“.",
-    "@pickDiscoverySubjects": {
-        "description": "Instruction text in discovery subject picker"
-    },
     "apply": "Примени",
     "@apply": {
         "description": "Button label to apply selected options"
@@ -547,27 +543,6 @@
     "audiobookGenres": "Жанрови аудио-књига",
     "@audiobookGenres": {
         "description": "Title for audiobook genre picker panel"
-    },
-    "pickAudiobookGenres": "Изаберите жанрове који ће се приказивати у одељку „Откриј аудио-књиге“.",
-    "@pickAudiobookGenres": {
-        "description": "Instruction text in audiobook genre picker"
-    },
-    "discoverAudiobooks": "Откриј аудио-књиге",
-    "@discoverAudiobooks": {
-        "description": "Section title for audiobook discovery"
-    },
-    "librivoxDescription": "Популарни наслови из јавног домена са Либривокса (LibriVox).",
-    "@librivoxDescription": {
-        "description": "Subtitle for audiobook discovery section"
-    },
-    "titlesCount": "{count} наслова",
-    "@titlesCount": {
-        "description": "Label showing number of titles",
-        "placeholders": {
-            "count": {
-                "type": "int"
-            }
-        }
     },
     "scrollLeft": "Помери улево",
     "@scrollLeft": {
@@ -744,10 +719,6 @@
     "discover": "Откријте",
     "@discover": {
         "description": "Section title for book discovery"
-    },
-    "trendingTitlesOpenLibrary": "Популарни наслови по темама са Отворене библиотеке (Open Library).",
-    "@trendingTitlesOpenLibrary": {
-        "description": "Subtitle for book discovery section"
     },
     "noBookmarkedItems": "Још нема обележених ставки",
     "@noBookmarkedItems": {
@@ -1283,7 +1254,7 @@
     "@downloadSubtitlesLabel": {
         "description": "Label for the download subtitles option"
     },
-    "searchOpenSubtitlesPlugin": "Претражи помоћу додатка Опенсабтајтлс (OpenSubtitles)",
+    "searchOpenSubtitlesPlugin": "Претражи помоћу Опенсабтајтлс (OpenSubtitles)",
     "@searchOpenSubtitlesPlugin": {
         "description": "Subtitle for the download subtitles option"
     },
@@ -1447,7 +1418,7 @@
             }
         }
     },
-    "trackCount": "{count, plural, =1{1 нумера} one{{count} нумера} few{{count} нумере} other{{count} нумера}}",
+    "trackCount": "{count, plural, one{{count} нумера} few{{count} нумере} other{{count} нумера}}",
     "@trackCount": {
         "description": "Label showing number of tracks in an album",
         "placeholders": {
@@ -1456,7 +1427,7 @@
             }
         }
     },
-    "chapterCount": "{count, plural, =1{1 поглавље} one{{count} поглавље} few{{count} поглавља} other{{count} поглавља}}",
+    "chapterCount": "{count, plural, one{{count} поглавље} few{{count} поглавља} other{{count} поглавља}}",
     "@chapterCount": {
         "description": "Label showing number of chapters in an audiobook",
         "placeholders": {
@@ -3500,14 +3471,6 @@
     "@showLibrariesFromAllServers": {
         "description": "Description for multi-server libraries"
     },
-    "enableFolderView": "Омогући приказ фасцикли",
-    "@enableFolderView": {
-        "description": "Setting for enabling folder view"
-    },
-    "showFolderBrowsingOption": "Прикажи опцију прегледања фасцикли",
-    "@showFolderBrowsingOption": {
-        "description": "Description for folder view"
-    },
     "libraryVisibility": "Видљивост библиотеке",
     "@libraryVisibility": {
         "description": "Section title for library visibility"
@@ -4230,10 +4193,6 @@
     "featuredContentAppearance": "Истакнути садржај, изглед",
     "@featuredContentAppearance": {
         "description": "Media bar settings subtitle"
-    },
-    "posterSizeImageTypeFolderView": "Величина постера, тип слике, приказ фасцикли",
-    "@posterSizeImageTypeFolderView": {
-        "description": "Library display settings subtitle"
     },
     "mdbListTmdbRatingSources": "MDBList, TMDB и извори оцена",
     "@mdbListTmdbRatingSources": {
@@ -7192,7 +7151,7 @@
     "analyticsTopArtists": "Водећи извођачи",
     "analyticsTopAuthors": "Водећи аутори",
     "analyticsTopContributors": "Водећи сарадници",
-    "analyticsLibrariesCount": "{count, plural, =1{1 медијатека} one{{count} медијатека} few{{count} медијатеке} other{{count} медијатека}}",
+    "analyticsLibrariesCount": "{count, plural, one{{count} медијатека} few{{count} медијатеке} other{{count} медијатека}}",
     "@analyticsLibrariesCount": {
         "placeholders": {
             "count": {
@@ -7300,7 +7259,6 @@
     "failedToExtractCbrArchive": "Распаковање архиве .cbr није успело.",
     "cb7ExtractionUnavailable": "Распаковање ЦБ7-а (CB7) није доступно на овој платформи.",
     "cb7ExtractionPluginUnavailable": "Додатак за распакивање ЦБ7-а (CB7) није доступан на овој платформи.",
-    "closeGenrePanel": "Затвори панел жанрова",
     "loadingShuffle": "Учитавање насумичног избора...",
     "libraryShuffleLabel": "НАСУМИЧНИ ИЗБОР ИЗ МЕДИЈАТЕКЕ",
     "randomShuffleLabel": "НАСУМИЧНИ ИЗБОР",
@@ -10050,7 +10008,7 @@
     "@detailScreenStyleMinimalist": {
         "description": "Detail screen style option: artwork, one play button and the episodes, and the style Kids Mode always shows"
     },
-    "recommendationSystemJellyfin": "Препоруке Џелифина (Jellyfin)",
+    "recommendationSystemJellyfin": "Препоруке сервера",
     "@recommendationSystemJellyfin": {
         "description": "Recommendation system option: Jellyfin Recommends"
     },
@@ -11852,7 +11810,7 @@
     "@friendsMessages": {
         "description": "Entry that opens the list of chats"
     },
-    "friendsUnreadCount": "{count, plural, =0{Нема непрочитаних порука} =1{1 непрочитана порука} one{{count} непрочитана порука} few{{count} непрочитане поруке} other{{count} непрочитаних порука}}",
+    "friendsUnreadCount": "{count, plural, =0{Нема непрочитаних порука} one{{count} непрочитана порука} few{{count} непрочитане поруке} other{{count} непрочитаних порука}}",
     "@friendsUnreadCount": {
         "description": "How many chat messages are unread",
         "placeholders": {
@@ -11865,7 +11823,7 @@
     "@friendsRequests": {
         "description": "Entry that opens pending friend requests"
     },
-    "friendsRequestCount": "{count, plural, =0{Ништа не чека на ваш одговор} =1{1 захтев чека на ваш одговор} one{{count} захтев чека на ваш одговор} few{{count} захтева чекају на ваш одговор} other{{count} захтева чека на ваш одговор}}",
+    "friendsRequestCount": "{count, plural, =0{Ништа не чека на ваш одговор} one{{count} захтев чека на ваш одговор} few{{count} захтева чекају на ваш одговор} other{{count} захтева чека на ваш одговор}}",
     "@friendsRequestCount": {
         "description": "How many friend requests wait for an answer",
         "placeholders": {
@@ -12210,7 +12168,7 @@
     "@chatGroupName": {
         "description": "Label of the group chat name field"
     },
-    "chatMemberCount": "{count, plural, =1{1 члан} one{{count} члан} few{{count} члана} other{{count} чланова}}",
+    "chatMemberCount": "{count, plural, one{{count} члан} few{{count} члана} other{{count} чланова}}",
     "@chatMemberCount": {
         "description": "How many people are in a group chat",
         "placeholders": {
@@ -12997,10 +12955,6 @@
     "@autoDownloadDelete": {
         "description": "Setting that picks how soon an auto-downloaded episode is removed after it was watched"
     },
-    "autoDownloadDeleteSubtitle": "Изаберите када ће се аутоматски преузете епизоде уклонити након гледања",
-    "@autoDownloadDeleteSubtitle": {
-        "description": "Explains the delete-after-watching setting"
-    },
     "autoDownloadDeleteNever": "Никада",
     "@autoDownloadDeleteNever": {
         "description": "Delete-after-watching option: keep episodes"
@@ -13402,5 +13356,442 @@
     "navYou": "Ви",
     "@navYou": {
         "description": "Bottom bar tab that opens the user's own menu with their profile, extra destinations and settings"
+    },
+    "animeMarkerSubbedShort": "Саб",
+    "@animeMarkerSubbedShort": {
+        "description": "Short form of the Subbed badge"
+    },
+    "animeMarkerDubbedShort": "Даб",
+    "@animeMarkerDubbedShort": {
+        "description": "Short form of the Dubbed badge"
+    },
+    "animeMarkerSubbedAndDubbedShort": "Саб/Даб",
+    "@animeMarkerSubbedAndDubbedShort": {
+        "description": "Short form of the Subbed/Dubbed badge"
+    },
+    "quickConnectScanHint": "Или скенирајте ово телефоном који је пријављен на ваш сервер",
+    "@quickConnectScanHint": {
+        "description": "Caption under the Quick Connect QR code that opens the server's web page with the code filled in"
+    },
+    "quickConnectTapOrScanHint": "Додирните да бисте одобрили у прегледачу или скенирајте ово другим уређајем",
+    "@quickConnectTapOrScanHint": {
+        "description": "Caption under the Quick Connect QR code on a phone or tablet, where tapping the code opens the server's web page with the code filled in"
+    },
+    "timesUpTitle": "Време је истекло",
+    "@timesUpTitle": {
+        "description": "Title of the screen that covers the app when the user's access schedule doesn't allow the current time"
+    },
+    "timesUpMessage": "Овај налог тренутно није доступан.",
+    "@timesUpMessage": {
+        "description": "Explanation on the Time's up screen"
+    },
+    "timesUpResumesToday": "Биће вам поново доступан за коришћење данас у {time}.",
+    "@timesUpResumesToday": {
+        "description": "When access returns, on the Time's up screen, for a time later today",
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "timesUpResumesTomorrow": "Биће вам поново доступан за коришћење сутра у {time}.",
+    "@timesUpResumesTomorrow": {
+        "description": "When access returns, on the Time's up screen, for a time tomorrow",
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "timesUpResumesOn": "Биће вам поново доступно за коришћење {day} у {time}.",
+    "@timesUpResumesOn": {
+        "description": "When access returns, on the Time's up screen, for a time on a later day",
+        "placeholders": {
+            "day": {
+                "type": "String"
+            },
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "loginForbidden": "Овим налогом тренутно не можете да се пријавите. Могуће је да пријављивање није дозвољено у ово време, да је налог закључан или да је онемогућен. Покушајте поново касније или затражите помоћ од администратора.",
+    "@loginForbidden": {
+        "description": "Sign in error when the server refuses the account with a 403, which Jellyfin does for an access schedule, a lockout or a disabled account without saying which"
+    },
+    "rendererMode": "Рендерер",
+    "@rendererMode": {
+        "description": "Label for the TV graphics renderer setting"
+    },
+    "rendererModeSubtitle": "Аутоматски режим користи Импелер на боксовима чија графика омогућава да ради глатко, а Скију свуда другде. Изаберите Скију ако анимације или видео не изгледају исправно. Промена ступа на снагу при следећем покретању.",
+    "@rendererModeSubtitle": {
+        "description": "Explanation under the TV graphics renderer setting"
+    },
+    "rendererModeAuto": "Аутоматски",
+    "@rendererModeAuto": {
+        "description": "Renderer option: let the app choose per device"
+    },
+    "rendererModeSkia": "Скиа",
+    "@rendererModeSkia": {
+        "description": "Renderer option: always use the Skia renderer"
+    },
+    "keyboardStyle": "Стил тастатуре",
+    "@keyboardStyle": {
+        "description": "Label for the setting that picks how the on-screen keyboard looks, or whether the TV's own keyboard is used"
+    },
+    "keyboardStyleDescription": "Нативна користи тастатуру вашег телевизора. Класична је оригинална Мунфин тастатура. Стаклена је панел од мат стакла са већим тастерима. Усидрена испуњава доњи део екрана и приказује оно што куцате изнад тастера.",
+    "@keyboardStyleDescription": {
+        "description": "Explanation under the keyboard style setting"
+    },
+    "keyboardStyleNative": "Нативна",
+    "@keyboardStyleNative": {
+        "description": "Keyboard style option: the TV or device's own system keyboard"
+    },
+    "keyboardStyleClassic": "Класична",
+    "@keyboardStyleClassic": {
+        "description": "Keyboard style option: the original in-app keyboard"
+    },
+    "keyboardStyleGlass": "Стаклена",
+    "@keyboardStyleGlass": {
+        "description": "Keyboard style option: a frosted glass panel with larger keys"
+    },
+    "keyboardStyleDocked": "Усидрена",
+    "@keyboardStyleDocked": {
+        "description": "Keyboard style option: a full-width keyboard docked to the bottom of the screen"
+    },
+    "keyboardSpace": "размак",
+    "@keyboardSpace": {
+        "description": "Label on the on-screen keyboard's space bar, lowercase like a printed key"
+    },
+    "keyboardHoldForAccents": "држи за акценте",
+    "@keyboardHoldForAccents": {
+        "description": "On-screen keyboard hint next to an OK button cap: holding OK on a letter shows its accented versions"
+    },
+    "keyboardClose": "затвори",
+    "@keyboardClose": {
+        "description": "On-screen keyboard hint next to a Back button cap, lowercase like the hold for accents hint: Back closes the keyboard"
+    },
+    "signInWithPlex": "Пријави се на Плекс",
+    "@signInWithPlex": {
+        "description": "Plex sign-in option label and title of the Plex sign-in screen"
+    },
+    "plexLinkInstructions": "На било ком уређају отворите plex.tv/link и унесите овај код",
+    "@plexLinkInstructions": {
+        "description": "Instructions above the code on the Plex sign-in screen"
+    },
+    "plexOpenLink": "Отвори plex.tv/link",
+    "@plexOpenLink": {
+        "description": "Button that opens plex.tv/link in the browser with the code filled in"
+    },
+    "plexWaitingForApproval": "Чекам да одобриш код...",
+    "@plexWaitingForApproval": {
+        "description": "Status shown while the app waits for the Plex code to be approved"
+    },
+    "plexSignInWithPassword": "Пријавите се лозинком",
+    "@plexSignInWithPassword": {
+        "description": "Button on the Plex sign-in screen that swaps the code for an email or username and password form"
+    },
+    "plexVerificationCode": "Верификациони код",
+    "@plexVerificationCode": {
+        "description": "Field for the account's two-step verification code, shown once Plex asks for it"
+    },
+    "plexNoServers": "На овом налогу нису пронађени Плекс сервери",
+    "@plexNoServers": {
+        "description": "Shown when the Plex account has no servers"
+    },
+    "gameOrientation": "Оријентација игре",
+    "@gameOrientation": {
+        "description": "Setting and in-game menu row for how the device is held while playing games"
+    },
+    "gameOrientationSubtitle": "Оријентација екрана током играња игара",
+    "@gameOrientationSubtitle": {
+        "description": "Subtitle of the game orientation setting"
+    },
+    "landscape": "Водоравно",
+    "@landscape": {
+        "description": "Orientation choice: the device held sideways"
+    },
+    "portrait": "Вертикално",
+    "@portrait": {
+        "description": "Orientation choice: the device held upright"
+    },
+    "gameKeepPlaying": "Настави са игром",
+    "@gameKeepPlaying": {
+        "description": "Exit confirmation choice that returns to the game"
+    },
+    "gameSaveAndExit": "Сачувај и изађи",
+    "@gameSaveAndExit": {
+        "description": "Exit confirmation choice that saves the game state and then leaves, staying in the game if the save fails"
+    },
+    "gameExitGame": "Изађи из игре",
+    "@gameExitGame": {
+        "description": "Exit confirmation choice that leaves the game"
+    },
+    "gameSavingBeforeExit": "Чувам…",
+    "@gameSavingBeforeExit": {
+        "description": "Shown over the paused game while it saves on the way out"
+    },
+    "gameSaveFailedStillPlaying": "Стање није могло да се сачува. Игра и даље траје.",
+    "@gameSaveFailedStillPlaying": {
+        "description": "Message shown when Save & exit could not save, so the game keeps running"
+    },
+    "additionalParts": "Додатни делови",
+    "@additionalParts": {
+        "description": "Heading for the other files of a movie split across several files, like DVD1 and DVD2"
+    },
+    "fetchingSubtitles": "Преузимање титлова",
+    "@fetchingSubtitles": {
+        "description": "Playback status shown while the selected subtitle file is loading"
+    },
+    "keyNameDelete": "Обриши",
+    "@keyNameDelete": {
+        "description": "Key cap label for the Delete key"
+    },
+    "shortcutHideControls": "Сакриј контроле",
+    "@shortcutHideControls": {
+        "description": "What Backspace and Delete do in the player: hide the controls or the panel on top of them"
+    },
+    "shortcutSkipSegment": "Прескочите уводну или одјавну шпицу када вам се понуди та могућност",
+    "@shortcutSkipSegment": {
+        "description": "Player shortcut action that presses the skip intro or credits button while it is showing"
+    },
+    "videoRenderer": "Видео рендерер",
+    "@videoRenderer": {
+        "description": "Settings label for choosing where Windows draws video, in its own window or inside the app"
+    },
+    "videoRendererDescription": "Изворни прозор омогућава најглаткији приказ покрета и прослеђује ХДР екрану без измена. Ако се видео не приказује исправно, покушајте са другом опцијом.",
+    "@videoRendererDescription": {
+        "description": "Settings description for the video renderer choice"
+    },
+    "videoRendererNativeWindow": "Нативни прозор (препоручено)",
+    "@videoRendererNativeWindow": {
+        "description": "Video renderer option that plays every title in its own window"
+    },
+    "videoRendererNativeHdrOnly": "Нативни прозор само за ХДР",
+    "@videoRendererNativeHdrOnly": {
+        "description": "Video renderer option that uses its own window for HDR titles and the in-app renderer for SDR"
+    },
+    "videoRendererInApp": "У апликацији (застарело)",
+    "@videoRendererInApp": {
+        "description": "Video renderer option that draws every title inside the app and converts HDR to SDR"
+    },
+    "bookReadingUnavailableTitle": "Књиге не могу да се читају на Епл ТВ-у",
+    "@bookReadingUnavailableTitle": {
+        "description": "Title of the dialog shown on Apple TV when the user tries to open a book or comic, which tvOS has no reader for"
+    },
+    "advancedPlayback": "Напредна репродукција",
+    "@advancedPlayback": {
+        "description": "Settings screen for advanced player routing, external players and mpv"
+    },
+    "settingsAdvancedSection": "Напредно",
+    "@settingsAdvancedSection": {
+        "description": "Section header on the Playback settings screen"
+    },
+    "playlistSortReleaseDate": "Датум изласка",
+    "@playlistSortReleaseDate": {
+        "description": "Label for sorting playlist items by release date"
+    },
+    "playlistSortRuntime": "Рунтиме",
+    "@playlistSortRuntime": {
+        "description": "Label for sorting playlist items by runtime"
+    },
+    "playlistSortLastPlayed": "Последње пуштено",
+    "@playlistSortLastPlayed": {
+        "description": "Label for sorting playlist items by last played date"
+    },
+    "libraryStyleClassic": "Класични",
+    "@libraryStyleClassic": {
+        "description": "Library style option: the original header"
+    },
+    "libraryStyleModern": "Модерни",
+    "@libraryStyleModern": {
+        "description": "Library style option: one bar with labeled buttons"
+    },
+    "adminExternalIdTypeArtist": "Извођач",
+    "adminMetadataFieldArtists": "Извођачи",
+    "adminMetadataFieldAlbum": "Албум",
+    "adminMetadataSectionRatings": "Оцене",
+    "adminLiveTvTabRecordings": "Снимци",
+    "adminLogLevelNone": "Ниједан",
+    "adminTaskResultFailed": "Неуспешно",
+    "adminLogWatch": "Гледај",
+    "adminGroupLibrary": "Библиотека",
+    "adminGroupPlayback": "Репродукција",
+    "adminGroupPeople": "Особе",
+    "librarySortAlbum": "Албум",
+    "@librarySortAlbum": {
+        "description": "Sort option for music: by album name"
+    },
+    "librarySortArtist": "Извођач",
+    "@librarySortArtist": {
+        "description": "Sort option for music: by track artist"
+    },
+    "librarySortGenre": "Жанр",
+    "@librarySortGenre": {
+        "description": "Sort option: by genre"
+    },
+    "bookLibraryStyleClassic": "Класични",
+    "@bookLibraryStyleClassic": {
+        "description": "Book library style option: the original shelves"
+    },
+    "homeRowsExternalLists": "Спољне листе",
+    "@homeRowsExternalLists": {
+        "description": "Home Rows editor: heading of the group of disabled rows from IMDb, TMDB, Letterboxd and MDBList lists"
+    },
+    "adminEmbyConnect": "Emby Connect",
+    "adminTranscodingHwaAdvanced": "Напредно",
+    "musicLibraryStyleClassic": "Класични",
+    "@musicLibraryStyleClassic": {
+        "description": "Music library style option: the original rows"
+    },
+    "playbackInfoChannel": "Канал",
+    "@playbackInfoChannel": {
+        "description": "Playback information row label: the Live TV channel being watched"
+    },
+    "recordPromptNow": "Сада",
+    "@recordPromptNow": {
+        "description": "Label of the Record prompt card for the program that is airing now"
+    },
+    "detailsBackdropFit": "Фит",
+    "@detailsBackdropFit": {
+        "description": "Backdrop Size option that shows the whole backdrop across the top of the details screen, fading into the page below it"
+    },
+    "externalRowSortName": "Име",
+    "externalRowSortReleaseDate": "Датум изласка",
+    "externalRowSortShuffle": "Насумично",
+    "siloApproveSignInApprove": "Одобри",
+    "@siloApproveSignInApprove": {
+        "description": "Button in the Silo approve-a-sign-in dialog that approves the typed code"
+    },
+    "accountActive": "Активно",
+    "@accountActive": {
+        "description": "Marks the account that is signed in now in the Switch User screen"
+    },
+    "detailScreenStylePremiere": "Премијера",
+    "@detailScreenStylePremiere": {
+        "description": "Detail screen style option: the title centered over a full screen backdrop, with every section down the page under it"
+    },
+    "setupStylePremiere": "Премијера",
+    "@setupStylePremiere": {
+        "description": "Name of the detail layout that centers the title over a full screen backdrop, offered in the setup wizard"
+    },
+    "calendarSettingsColorByType": "Тип",
+    "@calendarSettingsColorByType": {
+        "description": "Color by choice that colors episodes and movies differently"
+    },
+    "afterHoursPlay": "Пусти",
+    "@afterHoursPlay": {
+        "description": "Button that starts playing a game in the arcade. Play as in playing a game, not playing media"
+    },
+    "afterHoursCastStatic": "Статични",
+    "@afterHoursCastStatic": {
+        "description": "Name of an obstacle in the Cable Crawl arcade game, shown on its How to play card. A cell of TV static. Keep it short, it shows as a heading in a small column"
+    },
+    "watchPartyType": "Тип",
+    "@watchPartyType": {
+        "description": "TV quick bar button that opens the keyboard to type a chat message"
+    },
+    "settingsAudioStreamSection": "Аудио стрим",
+    "@settingsAudioStreamSection": {
+        "description": "Section header on the Audio settings screen for the default audio track choices"
+    },
+    "settingsAudioOutputSection": "Аудио излаз",
+    "@settingsAudioOutputSection": {
+        "description": "Section header on the Audio settings screen for the passthrough mode"
+    },
+    "playlistSortRandom": "Насумично",
+    "@playlistSortRandom": {
+        "description": "Label for sorting playlist items randomly"
+    },
+    "libraryStyleDocked": "Усидрена",
+    "@libraryStyleDocked": {
+        "description": "Library style option: a side panel on TV and desktop, a bottom bar on phones"
+    },
+    "libraryShowLabel": "Прикажи",
+    "@libraryShowLabel": {
+        "description": "Library button that opens the played status filter, followed by its current value such as All or Unwatched"
+    },
+    "adminExternalIdTypeBook": "Књига",
+    "adminImageTypeMenu": "Мени",
+    "adminGroupOverview": "Преглед",
+    "librarySortPlaylistOrder": "Редослед на листи за репродукцију",
+    "@librarySortPlaylistOrder": {
+        "description": "Sort option: the playlist's own track order"
+    },
+    "librarySortParentalRating": "Родитељска оцена",
+    "@librarySortParentalRating": {
+        "description": "Sort option: by parental (age) rating such as PG-13"
+    },
+    "librarySortMyRating": "Моја оцена",
+    "@librarySortMyRating": {
+        "description": "Sort option: by the viewer's own like or dislike"
+    },
+    "seriesRecordingAllEpisodes": "Све епизоде",
+    "@seriesRecordingAllEpisodes": {
+        "description": "Series recording choice that records every showing, repeats included"
+    },
+    "playerTransportDocked": "Усидрена",
+    "@playerTransportDocked": {
+        "description": "Option that puts the play, skip and seek buttons in the bottom bar with the other player buttons"
+    },
+    "recordPromptTomorrow": "Сутра",
+    "@recordPromptTomorrow": {
+        "description": "When the future showing airs, used in the Record Now and ... button"
+    },
+    "homeScreenBackdropFullScreen": "Цео екран",
+    "@homeScreenBackdropFullScreen": {
+        "description": "Home Screen Backdrop option that fills the whole screen with the focused item's backdrop"
+    },
+    "detailsBackdropFullScreen": "Цео екран",
+    "@detailsBackdropFullScreen": {
+        "description": "Backdrop Size option that zooms the backdrop to fill the whole details screen"
+    },
+    "musicSortYear": "Година",
+    "@musicSortYear": {
+        "description": "Albums screen sort: by release year, newest first"
+    },
+    "siloTooManyAttemptsWait": "Превише покушаја. Покушајте поново за {wait}.",
+    "@siloTooManyAttemptsWait": {
+        "description": "Shown when Silo refuses a request because of too many attempts (HTTP 429); wait is siloWaitSeconds or siloWaitMinutes",
+        "placeholders": {
+            "wait": {
+                "type": "String"
+            }
+        }
+    },
+    "calendarReleaseDigital": "Дигитални",
+    "@calendarReleaseDigital": {
+        "description": "Release format before the date in the Radarr calendar row, e.g. 'Digital · Tomorrow (Nov 4)'"
+    },
+    "sinceYouWatchedSourceLocal": "Мунфинове препоруке",
+    "sinceYouWatchedSourceServer": "Препоруке сервера",
+    "sinceYouWatchedSourceOnline": "Сличност према ТМДБ-у (TMDb)",
+    "calendarSettingsView": "Погледај",
+    "@calendarSettingsView": {
+        "description": "Calendar settings section header for how the calendar opens and lays out weeks"
+    },
+    "calendarSettingsScope": "Прикажи",
+    "@calendarSettingsScope": {
+        "description": "Calendar setting that limits the calendar to the user's own series. The choices are Everything and My shows"
+    },
+    "calendarSettingsSpecials": "Специјалне епизоде",
+    "@calendarSettingsSpecials": {
+        "description": "Calendar setting that lists special episodes, the ones in season 0"
+    },
+    "calendarSettingsActions": "Радње",
+    "@calendarSettingsActions": {
+        "description": "Calendar settings section header for what buttons and selecting an entry do"
+    },
+    "syncPlayParticipantYou": "Ви",
+    "@syncPlayParticipantYou": {
+        "description": "Small label on the signed-in user's own chip in the SyncPlay participant list"
+    },
+    "afterHoursStart": "Почетак",
+    "@afterHoursStart": {
+        "description": "Button on the How to play card that starts the game. Start as in begin playing"
+    },
+    "seerrDownloadFailed": "Преузимање није успело",
+    "@seerrDownloadFailed": {
+        "description": "Label on the Seerr download bar when the download client reports the download as failed"
     }
 }

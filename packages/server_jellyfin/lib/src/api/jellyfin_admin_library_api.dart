@@ -50,6 +50,7 @@ class JellyfinAdminLibraryApi implements AdminLibraryApi {
   Future<void> removeVirtualFolder(
     String name, {
     bool refreshLibrary = false,
+    String? libraryId,
   }) async {
     await _dio.delete(
       '/Library/VirtualFolders',
@@ -65,6 +66,7 @@ class JellyfinAdminLibraryApi implements AdminLibraryApi {
     String name,
     String newName, {
     bool refreshLibrary = false,
+    String? libraryId,
   }) async {
     await _dio.post(
       '/Library/VirtualFolders/Name',
@@ -81,6 +83,7 @@ class JellyfinAdminLibraryApi implements AdminLibraryApi {
     String libraryName,
     String path, {
     bool refreshLibrary = false,
+    String? libraryId,
   }) async {
     await _dio.post(
       '/Library/VirtualFolders/Paths',
@@ -95,8 +98,9 @@ class JellyfinAdminLibraryApi implements AdminLibraryApi {
   @override
   Future<void> updateMediaPath(
     String libraryName,
-    Map<String, dynamic> pathInfo,
-  ) async {
+    Map<String, dynamic> pathInfo, {
+    String? libraryId,
+  }) async {
     await _dio.post(
       '/Library/VirtualFolders/Paths/Update',
       data: {
@@ -111,6 +115,7 @@ class JellyfinAdminLibraryApi implements AdminLibraryApi {
     String libraryName,
     String path, {
     bool refreshLibrary = false,
+    String? libraryId,
   }) async {
     await _dio.delete(
       '/Library/VirtualFolders/Paths',

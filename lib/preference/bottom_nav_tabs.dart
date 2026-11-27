@@ -3,7 +3,15 @@ import 'user_preferences.dart';
 /// Destinations that can be pinned between Home and You on the mobile bottom
 /// navbar. The names are the wire format of [UserPreferences.bottomNavbarTabs],
 /// so renaming one breaks every synced profile that holds it.
-enum BottomNavTab { search, libraries, favorites, genres, liveTv, discover, folders }
+enum BottomNavTab {
+  search,
+  libraries,
+  favorites,
+  genres,
+  liveTv,
+  discover,
+  calendar,
+}
 
 const int kMaxPinnedBottomNavTabs = 3;
 
@@ -15,7 +23,7 @@ const List<BottomNavTab> _autoOrder = [
   BottomNavTab.liveTv,
   BottomNavTab.discover,
   BottomNavTab.genres,
-  BottomNavTab.folders,
+  BottomNavTab.calendar,
 ];
 
 final Map<String, BottomNavTab> _byName = {
@@ -55,7 +63,8 @@ class BottomNavTabGates {
   final bool showLiveTv;
   final bool showSeerr;
   final bool seerrAvailable;
-  final bool folderView;
+  final bool showCalendar;
+  final bool calendarAvailable;
 
   const BottomNavTabGates({
     this.kidsMode = false,
@@ -65,12 +74,14 @@ class BottomNavTabGates {
     this.showLiveTv = false,
     this.showSeerr = true,
     this.seerrAvailable = false,
-    this.folderView = false,
+    this.showCalendar = true,
+    this.calendarAvailable = false,
   });
 
   factory BottomNavTabGates.fromPreferences(
     UserPreferences prefs, {
     required bool seerrAvailable,
+    bool calendarAvailable = false,
   }) {
     return BottomNavTabGates(
       kidsMode: prefs.get(UserPreferences.kidsModeEnabled),
@@ -80,12 +91,13 @@ class BottomNavTabGates {
       showLiveTv: prefs.get(UserPreferences.showLiveTvButton),
       showSeerr: prefs.get(UserPreferences.showSeerrButton),
       seerrAvailable: seerrAvailable,
-      folderView: prefs.get(UserPreferences.enableFolderView),
+      showCalendar: prefs.get(UserPreferences.showCalendarButton),
+      calendarAvailable: calendarAvailable,
     );
   }
 
   // Kids Mode drops Libraries (the My Media row stands in), Live TV (its route
-  // bounces home) and Seerr.
+  // bounces home), Seerr and the calendar.
   bool offers(BottomNavTab tab) => switch (tab) {
         BottomNavTab.search => true,
         BottomNavTab.libraries => !kidsMode && showLibraries,
@@ -93,7 +105,7 @@ class BottomNavTabGates {
         BottomNavTab.genres => showGenres,
         BottomNavTab.liveTv => !kidsMode && showLiveTv,
         BottomNavTab.discover => !kidsMode && showSeerr && seerrAvailable,
-        BottomNavTab.folders => folderView,
+        BottomNavTab.calendar => !kidsMode && showCalendar && calendarAvailable,
       };
 
   /// The tabs the bar shows between Home and You. Automatic pins follow the

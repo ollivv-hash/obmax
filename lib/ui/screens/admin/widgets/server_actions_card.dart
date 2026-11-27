@@ -12,8 +12,13 @@ import 'admin_settings_search.dart';
 
 class ServerActionsCard extends ConsumerWidget {
   final MediaServerClient client;
+  final bool canRestart;
 
-  const ServerActionsCard({super.key, required this.client});
+  const ServerActionsCard({
+    super.key,
+    required this.client,
+    required this.canRestart,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,20 +59,21 @@ class ServerActionsCard extends ConsumerWidget {
                       ? null
                       : () => _scan(context, scanTaskId),
                 ),
-                FilledButton.tonalIcon(
-                  icon: const Icon(Icons.restart_alt),
-                  label: Text(l10n.adminRestartServer),
-                  onPressed: () => _confirmAction(
-                    context,
-                    title: l10n.adminRestartServer,
-                    message: l10n.adminRestartServerConfirmation,
-                    onConfirm: () async {
-                      await client.adminSystemApi.restartServer();
-                      if (!context.mounted) return;
-                      await _showRestartMessage(context);
-                    },
+                if (canRestart)
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.restart_alt),
+                    label: Text(l10n.adminRestartServer),
+                    onPressed: () => _confirmAction(
+                      context,
+                      title: l10n.adminRestartServer,
+                      message: l10n.adminRestartServerConfirmation,
+                      onConfirm: () async {
+                        await client.adminSystemApi.restartServer();
+                        if (!context.mounted) return;
+                        await _showRestartMessage(context);
+                      },
+                    ),
                   ),
-                ),
                 FilledButton.tonalIcon(
                   icon: const Icon(Icons.power_settings_new),
                   label: Text(l10n.adminShutdownServer),

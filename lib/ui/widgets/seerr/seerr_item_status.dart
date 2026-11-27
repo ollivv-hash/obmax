@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/viewmodels/item_detail_view_model.dart';
 import '../../../data/viewmodels/seerr_media_detail_view_model.dart';
 import '../../../l10n/app_localizations.dart';
@@ -31,6 +32,7 @@ SeerrMediaDetailState? seerrItemTabState(ItemDetailViewModel viewModel) {
   final hasContent = state.genres.isNotEmpty ||
       state.keywords.isNotEmpty ||
       state.networks.isNotEmpty ||
+      state.streamingProviders.isNotEmpty ||
       state.similar.isNotEmpty ||
       state.recommendations.isNotEmpty;
   return hasContent ? state : null;
@@ -44,16 +46,18 @@ class SeerrDetailPieces {
   const SeerrDetailPieces._({
     required this.chips,
     required this.stats,
+    required this.streaming,
     required this.recommendations,
-    required this.similar,
+    required this.similarItems,
     required this.collection,
   });
 
   static const none = SeerrDetailPieces._(
     chips: false,
     stats: false,
+    streaming: false,
     recommendations: false,
-    similar: false,
+    similarItems: [],
     collection: false,
   );
 
@@ -64,6 +68,22 @@ class SeerrDetailPieces {
     AppLocalizations l10n,
   ) {
     if (state == null) return none;
+    final recommendations =
+        visibility.shows(DetailSection.seerrRecommendations) &&
+        state.recommendations.isNotEmpty;
+    // Seerr's similar titles often repeat its recommendations, and Silo has
+    // only the one list for both, so Similar keeps what a shown
+    // Recommendations row doesn't.
+    final shown = {
+      if (recommendations)
+        for (final item in state.recommendations) _titleKey(item),
+    };
+    final similarItems = visibility.shows(DetailSection.seerrSimilar)
+        ? [
+            for (final item in state.similar)
+              if (!shown.contains(_titleKey(item))) item,
+          ]
+        : const <SeerrDiscoverItem>[];
     return SeerrDetailPieces._(
       chips:
           visibility.shows(DetailSection.seerrGenresTags) &&
@@ -71,12 +91,11 @@ class SeerrDetailPieces {
       stats:
           visibility.shows(DetailSection.seerrStats) &&
           SeerrStatsCard.hasContent(state, l10n),
-      recommendations:
-          visibility.shows(DetailSection.seerrRecommendations) &&
-          state.recommendations.isNotEmpty,
-      similar:
-          visibility.shows(DetailSection.seerrSimilar) &&
-          state.similar.isNotEmpty,
+      streaming:
+          visibility.shows(DetailSection.seerrStreaming) &&
+          state.streamingProviders.isNotEmpty,
+      recommendations: recommendations,
+      similarItems: similarItems,
       collection:
           visibility.shows(DetailSection.seerrCollection) &&
           state.movie?.collection != null,
@@ -85,11 +104,21 @@ class SeerrDetailPieces {
 
   final bool chips;
   final bool stats;
+  final bool streaming;
   final bool recommendations;
-  final bool similar;
   final bool collection;
 
-  bool get hasAny => chips || stats || recommendations || similar || collection;
+  /// The Seerr similar titles to draw: those a shown Recommendations row
+  /// doesn't already have.
+  final List<SeerrDiscoverItem> similarItems;
+
+  bool get similar => similarItems.isNotEmpty;
+
+  static String _titleKey(SeerrDiscoverItem item) =>
+      '${item.mediaType}:${item.id}';
+
+  bool get hasAny =>
+      chips || stats || streaming || recommendations || similar || collection;
 }
 
 /// Season number to Seerr status for a series, empty when Seerr has nothing to
@@ -99,17 +128,19 @@ Map<int, int> seerrItemSeasonStatus(ItemDetailViewModel viewModel) {
   return state?.hd.seasonStatus ?? const {};
 }
 
-/// The Seerr state of an item with something downloading, or null.
+/// The Seerr state of an item with something downloading, or with an approved
+/// request the arr is still waiting on, or null.
 SeerrMediaDetailState? seerrItemDownloads(ItemDetailViewModel viewModel) {
   final state = _resolved(viewModel);
   if (state == null) return null;
   final downloading = state.hdDownload != null || state.download4k != null;
-  return downloading ? state : null;
+  return downloading || state.hd.arrWait != null ? state : null;
 }
 
 /// Progress bars for whatever Radarr or Sonarr is fetching right now, one per
 /// quality track. Labelled only when both are running, so the usual single bar
-/// stays uncluttered.
+/// stays uncluttered. An HD track with nothing grabbed yet says what the arr
+/// is waiting on instead.
 class SeerrItemDownloadBars extends StatelessWidget {
   final SeerrMediaDetailState state;
 
@@ -119,7 +150,8 @@ class SeerrItemDownloadBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final hd = state.hdDownload;
     final uhd = state.download4k;
-    final both = hd != null && uhd != null;
+    final wait = hd == null ? state.hd.arrWait : null;
+    final both = (hd != null || wait != null) && uhd != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -128,11 +160,15 @@ class SeerrItemDownloadBars extends StatelessWidget {
           SeerrDownloadProgressBar(
             summary: hd,
             prefixLabel: both ? 'HD' : null,
-          ),
+            reasonMaxLines: 3,
+          )
+        else if (wait != null)
+          SeerrArrWaitLabel(wait: wait, prefixLabel: both ? 'HD' : null),
         if (uhd != null)
           SeerrDownloadProgressBar(
             summary: uhd,
             prefixLabel: AppLocalizations.of(context).uhd4k,
+            reasonMaxLines: 3,
           ),
       ],
     );

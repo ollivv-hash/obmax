@@ -66,6 +66,35 @@ enum PlaybackEnginePreference {
   mpv,
 }
 
+/// Which player plays video on iPhone and iPad. Native is the player the
+/// Apple TV app uses.
+enum ApplePlayerUi {
+  flutter,
+  native,
+}
+
+/// When Siri Remote clicks and swipes may seek on Apple TV. The stricter modes
+/// bring up hidden controls first, and pausedOnly also needs playback paused.
+enum AppleTvClickpadSeekMode {
+  always,
+  controlsVisible,
+  pausedOnly;
+
+  bool allowsSeek({required bool controlsVisible, required bool playing}) =>
+      switch (this) {
+        always => true,
+        AppleTvClickpadSeekMode.controlsVisible => controlsVisible,
+        pausedOnly => controlsVisible && !playing,
+      };
+}
+
+/// Where the play, skip and seek buttons sit on phones, tablets and desktop.
+/// TVs always dock them, since the remote walks the bottom row.
+enum PlayerTransportPosition {
+  onScreen,
+  docked,
+}
+
 enum DolbyVisionFallbackBehavior {
   ask,
   hdr10Fallback,
@@ -143,6 +172,10 @@ enum FavoritesViewStyle {
 enum HomeRowsStyle {
   v1,
   v2,
+  carousel;
+
+  /// Carousel rows are Modern rows with a details panel under the cards.
+  bool get usesModernCards => this != v1;
 }
 
 enum DesktopUiScale {
@@ -192,6 +225,9 @@ enum AutoHdrSwitchingBehavior {
   whenFullscreen,
   always,
 }
+
+/// What a Jellyfin user starts from Watch Parties. Synced as the plain name.
+enum WatchPartyServiceChoice { moonbase, syncplay }
 
 /// How phones and tablets are held while a game plays. [auto] follows the
 /// device, so the system rotation lock applies.
@@ -282,6 +318,14 @@ enum DesktopScrollWheelAction {
   volume,
 }
 
+/// Where brightness and volume swipe gesture indicators are placed on the screen.
+/// [same] places the indicator on the side being swiped (brightness left, volume right).
+/// [inverted] places the indicator on the opposite side (brightness right, volume left).
+enum GestureIndicatorPlacement {
+  same,
+  inverted,
+}
+
 /// Glass rendering budget. `auto` picks per-device (real blur on capable
 /// hardware, zero-blur sheen on TV boxes/web); `full` forces real blur;
 /// `reduced` forces the zero-blur sheen everywhere.
@@ -346,13 +390,23 @@ enum VisualThemeId {
 /// sectioned grid modals. [nouveau] is the full-screen layout, with every
 /// section stacked down the page rather than behind tabs or cards.
 /// [minimalist] strips the screen back to artwork, one play button and the
-/// episodes, and is what Kids Mode always shows. Stored per server and user.
+/// episodes, and is what Kids Mode always shows. [stage] leads with the poster,
+/// with play under it and the details beside it. [premiere] centers the title
+/// over a backdrop that fills the screen, with every section down the page
+/// under it. [quickLook] opens a drawer over the screen the title was picked
+/// on, with Modern a press away for the full page. [frost] floats the title in
+/// a glass window over a blurred copy of its art, with tabs under its buttons.
+/// Stored per server and user.
 enum DetailScreenStyle {
   classic,
   modern,
   spotlight,
   nouveau,
-  minimalist;
+  minimalist,
+  stage,
+  premiere,
+  quickLook,
+  frost;
 }
 
 /// Selectable header layout for the library browse screen.
@@ -366,6 +420,30 @@ enum LibraryStyle {
   classic,
   modern,
   docked;
+}
+
+/// Selectable layout for book and audiobook libraries.
+///
+/// [classic] is the original shelves under a featured title. [readingRoom]
+/// leads with large Continue cards over a few shelves. [bookstore] is the
+/// default, a rail or tiles of browse entries over a paged title grid. Stored
+/// per server and user.
+enum BookLibraryStyle {
+  classic,
+  readingRoom,
+  bookstore;
+}
+
+/// Selectable layout for music libraries.
+///
+/// [classic] is the original rows under a Jump Back In card. [quickAccess]
+/// leads with a grid of recent albums and playlists. [immersive] is the
+/// default, the album being listened to on a full-width hero over the rest.
+/// Stored per server and user.
+enum MusicLibraryStyle {
+  classic,
+  quickAccess,
+  immersive;
 }
 
 /// Selectable algorithm source for similarity recommendation system.
@@ -518,6 +596,28 @@ enum HomeSectionType {
   tmdbTrendingTvDaily('tmdb_trending_tv_daily'),
   tmdbTrendingTvWeekly('tmdb_trending_tv_weekly'),
   tmdbTrendingAllWeekly('tmdb_trending_all_weekly'),
+  mdblistWatchingNow('mdblist_watching_now'),
+  mdblistMostWatchedWeekMovies('mdblist_most_watched_week_movies'),
+  mdblistMostWatchedWeekShows('mdblist_most_watched_week_shows'),
+  mdblistMostWatchedYearMovies('mdblist_most_watched_year_movies'),
+  mdblistMostWatchedYearShows('mdblist_most_watched_year_shows'),
+  mdblistAnticipatedMovies('mdblist_anticipated_movies'),
+  mdblistAnticipatedShows('mdblist_anticipated_shows'),
+  mdblistStreamingChartsMovies('mdblist_streaming_charts_movies'),
+  mdblistStreamingChartsShows('mdblist_streaming_charts_shows'),
+  justwatchTopMovies('justwatch_top_movies'),
+  justwatchTopShows('justwatch_top_shows'),
+  tmdbTrendingAllDaily('tmdb_trending_all_daily'),
+  tmdbKoreanDramas('tmdb_korean_dramas'),
+  tmdbAnime('tmdb_anime'),
+  tmdbNewDigitalMovies('tmdb_new_digital_movies'),
+  tmdbHiddenGems('tmdb_hidden_gems'),
+  tmdbNetflix('tmdb_netflix'),
+  tmdbPrimeVideo('tmdb_prime_video'),
+  tmdbDisneyPlus('tmdb_disney_plus'),
+  tmdbHboMax('tmdb_hbo_max'),
+  tmdbAppleTv('tmdb_apple_tv'),
+  tmdbParamountPlus('tmdb_paramount_plus'),
   radarrCalendar('radarr_calendar'),
   sonarrCalendar('sonarr_calendar'),
   sinceYouWatched1('sinceyouwatched1'),
@@ -552,6 +652,158 @@ enum HomeSectionType {
     );
   }
 }
+
+/// The IMDb charts Moonbase serves, each asked for by its own serialized name.
+const imdbChartSections = [
+  HomeSectionType.imdbTop250Movies,
+  HomeSectionType.imdbTop250TvShows,
+  HomeSectionType.imdbMostPopularMovies,
+  HomeSectionType.imdbMostPopularTvShows,
+  HomeSectionType.imdbLowestRatedMovies,
+  HomeSectionType.imdbTopEnglishMovies,
+];
+
+/// The TMDB chart behind each TMDB section, as the path Moonbase asks TMDB for.
+const tmdbChartPaths = {
+  HomeSectionType.tmdbPopularMovies: 'movie/popular',
+  HomeSectionType.tmdbTopRatedMovies: 'movie/top_rated',
+  HomeSectionType.tmdbNowPlayingMovies: 'movie/now_playing',
+  HomeSectionType.tmdbUpcomingMovies: 'movie/upcoming',
+  HomeSectionType.tmdbPopularTv: 'tv/popular',
+  HomeSectionType.tmdbTopRatedTv: 'tv/top_rated',
+  HomeSectionType.tmdbAiringTodayTv: 'tv/airing_today',
+  HomeSectionType.tmdbOnTheAirTv: 'tv/on_the_air',
+  HomeSectionType.tmdbTrendingMovieDaily: 'trending/movie/day',
+  HomeSectionType.tmdbTrendingMovieWeekly: 'trending/movie/week',
+  HomeSectionType.tmdbTrendingTvDaily: 'trending/tv/day',
+  HomeSectionType.tmdbTrendingTvWeekly: 'trending/tv/week',
+  HomeSectionType.tmdbTrendingAllWeekly: 'trending/all/week',
+};
+
+/// A Home row Moonbase fills from an outside chart through its custom rows
+/// endpoint, asked for by [source], [type] and [params].
+class ExternalChart {
+  const ExternalChart(
+    this.title,
+    this.label,
+    this.source,
+    this.type, {
+    this.params = const {},
+    this.regional = false,
+  });
+
+  final String title;
+
+  /// Where the row comes from, shown under its name in the row picker.
+  final String label;
+  final String source;
+  final String type;
+  final Map<String, String> params;
+
+  /// Whether the chart depends on the viewer's country, which goes along as
+  /// the `region` param.
+  final bool regional;
+
+  /// Whether MDBList fills the row, so it needs an MDBList key rather than a
+  /// TMDB one.
+  bool get usesMdblist => source == 'mdblist' || source == 'justwatch';
+
+  /// Whether the row needs a Moonbase that announces `discoverChartsSupported`.
+  /// MDBList's official lists and plain TMDB charts work on any Moonbase.
+  bool get needsDiscoverCharts =>
+      source == 'justwatch' || source == 'tmdb_discover';
+}
+
+const _mdblistLabel = 'MDBList Lists';
+const _tmdbLabel = 'TMDB Lists';
+
+ExternalChart _official(String title, String list, String mediaType) =>
+    ExternalChart(
+      title,
+      _mdblistLabel,
+      'mdblist',
+      'list',
+      params: {'username': 'official', 'listname': list, 'mediatype': mediaType},
+    );
+
+ExternalChart _service(String name, String type) => ExternalChart(
+  'Popular on $name',
+  _tmdbLabel,
+  'tmdb_discover',
+  type,
+  regional: true,
+);
+
+/// The outside chart rows, by section.
+final externalCharts = <HomeSectionType, ExternalChart>{
+  HomeSectionType.mdblistMostWatchedWeekMovies:
+      _official('Most Watched Movies This Week', 'most-watched-week', 'movie'),
+  HomeSectionType.mdblistMostWatchedWeekShows:
+      _official('Most Watched Shows This Week', 'most-watched-week', 'show'),
+  HomeSectionType.mdblistMostWatchedYearMovies:
+      _official('Most Watched Movies This Year', 'most-watched', 'movie'),
+  HomeSectionType.mdblistMostWatchedYearShows:
+      _official('Most Watched Shows This Year', 'most-watched', 'show'),
+  HomeSectionType.mdblistAnticipatedMovies:
+      _official('Most Anticipated Movies', 'anticipated', 'movie'),
+  HomeSectionType.mdblistAnticipatedShows:
+      _official('Most Anticipated Shows', 'anticipated', 'show'),
+  HomeSectionType.mdblistStreamingChartsMovies:
+      _official('Streaming Chart Movies', 'streaming-charts', 'movie'),
+  HomeSectionType.mdblistStreamingChartsShows:
+      _official('Streaming Chart Shows', 'streaming-charts', 'show'),
+  HomeSectionType.justwatchTopMovies: const ExternalChart(
+    'Top Streaming Movies Today',
+    'JustWatch',
+    'justwatch',
+    'movie',
+    regional: true,
+  ),
+  HomeSectionType.justwatchTopShows: const ExternalChart(
+    'Top Streaming Shows Today',
+    'JustWatch',
+    'justwatch',
+    'show',
+    regional: true,
+  ),
+  HomeSectionType.tmdbTrendingAllDaily: const ExternalChart(
+    'Trending All (Daily)',
+    _tmdbLabel,
+    'tmdb_chart',
+    'trending/all/day',
+  ),
+  HomeSectionType.tmdbKoreanDramas: const ExternalChart(
+    'Korean Dramas',
+    _tmdbLabel,
+    'tmdb_discover',
+    'korean_dramas',
+  ),
+  HomeSectionType.tmdbAnime: const ExternalChart(
+    'Popular Anime',
+    _tmdbLabel,
+    'tmdb_discover',
+    'anime',
+  ),
+  HomeSectionType.tmdbNewDigitalMovies: const ExternalChart(
+    'New Digital Releases',
+    _tmdbLabel,
+    'tmdb_discover',
+    'new_digital_movies',
+    regional: true,
+  ),
+  HomeSectionType.tmdbHiddenGems: const ExternalChart(
+    'Hidden Gems',
+    _tmdbLabel,
+    'tmdb_discover',
+    'hidden_gems',
+  ),
+  HomeSectionType.tmdbNetflix: _service('Netflix', 'provider_netflix'),
+  HomeSectionType.tmdbPrimeVideo: _service('Prime Video', 'provider_prime_video'),
+  HomeSectionType.tmdbDisneyPlus: _service('Disney+', 'provider_disney_plus'),
+  HomeSectionType.tmdbHboMax: _service('HBO Max', 'provider_hbo_max'),
+  HomeSectionType.tmdbAppleTv: _service('Apple TV', 'provider_apple_tv'),
+  HomeSectionType.tmdbParamountPlus: _service('Paramount+', 'provider_paramount_plus'),
+};
 
 /// Every sort ends on SortName so items the server ranks equally keep a stable
 /// order between pages, which a bare key leaves to whatever the database
@@ -703,6 +955,23 @@ enum SortDirection {
   final String apiValue;
 }
 
+/// How a poster shows its Seerr status: [badge] is Seerr's own dot in a corner
+/// and [banner] runs the status across the top. Stored per server and user.
+enum SeerrBadgeStyle { badge, banner }
+
+enum ExternalRowSortBy {
+  none('Default (List Order)'),
+  name('Name'),
+  releaseDate('Release Date'),
+  rating('Rating'),
+  popularity('Popularity'),
+  shuffle('Shuffle');
+
+  const ExternalRowSortBy(this.displayName);
+
+  final String displayName;
+}
+
 enum PlayedStatusFilter {
   all,
   watched,
@@ -772,7 +1041,8 @@ enum FavoriteTypeFilter {
   musicAlbum,
   musicArtist,
   audio,
-  collection;
+  collection,
+  watchlist;
 
   String get displayName => switch (this) {
     all => 'All',
@@ -785,6 +1055,7 @@ enum FavoriteTypeFilter {
     musicArtist => 'Artists',
     audio => 'Songs',
     collection => 'Collections',
+    watchlist => 'Watchlist',
   };
 
   List<String>? get itemTypes => switch (this) {
@@ -798,6 +1069,7 @@ enum FavoriteTypeFilter {
     musicArtist => ['MusicArtist'],
     audio => ['Audio'],
     collection => ['BoxSet'],
+    watchlist => null,
   };
 
   static FavoriteTypeFilter fromRowId(String id) {
@@ -970,41 +1242,19 @@ enum ScreensaverTimeout {
 enum SinceYouWatchedSource {
   local,
   server,
-  online;
-
-  String get displayName => switch (this) {
-    SinceYouWatchedSource.local => 'Moonfin Recommends',
-    SinceYouWatchedSource.server => 'Jellyfin Recommends',
-    SinceYouWatchedSource.online => 'TMDb Similarity',
-  };
+  online,
 }
 
 enum SinceYouWatchedSourceType {
   movies,
   shows,
-  both;
-
-  String get displayName {
-    switch (this) {
-      case movies: return 'Movies';
-      case shows: return 'Shows';
-      case both: return 'Both';
-    }
-  }
+  both,
 }
 
 enum SinceYouWatchedSourceItem {
   recentlyWatched,
   favorites,
-  random;
-
-  String get displayName {
-    switch (this) {
-      case recentlyWatched: return 'Recently Watched';
-      case favorites: return 'Favorites';
-      case random: return 'Random';
-    }
-  }
+  random,
 }
 
 enum SinceYouWatchedNumRows {
@@ -1031,6 +1281,9 @@ enum RewatchSortBy {
 /// series carries its first episode's date, so a long running show stops
 /// surfacing. The row shows series cards whichever of these is picked.
 enum RecentlyReleasedSeriesType { series, season, episode }
+
+/// What single-clicking on a Continue Watching or Next Up home card does.
+enum ContinueWatchingDefaultAction { details, play }
 
 /// When a home row card shows its MOVIE or SERIES label. Only external rows
 /// carry a media type, so the rest are unaffected either way.
@@ -1102,4 +1355,24 @@ enum ModernCardTransitionSpeed {
 
   const ModernCardTransitionSpeed(this.duration);
   final Duration duration;
+}
+
+/// What the Calendar button opens. The month grid sits behind both styles.
+enum CalendarStyle { agenda, countdown }
+
+enum CalendarWeekStart { locale, sunday, monday }
+
+/// [myShows] keeps episodes of series the user favorited or has watched.
+enum CalendarScope { everything, myShows }
+
+enum CalendarColorBy { type, status }
+
+enum CalendarImageType { poster, thumb }
+
+enum CalendarSelectAction { details, play }
+
+enum DateFormatSetting {
+  system,
+  monthDay,
+  dayMonth,
 }

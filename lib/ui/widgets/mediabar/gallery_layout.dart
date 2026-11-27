@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 
@@ -27,6 +29,12 @@ class GalleryLayout extends StatelessWidget {
 
   final bool trailerActive;
 
+  final double leftInset;
+
+  /// Room a phone's navigation takes at the top and bottom of the bar.
+  final double topInset;
+  final double bottomInset;
+
   static const int pageSize = 5;
 
   const GalleryLayout({
@@ -39,6 +47,9 @@ class GalleryLayout extends StatelessWidget {
     this.activeRatings,
     this.activeTrailer,
     this.trailerActive = false,
+    this.leftInset = 0,
+    this.topInset = 0,
+    this.bottomInset = 0,
   });
 
   @override
@@ -56,8 +67,8 @@ class GalleryLayout extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalHeight = constraints.maxHeight;
-        final topMargin = totalHeight * 0.09;
-        final bottomMargin = totalHeight * 0.03;
+        final topMargin = math.max(totalHeight * 0.09, topInset + 8);
+        final bottomMargin = math.max(totalHeight * 0.03, bottomInset + 8);
         final barHeight = totalHeight - topMargin - bottomMargin;
 
         return Stack(
@@ -88,7 +99,7 @@ class GalleryLayout extends StatelessWidget {
               right: 0,
               height: barHeight,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.only(left: 24 + leftInset, right: 24),
                 child: ClipRRect(
                   borderRadius: AppRadius.circular(18),
                   child: Row(

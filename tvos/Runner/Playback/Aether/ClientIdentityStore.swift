@@ -1,4 +1,4 @@
-// Shared by every Apple target. tvOS calls this from AppleTvVideoChannel, iOS
+// Shared by every Apple target. tvOS calls this from NativeApplePlayerChannel, iOS
 // and macOS from AetherVideoChannel.
 import AetherEngine
 import Foundation
@@ -55,7 +55,7 @@ enum ClientIdentityStore {
         let chain = (item[kSecImportItemCertChain as String] as? [SecCertificate]) ?? []
         return URLCredential(
             identity: identity,
-            certificates: Array(chain.dropFirst()),
+            certificates: chain.count > 1 ? Array(chain.dropFirst()) : nil,
             persistence: .forSession)
     }
 }

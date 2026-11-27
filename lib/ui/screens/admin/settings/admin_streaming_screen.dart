@@ -5,7 +5,9 @@ import 'package:server_core/server_core.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../util/error_message.dart';
 import '../admin_draft.dart';
+import '../admin_nav.dart';
 import '../widgets/admin_form_styles.dart';
+import '../widgets/premiere_note.dart';
 import 'admin_number_input.dart';
 
 class AdminStreamingScreen extends StatefulWidget {
@@ -124,6 +126,26 @@ class _AdminStreamingScreenState extends State<AdminStreamingScreen>
                   },
                 ),
               ),
+              if (AdminServerScope.isEmby(context))
+                adminFieldRow(
+                  label: l10n.adminStreamingStreamLimit,
+                  helper: l10n.adminStreamingStreamLimitHelp,
+                  anchor: 'streaming.SimultaneousStreamLimit',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      adminNumberInput(
+                        text: '${_config!['SimultaneousStreamLimit'] ?? 0}',
+                        fallback: 0,
+                        onChanged: (n) {
+                          _config!['SimultaneousStreamLimit'] = n;
+                          edited();
+                        },
+                      ),
+                      const PremiereNote(margin: EdgeInsets.only(top: 8)),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

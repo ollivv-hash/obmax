@@ -22,8 +22,16 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
   }) async {
     final itemId = MediaStreamResolver.extractItemId(mediaItem);
 
-    final resolvedMediaSourceId =
+    final staticMediaSourceId =
         MediaStreamResolver.resolveStaticMediaSourceId(mediaItem, mediaSourceId);
+    // A channel item's lone placeholder source is left off so the server
+    // answers with the source it probes.
+    final resolvedMediaSourceId = MediaStreamResolver.isStreamlessStaticSource(
+      mediaItem,
+      staticMediaSourceId,
+    )
+        ? null
+        : staticMediaSourceId;
     final isLiveChannel = MediaStreamResolver.isLiveTvItem(mediaItem);
     final requestProfile = MediaStreamResolver.shortenLiveHlsStartup(
       MediaStreamResolver.preferMpegTsHlsForLive(
@@ -75,9 +83,31 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
         rethrow;
       }
     }
-    info ??= await fetchPlaybackInfo(null);
+    var playbackInfo = info ?? await fetchPlaybackInfo(null);
 
-    final source = _selectBestSource(info.mediaSources, preferredId: resolvedMediaSourceId);
+    var source = _selectBestSource(playbackInfo.mediaSources, preferredId: resolvedMediaSourceId);
+
+    // The same placeholder reached through an item that came without its
+    // sources: the server hands back a source with no streams that it can only
+    // transcode. Ask again without the id and take a probed source if one
+    // comes back, otherwise keep what the caller picked. An item known to
+    // have several versions is left alone, since the sources that come back
+    // without the id would be its other versions.
+    if (resolvedMediaSourceId != null &&
+        MediaStreamResolver.staticMediaSourceIds(mediaItem).length <= 1 &&
+        source.isUnprobedPlaceholder) {
+      try {
+        final retry = await fetchPlaybackInfo(null);
+        final probed = retry.mediaSources
+            .where((s) => s.mediaStreams.isNotEmpty)
+            .toList();
+        if (probed.isNotEmpty) {
+          playbackInfo = retry;
+          source = _selectBestSource(probed);
+        }
+      } catch (_) {}
+    }
+
     var (url, playMethod) = _resolveStreamUrl(
       itemId,
       source,
@@ -129,7 +159,7 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       streamUrl: url,
       mediaSourceId: source.id,
       liveStreamId: source.liveStreamId,
-      playSessionId: info.playSessionId,
+      playSessionId: playbackInfo.playSessionId,
       playMethod: playMethod,
       container: source.container,
       videoRangeType: videoRangeType,
@@ -212,9 +242,9 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       return (remotePath!, StreamPlayMethod.directPlay);
     }
 
-    // Live TV: play the source path directly instead of the HLS transcode.
-    // Server-served path is a remux -> directStream (keeps the live session);
-    // a remote upstream -> directPlay.
+    // Live TV: a remote upstream plays as is instead of the HLS transcode.
+    // Emby answers 404 when a client asks for its own LiveStreamFiles copy, so
+    // that one goes out through the DirectStreamUrl below.
     if (MediaStreamResolver.isLiveSourceDirectPlayEligible(
       enableDirectPlay: enableDirectPlay,
       isManagedLiveStream: isManagedLiveStream,
@@ -222,10 +252,9 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
     )) {
       final resolvedPath =
           MediaStreamResolver.rebaseLiveServerPath(remotePath!, _client.baseUrl);
-      final method = resolvedPath.startsWith(_client.baseUrl)
-          ? StreamPlayMethod.directStream
-          : StreamPlayMethod.directPlay;
-      return (resolvedPath, method);
+      if (!resolvedPath.startsWith(_client.baseUrl)) {
+        return (resolvedPath, StreamPlayMethod.directPlay);
+      }
     }
 
     if (source.supportsDirectPlay) {

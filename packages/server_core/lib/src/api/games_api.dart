@@ -59,6 +59,14 @@ abstract class GamesApi {
   /// GET /Moonfin/Games/{libraryId}/Games?system=...
   Future<List<GameSummary>> getGames(String libraryId, {String? system});
 
+  /// GET /Moonfin/Games/{libraryId}/Recent, newest first by date added, or
+  /// by release year when [released]. Throws on a server without the route.
+  Future<List<RecentGame>> getRecentGames(
+    String libraryId, {
+    bool released = false,
+    int limit = 16,
+  });
+
   /// GET /Moonfin/Games/{libraryId}/Games/{gameId}
   Future<GameDetail?> getGame(String libraryId, String gameId);
 
@@ -97,7 +105,9 @@ abstract class GamesApi {
   ///
   /// When a state URL is included, [saveId] identifies its server-side save
   /// namespace. It defaults to [gameId] for callers that do not need a
-  /// core-specific state.
+  /// core-specific state. [includeSramUrl] lets the page load the battery
+  /// save when it starts fresh, and is ignored alongside a state URL, since
+  /// the state already holds it.
   String playerUrl({
     required String libraryId,
     required String gameId,
@@ -107,6 +117,7 @@ abstract class GamesApi {
     String? gameName,
     bool includeSaveUrl = false,
     String? saveId,
+    bool includeSramUrl = false,
   });
 
   /// Streams GET /Moonfin/Games/{libraryId}/Rom/{gameId} to [destPath].
@@ -127,4 +138,14 @@ abstract class GamesApi {
 
   /// PUT /Moonfin/Games/Saves/{gameId}: stores a save blob for the user.
   Future<void> putSave(String gameId, List<int> data, {String kind = 'state'});
+
+  /// GET /Moonfin/Games/Romm/Account: the user's RomM link. While a link is
+  /// pending, each call also checks RomM for the approval.
+  Future<RommAccount> getRommAccount() async => RommAccount.unavailable;
+
+  /// POST /Moonfin/Games/Romm/Account: starts or restarts a link.
+  Future<RommAccount> startRommLink() async => RommAccount.unavailable;
+
+  /// DELETE /Moonfin/Games/Romm/Account: stops using the user's RomM key.
+  Future<RommAccount> unlinkRomm() async => RommAccount.unavailable;
 }

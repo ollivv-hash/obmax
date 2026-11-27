@@ -1,11 +1,16 @@
-// Opens every admin page against a real Jellyfin server and saves each
-// settings page once through the UI, logging every request. Skips unless the
-// server is configured:
+// Opens every admin page against a real server and saves each settings page
+// once through the UI, logging every request. Skips unless the server is
+// configured:
 //
 //   MOONFIN_LIVE_URL=<server url> MOONFIN_LIVE_TOKEN=<admin token> \
 //   MOONFIN_LIVE_USER_ID=<admin user id> \
 //   dbus-run-session -- flutter test integration_test/admin -d linux
 //
+// MOONFIN_LIVE_SERVER_TYPE=emby runs it against Emby, whose URL ends in /emby.
+// MOONFIN_LIVE_READONLY=1 only opens pages and refuses anything but a GET.
+// MOONFIN_LIVE_PREMIERE=1 checks an Emby server with Premiere, and adding
+// MOONFIN_LIVE_CHANNELS=1 turns its first channel off and moves it, then puts
+// both back.
 // The saves put back what they change, but run them on a disposable server.
 // MOONFIN_LIVE_LOG names a file to write the request log to (JSON lines), and
 // MOONFIN_LIVE_SHOTS names a folder to save a screenshot of each page in.
@@ -25,11 +30,15 @@ import 'package:moonfin/data/services/socket_handler.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/navigation/destinations.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_analytics_items_screen.dart';
 import 'package:moonfin/ui/screens/admin/admin_routes.dart';
+import 'package:moonfin/ui/screens/admin/metadata/admin_metadata_edit_screen.dart';
+import 'package:moonfin/ui/screens/admin/providers/admin_media_analytics_provider.dart';
 import 'package:moonfin/ui/screens/admin/widgets/admin_settings_search.dart';
 import 'package:moonfin/ui/theme/app_theme.dart';
 import 'package:moonfin_design/moonfin_design.dart' show ThemeRegistry;
 import 'package:server_core/server_core.dart';
+import 'package:server_emby/server_emby.dart';
 import 'package:server_jellyfin/server_jellyfin.dart';
 
 class _Request {
@@ -55,51 +64,78 @@ void main() {
   final url = env['MOONFIN_LIVE_URL'];
   final token = env['MOONFIN_LIVE_TOKEN'];
   final userId = env['MOONFIN_LIVE_USER_ID'];
+  final isEmby = env['MOONFIN_LIVE_SERVER_TYPE'] == 'emby';
+  final readOnly = env['MOONFIN_LIVE_READONLY'] == '1';
+  final premiere = isEmby && env['MOONFIN_LIVE_PREMIERE'] == '1';
+  final channelWrites = premiere && env['MOONFIN_LIVE_CHANNELS'] == '1';
+  // Emby 4.9 has no RefreshGuide, so Emby uses a quick task both versions
+  // have, which the feed test also starts.
+  final quickTask = isEmby ? 'ScanInternalMetadataFolderTask' : 'RefreshGuide';
   final skip = url == null || token == null || userId == null
       ? 'set MOONFIN_LIVE_URL, MOONFIN_LIVE_TOKEN and MOONFIN_LIVE_USER_ID'
       : null;
 
   final log = <_Request>[];
   var currentPage = '';
-  late JellyfinMediaServerClient client;
+  late MediaServerClient client;
   final ids = <String, String>{};
 
   setUpAll(() async {
     if (skip != null) return;
-    client = JellyfinMediaServerClient(
-      baseUrl: url!,
-      deviceInfo: const DeviceInfo(
-        id: 'moonfin-admin-live-test',
-        name: 'Admin live test',
-        appName: 'Moonfin',
-        appVersion: 'test',
+    // Logged paths leave out Emby's /emby prefix.
+    final basePath = Uri.parse(url!).path;
+    const deviceInfo = DeviceInfo(
+      id: 'moonfin-admin-live-test',
+      name: 'Admin live test',
+      appName: 'Moonfin',
+      appVersion: 'test',
+    );
+    final interceptors = [
+      InterceptorsWrapper(
+        onRequest: (o, h) {
+          o.extra['_log'] = _Request(
+            currentPage,
+            o.method,
+            o.uri.path.substring(basePath.length),
+            {...o.uri.queryParameters}
+              // Jellyfin's ApiKey and Emby's api_key.
+              ..removeWhere(
+                (k, _) =>
+                    k.toLowerCase().replaceAll('_', '').contains('apikey'),
+              ),
+            null,
+          );
+          log.add(o.extra['_log'] as _Request);
+          final channelChange = channelWrites &&
+              o.uri.path.contains('/LiveTv/Manage/Channels/');
+          if (readOnly && o.method != 'GET' && !channelChange) {
+            return h.reject(DioException(requestOptions: o, error: 'read only'));
+          }
+          h.next(o);
+        },
+        onResponse: (r, h) {
+          (r.requestOptions.extra['_log'] as _Request?)?.status = r.statusCode;
+          h.next(r);
+        },
+        onError: (e, h) {
+          (e.requestOptions.extra['_log'] as _Request?)?.status =
+              e.response?.statusCode ?? -1;
+          h.next(e);
+        },
       ),
-      interceptors: [
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            o.extra['_log'] = _Request(
-              currentPage,
-              o.method,
-              o.uri.path,
-              {...o.uri.queryParameters}
-                ..removeWhere((k, _) => k.toLowerCase().contains('apikey')),
-              null,
-            );
-            log.add(o.extra['_log'] as _Request);
-            h.next(o);
-          },
-          onResponse: (r, h) {
-            (r.requestOptions.extra['_log'] as _Request?)?.status = r.statusCode;
-            h.next(r);
-          },
-          onError: (e, h) {
-            (e.requestOptions.extra['_log'] as _Request?)?.status =
-                e.response?.statusCode ?? -1;
-            h.next(e);
-          },
-        ),
-      ],
-    )
+    ];
+    client = isEmby
+        ? EmbyMediaServerClient(
+            baseUrl: url,
+            deviceInfo: deviceInfo,
+            interceptors: interceptors,
+          )
+        : JellyfinMediaServerClient(
+            baseUrl: url,
+            deviceInfo: deviceInfo,
+            interceptors: interceptors,
+          );
+    client
       ..accessToken = token
       ..userId = userId;
     GetIt.instance.registerSingleton<MediaServerClient>(client);
@@ -108,20 +144,29 @@ void main() {
 
     // Real ids for the pages that need one.
     final users = await client.adminUsersApi.getUsers();
-    ids['user'] = users.firstWhere((u) => u.name == 'viewer').id;
+    ids['user'] = users
+        .firstWhere((u) => !(u.policy?.isAdministrator ?? false))
+        .id;
     final libraries = await client.adminLibraryApi.getVirtualFolders();
     ids['library'] = libraries.firstWhere((l) => l.name == 'Movies').itemId;
     final tasks = await client.adminTasksApi.getTasks(isHidden: false);
-    ids['task'] = tasks.firstWhere((t) => t['Key'] == 'RefreshGuide')['Id'] as String;
+    ids['task'] = tasks.firstWhere((t) => t['Key'] == quickTask)['Id'] as String;
     final plugins = await client.adminPluginsApi.getInstalledPlugins();
     ids['plugin'] = plugins.first.id;
     final logs = await client.adminSystemApi.getLogFiles();
     ids['log'] = logs.first.name;
-    final items = await client.itemsApi.getItems(
+    var items = await client.itemsApi.getItems(
       searchTerm: 'Big Buck Bunny',
       includeItemTypes: const ['Movie'],
       recursive: true,
     );
+    if ((items['Items'] as List).isEmpty) {
+      items = await client.itemsApi.getItems(
+        includeItemTypes: const ['Movie'],
+        recursive: true,
+        limit: 1,
+      );
+    }
     ids['item'] = ((items['Items'] as List).first as Map)['Id'] as String;
   });
 
@@ -215,21 +260,30 @@ void main() {
   final pages = <String, String Function()>{
     'dashboard': () => Destinations.admin,
     'analytics': () => Destinations.adminAnalytics,
+    'analytics-items': () => AdminAnalyticsQuery(
+      libraryId: ids['library'],
+      dimension: AdminAnalyticsDimension.type,
+      values: const ['movies'],
+      title: 'Movies',
+    ).location,
     'activity': () => Destinations.adminActivity,
     'tasks': () => Destinations.adminTasks,
     'task-detail': () => Destinations.adminTask(ids['task']!),
     'libraries': () => Destinations.adminLibraries,
     'library-add': () => Destinations.adminLibrariesAdd,
     'library-edit': () => Destinations.adminLibrary(ids['library']!),
-    'display': () => Destinations.adminSettingsDisplay,
+    if (!isEmby) 'display': () => Destinations.adminSettingsDisplay,
     'metadata': () => Destinations.adminSettingsMetadata,
     'nfo': () => Destinations.adminSettingsNfo,
     'metadata-edit': () => Destinations.adminMetadata(ids['item']!),
     'live-tv': () => Destinations.adminLiveTv,
     'transcoding': () => Destinations.adminSettingsPlayback,
-    'resume': () => Destinations.adminSettingsResume,
+    if (!isEmby) ...{
+      'resume': () => Destinations.adminSettingsResume,
+      'trickplay': () => Destinations.adminSettingsTrickplay,
+      'repositories': () => Destinations.adminRepositories,
+    },
     'streaming': () => Destinations.adminSettingsStreaming,
-    'trickplay': () => Destinations.adminSettingsTrickplay,
     'users': () => Destinations.adminUsers,
     'user-add': () => Destinations.adminUsersAdd,
     'user-edit': () => Destinations.adminUser(ids['user']!),
@@ -240,10 +294,18 @@ void main() {
     'networking': () => Destinations.adminSettingsNetworking,
     'plugins': () => Destinations.adminPlugins,
     'plugin-detail': () => Destinations.adminPlugin(ids['plugin']!),
-    'repositories': () => Destinations.adminRepositories,
     'backups': () => Destinations.adminBackups,
     'logs': () => Destinations.adminLogs,
     'log-viewer': () => Destinations.adminLogFile(ids['log']!),
+    if (isEmby) ...{
+      'live-tv-channels': () => Destinations.adminLiveTvChannels,
+      'premiere': () => Destinations.adminPremiere,
+      'database': () => Destinations.adminDatabase,
+      'cinema-intros': () => Destinations.adminCinemaIntros,
+      'dlna': () => Destinations.adminDlna,
+      'camera-upload': () => Destinations.adminCameraUpload,
+      'conversions': () => Destinations.adminConversions,
+    },
     for (final g in ['overview', 'library', 'playback', 'people', 'system'])
       'group-$g': () => Destinations.adminGroupPath(g),
   };
@@ -272,6 +334,8 @@ void main() {
   // The phone layout: group tabs along the bottom, a page list per group.
   for (final key in [
     'dashboard',
+    'analytics',
+    'analytics-items',
     for (final g in ['overview', 'library', 'playback', 'people', 'system'])
       'group-$g',
     'settings',
@@ -294,10 +358,53 @@ void main() {
     });
   }
 
+  // Categories open their items over the page and the items open the editor
+  // over that, each with a back arrow to the one before.
+  testWidgets('a tapped codec lists its items with a way back',
+      skip: skip != null, (tester) async {
+    currentPage = 'analytics:drill';
+    await pumpAdmin(tester, Destinations.adminAnalytics);
+    await settle(tester);
+    final codec = find.text('H.264').first;
+    await tester.ensureVisible(codec);
+    await tester.tap(codec);
+    await settle(tester);
+    expect(find.byType(AdminAnalyticsItemsScreen), findsOneWidget);
+    final back = find.byTooltip(
+      MaterialLocalizations.of(
+        tester.element(find.byType(AdminAnalyticsItemsScreen)),
+      ).backButtonTooltip,
+    );
+    expect(back, findsOneWidget);
+    await shot('desktop-analytics-drill');
+
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(AdminAnalyticsItemsScreen),
+            matching: find.byIcon(Icons.chevron_right),
+          )
+          .first,
+    );
+    await settle(tester);
+    expect(find.byType(AdminMetadataEditScreen), findsOneWidget);
+    await tester.tap(back);
+    await settle(tester);
+    expect(find.byType(AdminAnalyticsItemsScreen), findsOneWidget);
+    await tester.tap(back);
+    await settle(tester);
+    expect(find.byType(AdminAnalyticsItemsScreen), findsNothing);
+    expect(back, findsNothing);
+    expect(tester.takeException(), isNull);
+    expectNoFailures(currentPage);
+    AdminDraft.active.value = null;
+  });
+
   // The dashboard subscribes to sessions and scheduled tasks, but the server
   // pushes only on events, so a capabilities report and a quick task stand in
   // for a client starting up and a task running.
-  testWidgets('the dashboard gets pushed sessions and tasks', skip: skip != null, (
+  testWidgets('the dashboard gets pushed sessions and tasks',
+      skip: skip != null || readOnly, (
     tester,
   ) async {
     currentPage = 'dashboard:feeds';
@@ -315,7 +422,10 @@ void main() {
     });
     final tasks = await client.adminTasksApi.getTasks(isHidden: false);
     await client.adminTasksApi.startTask(
-      tasks.firstWhere((t) => t['Key'] == 'DeleteTranscodeFiles')['Id'] as String,
+      tasks.firstWhere(
+            (t) => t['Key'] == (isEmby ? quickTask : 'DeleteTranscodeFiles'),
+          )['Id']
+          as String,
     );
     const feeds = [SessionsMessage, ScheduledTasksInfoMessage];
     for (var i = 0; i < 150 && !pushed.containsAll(feeds); i++) {
@@ -329,18 +439,30 @@ void main() {
   // edit its first text field), save, check the post went through, then put
   // it back and save again.
   final draftPages = {
-    'settings': const _Save('POST', '/System/Configuration'),
-    'display': const _Save('POST', '/System/Configuration'),
+    // Emby's first switch is maintenance mode, so it edits a text field.
+    'settings': _Save('POST', '/System/Configuration', text: isEmby),
     'metadata': const _Save('POST', '/System/Configuration'),
     'nfo': const _Save('POST', '/System/Configuration/xbmcmetadata'),
     'transcoding': const _Save('POST', '/System/Configuration/encoding'),
-    'resume': const _Save('POST', '/System/Configuration'),
     'streaming': const _Save('POST', '/System/Configuration', text: true),
-    'trickplay': const _Save('POST', '/System/Configuration'),
+    if (isEmby) ...{
+      'database': const _Save('POST', '/System/Configuration'),
+      'cinema-intros': const _Save('POST', '/System/Configuration/cinemamode'),
+      'dlna': const _Save('POST', '/System/Configuration/dlna'),
+      'camera-upload': const _Save('POST', '/System/Configuration/devices'),
+      'conversions': const _Save('POST', '/System/Configuration/sync'),
+    } else ...{
+      'display': const _Save('POST', '/System/Configuration'),
+      'resume': const _Save('POST', '/System/Configuration'),
+      'trickplay': const _Save('POST', '/System/Configuration'),
+    },
     // Branding's first switch (the splash screen) saves at once and stays out
     // of the draft, so this edits a text field.
     'branding': const _Save('POST', '/System/Configuration/branding', text: true),
-    'networking': const _Save('POST', '/System/Configuration/network'),
+    'networking': _Save(
+      'POST',
+      isEmby ? '/System/Configuration' : '/System/Configuration/network',
+    ),
     // The server refuses a recording path that doesn't exist.
     'live-tv': _Save(
       'POST',
@@ -354,7 +476,7 @@ void main() {
       tab: (l) => l.adminLibraryTabOptions,
     ),
     'metadata-edit': const _Save('POST', '/Items/{item}', text: true),
-    'user-edit': const _Save('POST', '/Users', text: true),
+    'user-edit': _Save('POST', isEmby ? '/Users/{user}' : '/Users', text: true),
     'user-policy': _Save(
       'POST',
       '/Users/{user}/Policy',
@@ -375,7 +497,8 @@ void main() {
   }
 
   for (final entry in draftPages.entries) {
-    testWidgets('${entry.key} saves through the bar', skip: skip != null, (
+    testWidgets('${entry.key} saves through the bar',
+        skip: skip != null || readOnly, (
       tester,
     ) async {
       final spec = entry.value;
@@ -452,6 +575,100 @@ void main() {
       AdminDraft.active.value = null;
     });
   }
+
+  testWidgets('a licensed server shows no Premiere notes',
+      skip: skip != null || !premiere, (tester) async {
+    currentPage = 'premiere:licensed';
+    final router = await pumpAdmin(tester, Destinations.adminPremiere);
+    await settle(tester);
+    expect(find.text(l10n.adminPremiereActive), findsOneWidget);
+    for (final route in [
+      Destinations.adminSettingsPlayback,
+      Destinations.adminSettingsStreaming,
+      Destinations.adminLiveTv,
+      Destinations.adminLiveTvChannels,
+      Destinations.adminCinemaIntros,
+      Destinations.adminConversions,
+    ]) {
+      router.go(route);
+      await settle(tester);
+      expect(find.text(l10n.adminPremiereNote), findsNothing, reason: route);
+      expect(
+        find.text(l10n.adminPremiereNoteLiveTv),
+        findsNothing,
+        reason: route,
+      );
+    }
+    expectNoFailures(currentPage);
+    AdminDraft.active.value = null;
+  });
+
+  // Only reads: the dialog closes without mapping anything.
+  testWidgets('the mapping dialog shows the current mappings',
+      skip: skip != null || !premiere, (tester) async {
+    currentPage = 'live-tv:mappings';
+    final channels = await client.embyAdminApi!.getManagedChannels(limit: 1);
+    final first = (channels['Items'] as List).first as Map;
+    await pumpAdmin(tester, Destinations.adminLiveTv);
+    await settle(tester);
+    await tester.tap(find.byTooltip(l10n.adminLiveTvMapChannels).first);
+    await settle(tester);
+    expect(find.text('${first['ListingsChannelName']}'), findsWidgets);
+    await tester.tap(find.text(l10n.close).last);
+    await settle(tester);
+    expectNoFailures(currentPage);
+  });
+
+  testWidgets('a channel turns off and moves, then goes back',
+      skip: skip != null || !channelWrites, (tester) async {
+    currentPage = 'live-tv-channels:changes';
+    final emby = client.embyAdminApi!;
+    Future<List<Map>> firstTwo() async =>
+        ((await emby.getManagedChannels(limit: 2))['Items'] as List).cast<Map>();
+    // Turning a channel back on gives it a new item id, so channels are told
+    // apart by ManagementId.
+    final [a, b] = await firstTwo();
+    final wasDisabled = a['Disabled'] == true;
+    List<Object?> order(List<Map> channels) =>
+        [for (final c in channels) c['ManagementId']];
+    // Put the server back even when a step fails.
+    addTearDown(() async {
+      final [now, next] = await firstTwo();
+      final current = now['ManagementId'] == a['ManagementId'] ? now : next;
+      if ((current['Disabled'] == true) != wasDisabled) {
+        await emby.setChannelDisabled(
+          '${current['Id']}',
+          managementId: '${a['ManagementId']}',
+          disabled: wasDisabled,
+        );
+      }
+      if (now['ManagementId'] != a['ManagementId']) {
+        await emby.setChannelSortIndex(
+          '${current['Id']}',
+          managementId: '${a['ManagementId']}',
+          newIndex: 0,
+        );
+      }
+    });
+    await pumpAdmin(tester, Destinations.adminLiveTvChannels);
+    await settle(tester);
+
+    final toggle = find.byType(Switch).first;
+    await tester.tap(toggle);
+    await settle(tester);
+    expect((await firstTwo()).first['Disabled'] == true, !wasDisabled);
+    await tester.tap(toggle);
+    await settle(tester);
+    expect((await firstTwo()).first['Disabled'] == true, wasDisabled);
+
+    await tester.tap(find.byTooltip(l10n.moveDown).first);
+    await settle(tester);
+    expect(order(await firstTwo()), order([b, a]));
+    await tester.tap(find.byTooltip(l10n.moveUp).at(1));
+    await settle(tester);
+    expect(order(await firstTwo()), order([a, b]));
+    expectNoFailures(currentPage);
+  });
 }
 
 /// One page's save check. [tab] opens that tab first, [anchor] picks the

@@ -8,8 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../data/models/series_recording_episodes.dart';
 import '../../../data/viewmodels/live_tv_guide_view_model.dart';
+import '../../../data/services/user_data_sync.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/emby_premiere_dialog.dart';
 import '../../util/error_message.dart';
 import '../../../util/platform_detection.dart';
 import '../../../util/tv_ui_scale.dart';
@@ -18,11 +21,15 @@ import '../../navigation/destinations.dart';
 import '../../widgets/adaptive/adaptive_dialog.dart';
 import '../../widgets/bounded_network_image.dart';
 import '../../widgets/horizontal_scroll_section.dart';
+import '../../widgets/live_tv/incomplete_recording.dart';
 import '../../widgets/live_tv/live_tv_mini_player.dart';
+import '../../widgets/live_tv/live_tv_recording_icon.dart';
+import '../../widgets/live_tv/series_recording_dialog.dart';
 import '../../widgets/overlay_sheet.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../../../util/focus/dpad_keys.dart';
 import '../../../util/focus/key_event_utils.dart';
+import '../../../playback/external_player_policy.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../util/clock_format.dart';
@@ -36,6 +43,7 @@ import 'guide/guide_cell.dart';
 import 'guide/guide_layout_profile.dart';
 import 'guide/guide_selection.dart';
 import 'guide/guide_window.dart';
+import 'live_tv_channel_player_loader.dart';
 
 // Start fetching the next batch of channel programs this many rows before the
 // lazily-loaded edge, so rows are usually populated by the time they're visible.
@@ -98,6 +106,9 @@ class LiveTvGuideScreen extends StatefulWidget {
   /// mini-player frame) instead of `Navigator.pop()`.
   final VoidCallback? onClose;
 
+  /// Leaves the hosting player before opening recordings.
+  final Future<void> Function()? onOpenRecordings;
+
   /// Lets an [embedded] host, which owns the only [PopScope] in its route,
   /// give this screen first refusal on a back press so it can reset to its
   /// entry state instead of always closing. Unused on the standalone route,
@@ -112,6 +123,7 @@ class LiveTvGuideScreen extends StatefulWidget {
     this.embedded = false,
     this.onChannelSelected,
     this.onClose,
+    this.onOpenRecordings,
     this.backController,
   });
 
@@ -231,6 +243,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
       initialSortBy: _prefs.get(UserPreferences.liveTvChannelSortBy),
     );
     _vm.addListener(_onChanged);
+    userDataSync.addListener(_vm.syncChannelUserData);
     widget.backController?._onBackPressed = _consumeBackIfExploring;
     WidgetsBinding.instance.addObserver(this);
     _mobileView = _prefs.get(UserPreferences.epgMobileView);
@@ -664,6 +677,18 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
     _miniPlayerFocusNode.requestFocus();
   }
 
+  /// Back's stop above the grid: the filter rail, or the mini player in the
+  /// player's guide, which has no rail. False when focus can't move there.
+  bool _focusGuideHeader() {
+    if (!_mayTakeFocus) return false;
+    if (widget.miniPlayerMode) {
+      _focusMiniPlayer();
+    } else {
+      _focusFilterRail();
+    }
+    return true;
+  }
+
   void _focusFilterRail() {
     if (!_mayTakeFocus) return;
     _cancelPendingVerticalMove();
@@ -692,7 +717,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
   /// DOWN out of the genre rail lands on the same button UP left behind.
   void _focusWindowBarFromGenres() => _focusWindowBar(_lastWindowBarIndex);
 
-  void _focusRowFromMiniPlayer() {
+  void _focusLastChannelRow() {
     final channels = _vm.filteredChannels;
     if (channels.isEmpty) return;
 
@@ -792,14 +817,20 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
     _cancelPendingVerticalMove();
     _isOpeningRecordings = true;
     try {
-      await context.push(Destinations.liveTvRecordings);
+      if (widget.onOpenRecordings case final open?) {
+        await open();
+      } else {
+        await context.push(Destinations.liveTvRecordings);
+      }
     } finally {
       _isOpeningRecordings = false;
     }
+    if (mounted) await _vm.reloadIfRecordingsChanged();
   }
 
   @override
   void dispose() {
+    userDataSync.removeListener(_vm.syncChannelUserData);
     widget.backController?._onBackPressed = null;
     _reanchorTimer?.cancel();
     _displayClockTimer?.cancel();
@@ -891,7 +922,17 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
 
   @override
   Widget build(BuildContext context) {
-    final content = RequestInitialFocus(child: _buildContent(context));
+    final content = Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) {
+        if (!event.logicalKey.isRecordingsKey) {
+          return KeyEventResult.ignored;
+        }
+        if (event is KeyDownEvent) unawaited(_openRecordings());
+        return KeyEventResult.handled;
+      },
+      child: RequestInitialFocus(child: _buildContent(context)),
+    );
     // The embedded overlay shares its host's single route and its PopScope;
     // the host asks widget.backController instead. The standalone route owns
     // its own pop attempts, so it needs its own PopScope here.
@@ -1041,9 +1082,15 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
           final focusedChannel =
               !_channelRailFocused.value && focusedProgram != null
               ? _vm.channelForId(focusedProgram.channelId)
-              : (widget.currentChannel ?? _focusedChannel.value);
+              : (_focusedChannel.value ?? widget.currentChannel);
+          // On the channel column, what that channel is airing, as the full
+          // guide's hero shows.
           return _buildProgramInfoHeader(
-            program: focusedProgram,
+            program:
+                focusedProgram ??
+                (focusedChannel == null
+                    ? null
+                    : _vm.nowNextForChannel(focusedChannel.id).now),
             channel: focusedChannel,
           );
         },
@@ -1158,10 +1205,13 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
             ? ' (${preview!.seasonEpisodeLabel})'
             : '';
         final l10n = AppLocalizations.of(context);
+        final recordingState = _latestProgram(preview);
         final badgeLabel = preview == null
             ? null
             : preview.isPremiere
             ? l10n.premiere
+            : preview.isNew
+            ? l10n.calendarBadgeNew
             : preview.isRepeat
             ? l10n.guideRepeatBadge
             : null;
@@ -1180,6 +1230,8 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
           badgeLabel: badgeLabel,
           synopsis: preview?.overview,
           isLive: isLive,
+          hasTimer: recordingState?.hasTimer ?? false,
+          hasSeriesTimer: recordingState?.hasSeriesTimer ?? false,
           apple: _apple,
           compact: true,
         );
@@ -1205,7 +1257,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
     EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(16, 6, 16, 6),
     VoidCallback? onNavigateDown,
   }) {
-    final filters = GuideFilter.values;
+    final filters = _vm.filters;
     return Padding(
       padding: padding,
       child: EpgFilterRail(
@@ -1213,11 +1265,15 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
         selectedIndex: filters.indexOf(_vm.filter),
         onSelect: (i) {
           _cancelPendingVerticalMove();
+          if (_vm.filter != filters[i]) {
+            _lastFocusedRowIndex = 0;
+            _focusedChannel.value = null;
+          }
           _vm.setFilter(filters[i]);
         },
         apple: _apple,
         focusNodeFor: _filterFocusNodeFor,
-        onNavigateDown: onNavigateDown ?? () => _focusChannelRow(0),
+        onNavigateDown: onNavigateDown ?? _focusLastChannelRow,
       ),
     );
   }
@@ -1369,11 +1425,25 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
     return m == 0 ? l10n.guideHoursLeft(h) : l10n.guideHoursMinutesLeft(h, m);
   }
 
+  /// The focused program is the object focus last handed over, so a reload
+  /// after a recording change leaves its timer state stale until focus moves.
+  GuideProgram? _latestProgram(GuideProgram? program) {
+    if (program == null) return null;
+    return _vm
+            .programsForChannel(program.channelId)
+            .where((p) => p.id == program.id)
+            .firstOrNull ??
+        program;
+  }
+
   Widget _buildProgramInfoHeader({
     required GuideProgram? program,
     required GuideChannel? channel,
   }) {
     final l10n = AppLocalizations.of(context);
+    final recordingState = _latestProgram(program);
+    final hasTimer = recordingState?.hasTimer ?? false;
+    final hasSeriesTimer = recordingState?.hasSeriesTimer ?? false;
     final title = program?.name ?? channel?.name ?? l10n.guideTimeline;
     final episodeLine = program?.episodeLine ?? '';
     final timeRange = program == null
@@ -1425,14 +1495,31 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
                     ),
                     if (timeRange != null || channelLabel != null) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        [?timeRange, ?channelLabel].join('   '),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: AppTypography.fontSizeSm,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              [?timeRange, ?channelLabel].join('   '),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: AppTypography.fontSizeSm,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (LiveTvRecordingIcon.shows(
+                            hasTimer: hasTimer,
+                            hasSeriesTimer: hasSeriesTimer,
+                          )) ...[
+                            const SizedBox(width: 10),
+                            LiveTvRecordingIcon(
+                              hasTimer: hasTimer,
+                              hasSeriesTimer: hasSeriesTimer,
+                              size: AppTypography.fontSizeSm * 1.2,
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                     if (episodeLine.isNotEmpty) ...[
@@ -1511,7 +1598,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
       onKeyEvent: (_, event) {
         if (!event.isActionable) return KeyEventResult.ignored;
         if (event.logicalKey.isDownKey) {
-          _focusRowFromMiniPlayer();
+          _focusLastChannelRow();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -1637,7 +1724,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
           return KeyEventResult.handled;
         }
         if (key.isDownKey) {
-          _focusChannelRow(0);
+          _focusLastChannelRow();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -1838,6 +1925,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
         }
         if (key.isLeftKey) {
           _onNavigationKey();
+          _focusFilterRail();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -2197,19 +2285,36 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
   Future<void> _resetToEntryState() async {
     _resettingToEntryState = true;
     try {
-      await _goToNow();
-    } finally {
-      _resettingToEntryState = false;
+      // Not _goToNow(): its full reload tears the grid down. This keeps the
+      // rows up and only refetches programs when the window was paged away.
+      _cancelPendingVerticalMove();
+      await _vm.setWindowStart(
+        guideLeftEdge(DateTime.now()),
+        livePosition: true,
+      );
+      if (mounted) _anchorToWindowStart();
+    } catch (_) {
+      // Fall back to the full reload, which shows its own error state.
+      if (mounted) await _goToNow();
     }
-    if (!mounted) return;
+    if (!mounted) {
+      _resettingToEntryState = false;
+      return;
+    }
     final homeId = _homeChannelId;
     final channels = _vm.filteredChannels;
     int index;
     if (homeId != null) {
       index = channels.indexWhere((channel) => channel.id == homeId);
-      if (index < 0) return;
+      if (index < 0) {
+        _resettingToEntryState = false;
+        return;
+      }
     } else {
-      if (channels.isEmpty) return;
+      if (channels.isEmpty) {
+        _resettingToEntryState = false;
+        return;
+      }
       index = 0;
     }
     // Set the tracked focus target directly instead of waiting on the
@@ -2233,10 +2338,14 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
     // FocusNode not yet attached, exactly as in _scheduleInitialChannelFocus.
     final binding = WidgetsBinding.instance;
     binding.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted) {
+        _resettingToEntryState = false;
+        return;
+      }
       binding.scheduleFrame();
       binding.addPostFrameCallback((_) {
         if (mounted) _focusChannelRow(index, animate: false);
+        _resettingToEntryState = false;
       });
     });
     binding.scheduleFrame();
@@ -2244,25 +2353,32 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
 
   /// A back press resolves here first: if the grid has drifted from where the
   /// user would have landed opening the guide fresh, back re-homes it instead
-  /// of exiting. Returns true when it handled the press. Resolves the entry
-  /// channel's index before committing to consume the press, so a genre
-  /// filter that excludes the entry channel falls through to the normal
-  /// close/exit path instead of consuming back presses forever. With no
-  /// channel ever tuned, the target is row 0 as long as the lineup is
-  /// non-empty.
+  /// of exiting. Returns true when it handled the press. With nothing to
+  /// re-home (already there, or a filter hides the entry channel), a TV moves
+  /// focus up to the header and the next back leaves. Elsewhere the press
+  /// falls through to the normal close/exit path. With no channel ever tuned,
+  /// the target is row 0 as long as the lineup is non-empty.
   bool _consumeBackIfExploring() {
     // A reset already running owns this press. Consuming it keeps the guide
     // from closing out from under a reset that is about to land.
     if (_resettingToEntryState) return true;
-    if (!_isExploringAwayFromEntry()) return false;
+    if (PlatformDetection.isTV && !_gridHasFocus) return false;
+    if (!_isExploringAwayFromEntry()) {
+      if (!PlatformDetection.isTV) return false;
+      return _focusGuideHeader();
+    }
     final homeId = _homeChannelId;
     if (homeId != null) {
       final index = _vm.filteredChannels.indexWhere(
         (channel) => channel.id == homeId,
       );
-      if (index < 0) return false;
+      if (index < 0) {
+        if (!PlatformDetection.isTV) return false;
+        return _focusGuideHeader();
+      }
     } else if (_vm.filteredChannels.isEmpty) {
-      return false;
+      if (!PlatformDetection.isTV) return false;
+      return _focusGuideHeader();
     }
     unawaited(_resetToEntryState());
     return true;
@@ -2309,7 +2425,6 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
       onRightEdge: () =>
           unawaited(_shiftGuideWindow(const Duration(minutes: 30))),
       noProgramDataLabel: AppLocalizations.of(context).noProgramData,
-      filterLabel: _filterLabel,
       // Per A3: a gap or filtered hole tunes live, never opens the recording
       // dialog. Loading is inert. Failed has no retry producer yet.
       onProgramSelected: (cell) {
@@ -2317,11 +2432,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
           case GuideCellKind.program:
             final program = cell.program;
             if (program == null) return;
-            if (widget.miniPlayerMode) {
-              _watchChannel(channelId);
-            } else {
-              _showProgramDetails(program);
-            }
+            _showProgramDetails(program);
           case GuideCellKind.gap:
           case GuideCellKind.filtered:
             _watchChannel(channelId);
@@ -2405,9 +2516,15 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
     final index = channels.indexWhere((channel) => channel.id == channelId);
     if (index < 0) return;
     _vm.resetWindowOnExit(windowStart: guideLeftEdge(DateTime.now()));
+    // With the setting off nothing is awaited, so the built-in player still
+    // opens on this frame.
+    final external =
+        ExternalPlayerPolicy.isEnabled &&
+        await queueChannelForExternalPlayer(channels[index]);
+    if (!mounted) return;
     await context.push(
-      Destinations.liveTvPlayer,
-      extra: {'channels': channels, 'startIndex': index},
+      external ? Destinations.externalPlayer : Destinations.liveTvPlayer,
+      extra: external ? null : {'channels': channels, 'startIndex': index},
     );
     if (!mounted) return;
     await _vm.reloadIfStale(
@@ -2490,6 +2607,16 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ],
+                if (hasSeriesTimer && !hasTimer && !isEnded) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.seriesRecordingSkipsShowing,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 if (program.overview != null &&
                     program.overview!.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -2547,18 +2674,42 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
                   if (dialogActionInProgress) return;
                   dialogActionInProgress = true;
                   try {
-                    await _vm.toggleProgramRecording(program);
+                    final String? message;
+                    if (hasTimer) {
+                      await _vm.toggleProgramRecording(program);
+                      message = l10n.recordingCancelled;
+                    } else {
+                      final outcome = await recordAiring(
+                        context: dialogContext,
+                        programId: program.id,
+                        programName: program.name,
+                        programStart: program.startDate,
+                        rawProgram: program.rawData,
+                        createTimer: () => _vm.toggleProgramRecording(program),
+                        stillValid: () => dialogContext.mounted,
+                        channel: channel == null
+                            ? null
+                            : recordPromptChannel(channel.number, channel.name),
+                      );
+                      // The guide refreshed before the future showing was
+                      // added, or not at all when only the future showing was
+                      // asked for, so refresh to show it.
+                      if (outcome ==
+                              RecordAiringOutcome.recordedWithLaterShowing ||
+                          outcome == RecordAiringOutcome.laterShowingOnly) {
+                        await _vm.recordingChanged();
+                      }
+                      message = recordAiringMessage(l10n, outcome);
+                    }
+                    if (message == null) {
+                      dialogActionInProgress = false;
+                      return;
+                    }
                     if (!pageContext.mounted || !dialogContext.mounted) return;
                     Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(pageContext).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          hasTimer
-                              ? l10n.recordingCancelled
-                              : l10n.programSetToRecord,
-                        ),
-                      ),
-                    );
+                    ScaffoldMessenger.of(
+                      pageContext,
+                    ).showSnackBar(SnackBar(content: Text(message)));
                   } catch (_) {
                     dialogActionInProgress = false;
                     if (!pageContext.mounted) return;
@@ -2577,13 +2728,64 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
                   hasTimer ? l10n.cancelRecordingAction : l10n.record,
                 ),
               ),
+            if (hasSeriesTimer)
+              adaptiveDialogAction(
+                onPressed: () async {
+                  if (dialogActionInProgress) return;
+                  final seriesTimerId = program.rawData['SeriesTimerId']
+                      ?.toString();
+                  if (seriesTimerId == null || seriesTimerId.isEmpty) return;
+                  dialogActionInProgress = true;
+                  try {
+                    final changed = await changeSeriesRecordingEpisodes(
+                      context: dialogContext,
+                      liveTvApi: _vm.liveTvApi,
+                      seriesTimerId: seriesTimerId,
+                    );
+                    if (!changed) {
+                      dialogActionInProgress = false;
+                      return;
+                    }
+                    // Changing the rule already announced itself, so only
+                    // this guide's programs need reading again.
+                    await _vm.reloadIfRecordingsChanged();
+                    if (!pageContext.mounted || !dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
+                    ScaffoldMessenger.of(pageContext).showSnackBar(
+                      SnackBar(content: Text(l10n.seriesRecordingUpdated)),
+                    );
+                  } catch (_) {
+                    dialogActionInProgress = false;
+                    if (!pageContext.mounted) return;
+                    ScaffoldMessenger.of(pageContext).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.failedToUpdateSeriesRecording),
+                      ),
+                    );
+                  }
+                },
+                child: Text(l10n.seriesRecordingSettings),
+              ),
             if (program.isSeries)
               adaptiveDialogAction(
                 onPressed: () async {
                   if (dialogActionInProgress) return;
                   dialogActionInProgress = true;
                   try {
-                    await _vm.toggleSeriesRecording(program);
+                    SeriesRecordingEpisodes? episodes;
+                    if (!hasSeriesTimer) {
+                      episodes = await showSeriesRecordingEpisodesDialog(
+                        context: dialogContext,
+                      );
+                      if (episodes == null) {
+                        dialogActionInProgress = false;
+                        return;
+                      }
+                    }
+                    await _vm.toggleSeriesRecording(
+                      program,
+                      episodes: episodes,
+                    );
                     if (!pageContext.mounted || !dialogContext.mounted) return;
                     Navigator.of(dialogContext).pop();
                     ScaffoldMessenger.of(pageContext).showSnackBar(
@@ -2595,9 +2797,13 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen>
                         ),
                       ),
                     );
-                  } catch (_) {
+                  } catch (e) {
                     dialogActionInProgress = false;
                     if (!pageContext.mounted) return;
+                    if (isPremiereError(e)) {
+                      await showPremiereRequiredDialog(pageContext);
+                      return;
+                    }
                     ScaffoldMessenger.of(pageContext).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -2905,7 +3111,6 @@ class _GuideProgramRow extends StatefulWidget {
 
   /// Label for a real schedule gap. A genre-filtered hole never shows it.
   final String noProgramDataLabel;
-  final String Function(GuideFilter) filterLabel;
 
   const _GuideProgramRow({
     required this.cells,
@@ -2929,7 +3134,6 @@ class _GuideProgramRow extends StatefulWidget {
     required this.onProgramFocused,
     this.onHorizontalMove,
     required this.noProgramDataLabel,
-    required this.filterLabel,
   });
 
   @override
@@ -3158,10 +3362,6 @@ class _GuideProgramRowState extends State<_GuideProgramRow> {
         builder: (_, _) => EpgProgramCell(
           title: program?.name ?? '',
           episodeLine: program?.episodeLine,
-          rating: program?.officialRating,
-          tags:
-              program?.categoryTags.map(widget.filterLabel).toList() ??
-              const [],
           // The geometry clips a cell to the window, so the program's own
           // start is the only thing that says it began before the left edge.
           startsBeforeWindow:
@@ -3173,6 +3373,7 @@ class _GuideProgramRowState extends State<_GuideProgramRow> {
           isPast: program != null && program.endDate.isBefore(now),
           progress: isLive ? program.progressAt(now) : 0,
           hasTimer: program?.hasTimer ?? false,
+          hasSeriesTimer: program?.hasSeriesTimer ?? false,
           focused: focused,
           apple: widget.apple,
           placeholderLabel: cell.kind == GuideCellKind.gap

@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
@@ -10,16 +12,18 @@ import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/log_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../playback/delay_limits.dart';
-import '../../../playback/media3_player_backend.dart';
+import '../../../playback/subtitle_cue_loader.dart';
 import '../../../playback/subtitle_style.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/remote_subtitle_labels.dart';
 import '../../../util/subtitle_appearance_schedule.dart';
+import '../../../util/subtitle_track_logic.dart';
 import '../overlay_sheet.dart';
 import '../progress_snack_bar.dart';
 import '../track_selector_dialog.dart';
 import 'delay_footer.dart';
-import 'secondary_subtitle_appearance_footer.dart';
+import 'subtitle_appearance_footer.dart';
+import 'subtitle_delay_panel.dart';
 import 'track_choices.dart';
 
 /// Runs a change to the player, returning false when it was refused.
@@ -28,19 +32,16 @@ typedef PlayerMutation = Future<bool> Function(
   FutureOr<void> Function() action,
 );
 
-/// The audio and subtitle pickers: the track list, a row that opens the delay
-/// in its own bar, and downloading subtitles from the server's providers. The
-/// full player and the mini player both open it, so both offer the same thing.
+/// Opens audio and subtitle track pickers with delay controls, subtitle appearance
+/// controls and subtitle downloads. Shared by the full player and mini player.
 abstract final class TrackPicker {
-  /// The delays applied to this playback. Held here rather than by a screen,
+  /// The audio delay applied to this playback. Held here rather than by a screen,
   /// so the full player and the mini player show the same values while the
   /// video moves between them.
   static double audioDelay = 0;
-  static double subtitleDelay = 0;
 
   static void resetDelays() {
     audioDelay = 0;
-    subtitleDelay = 0;
   }
 
   static bool canDownloadRemoteSubtitles(AggregatedItem item) {
@@ -64,16 +65,21 @@ abstract final class TrackPicker {
   /// [onSubtitlesChanged] runs after a subtitle change lands.
   /// [onDialogOpenChanged] reports each dialog opening and closing, for an
   /// opener outside the navigator that the dialog's barrier doesn't cover.
+  /// [onSubtitleDelayOpenChanged] reports only the subtitle delay opening and
+  /// closing, so the player can clear its controls off the subtitles meanwhile.
   static Future<void> show(
     BuildContext context, {
     required PlaybackManager manager,
     required bool audio,
     required MediaServerClient Function(AggregatedItem item) clientFor,
     bool secondary = false,
+    bool chooseSubtitleSlot = true,
     bool useRootNavigator = true,
     PlayerMutation? runMutation,
     VoidCallback? onSubtitlesChanged,
     ValueChanged<bool>? onDialogOpenChanged,
+    ValueChanged<bool>? onSubtitleDelayOpenChanged,
+    Set<LogicalKeyboardKey> closeKeys = const {},
   }) async {
     final l10n = AppLocalizations.of(context);
     final prefs = GetIt.instance<UserPreferences>();
@@ -95,30 +101,87 @@ abstract final class TrackPicker {
           : '',
     );
     final streams = choices.streams;
+    final showSlots =
+        !audio &&
+        !secondary &&
+        chooseSubtitleSlot &&
+        manager.backend is SecondarySubtitleBackend &&
+        // A secondary track that's already showing keeps the step so it can
+        // still be turned off.
+        (manager.secondarySubtitleStreamIndex != null ||
+            (prefs.get(UserPreferences.secondarySubtitlesEnabled) &&
+                streams.any((stream) {
+                  final index = stream['Index'];
+                  return index is int &&
+                      index != manager.subtitleStreamIndex &&
+                      manager.canUseAsSecondarySubtitle(index);
+                })));
+    final showControls = audio || secondary || chooseSubtitleSlot;
+    String trackLabel(int? index) {
+      if (index == null || index < 0) return l10n.off;
+      final trackNumber = streams.indexWhere((entry) => entry['Index'] == index);
+      if (trackNumber < 0) return l10n.streamTypeFallback('Subtitle', index + 1);
+      final stream = streams[trackNumber];
+      for (final key in ['DisplayTitle', 'Title', 'Language']) {
+        final title = (stream[key] as String?)?.trim();
+        if (title != null && title.isNotEmpty) return title;
+      }
+      return l10n.streamTypeFallback('Subtitle', trackNumber + 1);
+    }
+
     final options = <TrackOption>[
-      ...choices.options,
-      if (canDownloadRemote)
+      if (showSlots) ...[
         TrackOption(
-          label: l10n.downloadSubtitlesLabel,
-          subtitle: l10n.searchOpenSubtitlesPlugin,
+          label: l10n.primarySubtitleSlot,
+          subtitle: trackLabel(manager.subtitleStreamIndex),
         ),
+        TrackOption(
+          label: l10n.secondarySubtitleSlot,
+          subtitle: trackLabel(manager.secondarySubtitleStreamIndex),
+        ),
+      ] else ...[
+        ...choices.options,
+        if (canDownloadRemote)
+          TrackOption(
+            label: l10n.downloadSubtitlesLabel,
+            subtitle: l10n.searchOpenSubtitlesPlugin,
+          ),
+      ],
     ];
     if (!context.mounted) return;
 
     final backend = manager.backend;
-    final delayLimits = secondary
-        ? (
-            -PlaybackManager.secondarySubtitleMaxDelaySeconds,
-            PlaybackManager.secondarySubtitleMaxDelaySeconds,
-          )
+    final SecondarySubtitleBackend? secondaryControls =
+        backend is SecondarySubtitleBackend
+        ? backend as SecondarySubtitleBackend
+        : null;
+    final SecondarySubtitleAppearanceBackend? secondaryAppearance =
+        backend is SecondarySubtitleAppearanceBackend
+        ? backend as SecondarySubtitleAppearanceBackend
+        : null;
+    final supportsSecondarySize =
+        secondaryAppearance?.supportsSecondarySubtitleSize ??
+        secondaryControls?.supportsSecondarySubtitleStyle ==
+            true;
+    final supportsSecondaryColor =
+        secondaryAppearance?.supportsSecondarySubtitleColor ??
+        secondaryControls?.supportsSecondarySubtitleStyle ==
+            true;
+    final delayLimits = !showControls
+        ? null
+        : secondary
+        ? secondaryControls?.supportsSecondarySubtitleDelay == true
+              ? (
+                  -PlaybackManager.secondarySubtitleMaxDelaySeconds,
+                  PlaybackManager.secondarySubtitleMaxDelaySeconds,
+                )
+              : null
         : delayLimitsFor(backend, audio: audio);
     final delay = secondary
         ? manager.secondarySubtitleDelaySeconds
         : audio
         ? audioDelay
-        : backend is Media3PlayerBackend
-        ? backend.subtitleDelaySeconds
-        : subtitleDelay;
+        : backend?.subtitleDelaySeconds ?? 0;
     final delayLabel = audio ? l10n.audioDelay : l10n.subtitleDelay;
     String formatDelay(double seconds) => seconds == 0
         ? l10n.none
@@ -133,51 +196,84 @@ abstract final class TrackPicker {
       );
     }
     Widget? footer;
-    if (secondary) {
+    if (!audio &&
+        showControls &&
+        (secondary || streams.any(isTextSubtitleStream)) &&
+        (!secondary ||
+            supportsSecondarySize ||
+            supportsSecondaryColor ||
+            secondaryControls?.supportsSecondarySubtitlePosition == true)) {
       final style = SubtitleStyle.forResolution(
         prefs,
         manager.currentResolution,
       );
+      Future<void> saveSecondaryAppearance<T>(Preference<T> key, T value) async {
+        await prefs.set(key, value);
+        await syncSecondarySubtitleStyle(manager, prefs);
+      }
+
       footer = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              height: 1,
-              color: Colors.white.withValues(alpha: 0.08),
+          if (delayLimits == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                height: 1,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
             ),
-          ),
-          SecondarySubtitleAppearanceFooter(
-            initialFontSize:
-                manager.secondarySubtitleFontSize ?? style.fontSize,
-            initialOffset: manager.secondarySubtitleOffset,
-            initialTextColor: manager.secondarySubtitleTextColor,
-            defaultTextColor: style.textColor,
-            onChanged: (fontSize, offset, textColor) {
-              unawaited(
-                manager.configureSecondarySubtitleStyle(
-                  fontSize: fontSize,
-                  verticalOffset: offset,
-                  textColor: textColor,
-                ),
-              );
-              unawaited(
-                prefs.set(UserPreferences.secondarySubtitleTextSize, fontSize),
-              );
-              unawaited(
-                prefs.set(
-                  UserPreferences.secondarySubtitleOffsetPosition,
-                  offset,
-                ),
-              );
-              unawaited(
-                prefs.set(
-                  UserPreferences.secondarySubtitleTextColor,
-                  textColor ?? -1,
-                ),
-              );
+          SubtitleAppearanceFooter(
+            showStyle: !secondary || supportsSecondarySize,
+            showPosition:
+                !secondary ||
+                secondaryControls!.supportsSecondarySubtitlePosition,
+            showColor: secondary && supportsSecondaryColor,
+            secondary: secondary,
+            minOffset: secondary ? secondarySubtitleMinOffset : 0.0,
+            maxOffset: secondary
+                ? secondarySubtitleMaxOffset
+                : primarySubtitleMaxOffset,
+            offsetStep: 0.02,
+            initialFontSize: secondary
+                ? prefs.get(UserPreferences.secondarySubtitleSizeAdjustment)
+                : style.fontSize,
+            initialOffset: secondary
+                ? prefs.get(UserPreferences.secondarySubtitleOffsetPosition)
+                : storedPrimarySubtitleOffset(prefs, manager.currentResolution),
+            initialTextColor: switch (prefs.get(
+              UserPreferences.secondarySubtitleTextColor,
+            )) {
+              -1 => null,
+              final color => color,
             },
+            defaultTextColor: style.textColor,
+            onFontSizeChanged: (fontSize) => unawaited(
+              secondary
+                  ? saveSecondaryAppearance(
+                      UserPreferences.secondarySubtitleSizeAdjustment,
+                      fontSize,
+                    )
+                  : setPrimarySubtitleSize(manager, prefs, fontSize),
+            ),
+            onOffsetChanged: (offset) => unawaited(
+              secondary
+                  ? saveSecondaryAppearance(
+                      UserPreferences.secondarySubtitleOffsetPosition,
+                      offset,
+                    )
+                  : setPrimarySubtitleAppearance(
+                      manager,
+                      prefs,
+                      verticalOffset: offset,
+                    ),
+            ),
+            onTextColorChanged: (textColor) => unawaited(
+              saveSecondaryAppearance(
+                UserPreferences.secondarySubtitleTextColor,
+                textColor ?? -1,
+              ),
+            ),
           ),
         ],
       );
@@ -186,35 +282,83 @@ abstract final class TrackPicker {
       onDialogOpenChanged,
       () => TrackSelectorDialog.show(
         context,
-        title: audio
+        title: showSlots
+            ? l10n.subtitles
+            : audio
             ? l10n.audioTrack
             : secondary
             ? l10n.secondarySubtitleTrack
             : l10n.subtitleTrack,
         options: options,
-        selectedIndex: choices.selectedIndex,
+        selectedIndex: showSlots ? null : choices.selectedIndex,
+        dividerBefore: delayLimits == null ? null : options.length - 1,
         useRootNavigator: useRootNavigator,
         footer: footer,
+        closeKeys: closeKeys,
       ),
     );
     if (result == null || !context.mounted) return;
     if (delayLimits != null && result == options.length - 1) {
+      final label = secondary ? l10n.secondaryDelayAdjustment : delayLabel;
+      void onDelayChanged(double d) => secondary
+          ? unawaited(manager.setSecondarySubtitleDelay(d))
+          : _applyDelay(manager, audio: audio, delay: d);
+      final cues = audio
+          ? null
+          : SubtitleCueLoader.load(
+              manager,
+              secondary
+                  ? manager.secondarySubtitleStreamIndex
+                  : manager.subtitleStreamIndex,
+              client: item is AggregatedItem ? clientFor(item) : null,
+              itemId: item is AggregatedItem ? item.id : null,
+            );
       await _whileOpen(
-        onDialogOpenChanged,
+        (open) {
+          onDialogOpenChanged?.call(open);
+          if (!audio) onSubtitleDelayOpenChanged?.call(open);
+        },
         () => _showDelayBar(
           context,
           useRootNavigator: useRootNavigator,
-          bar: DelayFooter(
-            initialDelay: delay,
-            label: delayLabel,
-            minDelay: delayLimits.$1,
-            maxDelay: delayLimits.$2,
-            onDelayChanged: (d) => secondary
-                ? unawaited(manager.setSecondarySubtitleDelay(d))
-                : _applyDelay(manager, audio: audio, delay: d),
-            formatDelay: formatDelay,
-          ),
+          top: !audio,
+          wide: cues != null,
+          bar: audio
+              ? DelayFooter(
+                  initialDelay: delay,
+                  label: label,
+                  minDelay: delayLimits.$1,
+                  maxDelay: delayLimits.$2,
+                  onDelayChanged: onDelayChanged,
+                  formatDelay: formatDelay,
+                )
+              : SubtitleDelayPanel(
+                  initialDelay: delay,
+                  label: label,
+                  minDelay: delayLimits.$1,
+                  maxDelay: delayLimits.$2,
+                  onDelayChanged: onDelayChanged,
+                  formatDelay: formatDelay,
+                  state: manager.state,
+                  cues: cues,
+                ),
         ),
+      );
+      return;
+    }
+    if (showSlots) {
+      await show(
+        context,
+        manager: manager,
+        audio: false,
+        secondary: result == 1,
+        chooseSubtitleSlot: false,
+        clientFor: clientFor,
+        useRootNavigator: useRootNavigator,
+        runMutation: runMutation,
+        onSubtitlesChanged: onSubtitlesChanged,
+        onDialogOpenChanged: onDialogOpenChanged,
+        onSubtitleDelayOpenChanged: onSubtitleDelayOpenChanged,
       );
       return;
     }
@@ -295,22 +439,28 @@ abstract final class TrackPicker {
     }
   }
 
-  /// The delay on its own, in a slim bar at the bottom with nothing dimming
-  /// the picture, so the effect of each step can be seen while it's made.
+  /// The delay on its own, in a slim bar with nothing dimming the picture, so
+  /// the effect of each step can be seen while it's made. The subtitle delay
+  /// sits at the top, clear of the subtitles it moves, and is [wide] when it
+  /// carries the timeline.
   static Future<void> _showDelayBar(
     BuildContext context, {
     required Widget bar,
     required bool useRootNavigator,
+    bool top = false,
+    bool wide = false,
   }) => showFocusRestoringDialog<void>(
     context: context,
     useRootNavigator: useRootNavigator,
     barrierColor: Colors.transparent,
     builder: (_) => Dialog(
-      alignment: Alignment.bottomCenter,
-      insetPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      alignment: top ? Alignment.topCenter : Alignment.bottomCenter,
+      insetPadding: top
+          ? const EdgeInsets.fromLTRB(24, 24, 24, 0)
+          : const EdgeInsets.fromLTRB(24, 0, 24, 24),
       backgroundColor: Colors.transparent,
       child: playerDialogPanel(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: BoxConstraints(maxWidth: wide ? 640 : 480),
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: bar,
       ),
@@ -326,7 +476,6 @@ abstract final class TrackPicker {
       audioDelay = delay;
       manager.backend?.setAudioDelay(delay);
     } else {
-      subtitleDelay = delay;
       manager.backend?.setSubtitleDelay(delay);
     }
   }

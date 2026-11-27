@@ -3,56 +3,64 @@
 // settings library rather than an import.
 part of '../../ui/screens/settings/settings_side_panel.dart';
 
-List<_PanelEntry> _obMaxPanelEntries(
+/// The OB Max categories, in the settings pill tabs in place of Moonfin's.
+/// None of them changes the live preview, so it stays off.
+List<_SettingsCategory> _obMaxCategories(
   BuildContext context, {
   required bool showAdmin,
-  required FocusNode? firstFocus,
   required VoidCallback openAdmin,
 }) {
   final l10n = AppLocalizations.of(context);
   return [
     if (showAdmin)
-      _PanelEntry(
-        icon: Icons.admin_panel_settings,
-        title: l10n.administration,
-        subtitle: l10n.settingsAdministrationSubtitle,
-        focusNode: firstFocus,
-        onTap: openAdmin,
+      _SettingsCategory(
+        l10n.administration,
+        l10n.settingsAdministrationSubtitle,
+        () => _SettingsEntryListScreen(
+          title: l10n.administration,
+          entries: [
+            _PanelEntry(
+              icon: Icons.admin_panel_settings,
+              title: l10n.administration,
+              subtitle: l10n.settingsAdministrationSubtitle,
+              onTap: openAdmin,
+            ),
+          ],
+        ),
+        preview: false,
       ),
-    _PanelEntry(
-      icon: Icons.lock,
-      title: 'Compte et sécurité',
-      subtitle: 'Certificat, code PIN, contrôle parental, déconnexion',
-      focusNode: showAdmin ? null : firstFocus,
-      onTap: () => context.pushSettingsScreen(const _ObMaxAccountScreen()),
+    _SettingsCategory(
+      'Compte et sécurité',
+      'Certificat, code PIN, contrôle parental, déconnexion',
+      () => const _ObMaxAccountScreen(),
+      preview: false,
     ),
-    _PanelEntry(
-      icon: Icons.play_circle,
-      title: l10n.playback,
-      subtitle: 'Langues, sous-titres, qualité, épisode suivant, SyncPlay',
-      onTap: () => context.pushSettingsScreen(const _ObMaxPlaybackScreen()),
+    _SettingsCategory(
+      l10n.playback,
+      'Langues, sous-titres, qualité, épisode suivant, SyncPlay',
+      () => const _ObMaxPlaybackScreen(),
+      preview: false,
     ),
     if (ObMaxFeatures.seerr)
-      _PanelEntry(
-        icon: Icons.playlist_add,
-        title: 'Demandes',
-        subtitle: 'Demander des films et des séries (connexion avec ton compte)',
-        onTap: () => context.pushSettingsScreen(const SeerrConfigScreen()),
+      _SettingsCategory(
+        'Demandes',
+        'Demander des films et des séries (connexion avec ton compte)',
+        () => const SeerrConfigScreen(),
+        preview: false,
       ),
-    _PanelEntry(
-      icon: Icons.palette,
-      title: 'Personnalisation',
-      subtitle: PlatformDetection.isTV
-          ? 'Économiseur d’écran, fiche détaillée, navigation'
-          : 'Fiche détaillée, navigation',
-      onTap: () =>
-          context.pushSettingsScreen(const _ObMaxCustomizationScreen()),
+    _SettingsCategory(
+      'Personnalisation',
+      PlatformDetection.isTV
+          ? 'Affichage, économiseur d’écran, fiche détaillée, navigation'
+          : 'Affichage, fiche détaillée, navigation',
+      () => const _ObMaxCustomizationScreen(),
+      preview: false,
     ),
-    _PanelEntry(
-      icon: Icons.info_outline,
-      title: l10n.aboutTitle,
-      subtitle: 'Version, mises à jour, licences',
-      onTap: () => context.pushSettingsScreen(const _ObMaxAboutScreen()),
+    _SettingsCategory(
+      l10n.aboutTitle,
+      'Version, mises à jour, licences',
+      () => const _ObMaxAboutScreen(),
+      preview: false,
     ),
   ];
 }
@@ -259,9 +267,21 @@ class _ObMaxCustomizationScreen extends StatelessWidget {
         children: [
           adaptiveListSection(
             children: [
+              _TvSettingsListTile(
+                autofocus: true,
+                leading: const Icon(Icons.photo_size_select_large),
+                title: Text(l10n.display),
+                subtitle: Text(
+                  PlatformDetection.useMobileUi
+                      ? 'Rangées et taille des visuels de l’accueil'
+                      : 'Rangées et taille des visuels de l’accueil, taille '
+                            'de l’interface, animations',
+                ),
+                onTap: () =>
+                    context.pushSettingsScreen(const _ObMaxDisplayScreen()),
+              ),
               if (PlatformDetection.isTV)
                 _TvSettingsListTile(
-                  autofocus: true,
                   leading: const Icon(Icons.wallpaper),
                   title: Text(l10n.screensaver),
                   subtitle: Text(l10n.enableBuiltInScreensaver),
@@ -270,7 +290,6 @@ class _ObMaxCustomizationScreen extends StatelessWidget {
                   ),
                 ),
               _TvSettingsListTile(
-                autofocus: !PlatformDetection.isTV,
                 leading: const Icon(Icons.article_outlined),
                 title: Text(l10n.detailsPage),
                 subtitle: Text(l10n.settingsDetailsPageSubtitle),
@@ -295,6 +314,201 @@ class _ObMaxCustomizationScreen extends StatelessWidget {
                 ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What a user may change about how OB Max looks: the home rows (style, card
+/// size, spacing) and, on TV and desktop, the interface size and animations.
+/// The tiles are the upstream ones from the Appearance and Home Screen
+/// settings, without themes, row editing or external sources.
+class _ObMaxDisplayScreen extends StatefulWidget {
+  const _ObMaxDisplayScreen();
+
+  @override
+  State<_ObMaxDisplayScreen> createState() => _ObMaxDisplayScreenState();
+}
+
+class _ObMaxDisplayScreenState extends State<_ObMaxDisplayScreen> {
+  final _prefs = GetIt.instance<UserPreferences>();
+
+  void _reloadHomeRows() {
+    if (!GetIt.instance.isRegistered<HomeViewModel>()) return;
+    GetIt.instance<HomeViewModel>().load(preserveExisting: true);
+  }
+
+  void _syncAndRebuild() {
+    _pushPersonalizationSync();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final rowsStyle = _prefs.get(UserPreferences.homeRowsStyle);
+    final isMobileUi = PlatformDetection.useMobileUi;
+    final isPaddingEnabled =
+        isMobileUi ||
+        (!_prefs.get(UserPreferences.fullScreenRows) &&
+            !(rowsStyle == HomeRowsStyle.v1 &&
+                _prefs.get(UserPreferences.homeRowInfoOverlay)));
+    return Scaffold(
+      appBar: buildSettingsAppBar(context, Text(l10n.display)),
+      body: ListView(
+        children: [
+          _SectionHeader(l10n.homeScreen),
+          adaptiveListSection(
+            children: [
+              EnumPreferenceTile<PosterSize>(
+                autofocus: true,
+                preference: UserPreferences.posterSize,
+                title: l10n.cardSize,
+                icon: Icons.photo_size_select_large,
+                labelOf: (v) => switch (v) {
+                  PosterSize.small => l10n.small,
+                  PosterSize.medium => l10n.medium,
+                  PosterSize.large => l10n.large,
+                  PosterSize.extraLarge => l10n.extraLarge,
+                  PosterSize.grandparents => l10n.uiScaleGrandparents,
+                },
+                onChanged: _pushPersonalizationSync,
+              ),
+              EnumPreferenceTile<HomeRowsStyle>(
+                preference: UserPreferences.homeRowsStyle,
+                title: l10n.rowsType,
+                description: l10n.rowsTypeDescription,
+                icon: Icons.view_carousel,
+                labelOf: (style) => switch (style) {
+                  HomeRowsStyle.v1 => l10n.homeRowsStyleClassic,
+                  HomeRowsStyle.v2 => l10n.homeRowsStyleModern,
+                  HomeRowsStyle.carousel => l10n.homeRowsStyleCarousel,
+                },
+                onChanged: () {
+                  _reloadHomeRows();
+                  _syncAndRebuild();
+                },
+              ),
+              SliderPreferenceTile(
+                preference: rowsStyle.usesModernCards
+                    ? UserPreferences.modernHomeRowsPadding
+                    : UserPreferences.classicHomeRowsPadding,
+                title: l10n.homeRowsPadding,
+                description: l10n.homeRowsPaddingDescription,
+                icon: Icons.unfold_more,
+                min: rowsStyle.usesModernCards ? 360 : 10,
+                max: rowsStyle.usesModernCards ? 560 : 130,
+                divisions: rowsStyle.usesModernCards ? 10 : 6,
+                enabled: isPaddingEnabled,
+                onChangeEnd: _pushPersonalizationSync,
+              ),
+              if (!isMobileUi)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.fullScreenRows,
+                  title: l10n.fullScreenRows,
+                  subtitle: l10n.fullScreenRowsDescription,
+                  icon: Icons.image_aspect_ratio,
+                  onChanged: _syncAndRebuild,
+                ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.seriesThumbnailsEnabled,
+                title: l10n.seriesThumbnails,
+                subtitle: l10n.seriesThumbnailsDescription,
+                icon: Icons.image_aspect_ratio,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.hideHomeMediaDescription,
+                title: l10n.hideHomeMediaDescription,
+                subtitle: l10n.hideHomeMediaDescriptionSubtitle,
+                icon: Icons.description_outlined,
+                onChanged: _pushPersonalizationSync,
+              ),
+            ],
+          ),
+          if (!isMobileUi) ...[
+            _SectionHeader('Interface'),
+            adaptiveListSection(
+              children: [
+                EnumPreferenceTile<DesktopUiScale>(
+                  preference: UserPreferences.desktopUiScale,
+                  title: l10n.desktopUiScale,
+                  icon: Icons.zoom_out_map,
+                  labelOf: (v) => switch (v) {
+                    DesktopUiScale.small => l10n.small,
+                    DesktopUiScale.medium => l10n.medium,
+                    DesktopUiScale.large => l10n.large,
+                    DesktopUiScale.extraLarge => l10n.extraLarge,
+                    DesktopUiScale.grandparents => l10n.uiScaleGrandparents,
+                    DesktopUiScale.greatGrandparents =>
+                      l10n.uiScaleGreatGrandparents,
+                  },
+                  onChanged: _pushPersonalizationSync,
+                ),
+              ],
+            ),
+            _SectionHeader(l10n.settingsMotionSection),
+            adaptiveListSection(
+              children: [
+                SwitchPreferenceTile(
+                  preference: UserPreferences.cardFocusExpansion,
+                  title: l10n.focusExpansionAnimation,
+                  subtitle: l10n.scaleFocusedCards,
+                  icon: Icons.zoom_in,
+                ),
+                if (rowsStyle.usesModernCards) ...[
+                  EnumPreferenceTile<ModernCardTransitionSpeed>(
+                    preference: UserPreferences.modernCardTransitionSpeed,
+                    title: l10n.modernCardsTransitionSpeed,
+                    description: l10n.modernCardsTransitionSpeedSubtitle,
+                    icon: Icons.auto_awesome_motion_outlined,
+                    labelOf: (v) => switch (v) {
+                      ModernCardTransitionSpeed.extraSlow =>
+                        l10n.animationSpeedExtraSlow,
+                      ModernCardTransitionSpeed.slow => l10n.animationSpeedSlow,
+                      ModernCardTransitionSpeed.medium =>
+                        l10n.animationSpeedMedium,
+                      ModernCardTransitionSpeed.fast => l10n.animationSpeedFast,
+                      ModernCardTransitionSpeed.off => l10n.animationSpeedOff,
+                    },
+                  ),
+                  SwitchPreferenceTile(
+                    preference: UserPreferences.delayCardExpansionOnRapidScroll,
+                    title: l10n.delayCardExpansionOnRapidScroll,
+                    subtitle: l10n.delayCardExpansionOnRapidScrollSubtitle,
+                    icon: Icons.hourglass_empty_rounded,
+                  ),
+                ],
+                EnumPreferenceTile<PageTransitionSpeed>(
+                  preference: UserPreferences.pageTransitionSpeed,
+                  title: l10n.pageTransitions,
+                  description: l10n.pageTransitionsSubtitle,
+                  icon: Icons.animation_outlined,
+                  labelOf: (v) => switch (v) {
+                    PageTransitionSpeed.slow => l10n.pageTransitionFadeLong,
+                    PageTransitionSpeed.medium => l10n.pageTransitionFadeMedium,
+                    PageTransitionSpeed.fast => l10n.pageTransitionFadeShort,
+                    PageTransitionSpeed.off => l10n.pageTransitionFadeNone,
+                  },
+                ),
+                EnumPreferenceTile<NavigationAnimationSpeed>(
+                  preference: UserPreferences.navigationAnimationSpeed,
+                  title: l10n.navigationSpeed,
+                  description: l10n.navigationSpeedSubtitle,
+                  icon: Icons.speed_outlined,
+                  labelOf: (v) => switch (v) {
+                    NavigationAnimationSpeed.extraSlow =>
+                      l10n.animationSpeedExtraSlow,
+                    NavigationAnimationSpeed.slow => l10n.animationSpeedSlow,
+                    NavigationAnimationSpeed.medium => l10n.animationSpeedMedium,
+                    NavigationAnimationSpeed.fast => l10n.animationSpeedFast,
+                  },
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -1,3 +1,5 @@
+import '../util/server_date.dart';
+
 class DeviceInfoDto {
   final String id;
   final String? name;
@@ -9,6 +11,9 @@ class DeviceInfoDto {
   final DateTime? dateLastActivity;
   final String? iconUrl;
 
+  /// The id the client reported, on Emby, where [id] is a server number.
+  final String? reportedDeviceId;
+
   const DeviceInfoDto({
     required this.id,
     this.name,
@@ -19,6 +24,7 @@ class DeviceInfoDto {
     this.lastUserId,
     this.dateLastActivity,
     this.iconUrl,
+    this.reportedDeviceId,
   });
 
   String get displayName => customName ?? name ?? id;
@@ -31,10 +37,9 @@ class DeviceInfoDto {
         appVersion: json['AppVersion'] as String?,
         lastUserName: json['LastUserName'] as String?,
         lastUserId: json['LastUserId'] as String?,
-        dateLastActivity: json['DateLastActivity'] != null
-            ? DateTime.tryParse(json['DateLastActivity'] as String)
-            : null,
+        dateLastActivity: parseServerDate(json['DateLastActivity']),
         iconUrl: json['IconUrl'] as String?,
+        reportedDeviceId: json['ReportedDeviceId'] as String?,
       );
 }
 

@@ -54,6 +54,8 @@ class _AutomationQueueScreenState extends State<_AutomationQueueScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final cinemaEnabled = _prefs.get(UserPreferences.cinemaModeEnabled) ||
+        _prefs.get(UserPreferences.cinemaModeEpisodesEnabled);
     final nextUpBehavior = _prefs.get(UserPreferences.nextUpBehavior);
     final mediaSegmentActions = _prefs.get(UserPreferences.mediaSegmentActions);
     final segmentActions = parseMediaSegmentActions(mediaSegmentActions);
@@ -85,16 +87,19 @@ class _AutomationQueueScreenState extends State<_AutomationQueueScreen> {
                 subtitle: l10n.settingsCinemaModeEpisodesSubtitle,
                 icon: Icons.live_tv,
               ),
-              // Every type writes to the one preference, so each tile is
-              // keyed on the current value. The tiles seed their notifier in
-              // initState, so without the key a tile left over from the
-              // previous value would keep showing it and overwrite a
-              // sibling's change on the next pick.
+              if (cinemaEnabled)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.cinemaModeSkipEnabled,
+                  title: l10n.cinemaSkipPrerolls,
+                  subtitle: l10n.cinemaSkipPrerollsDescription,
+                  icon: Icons.skip_next,
+                ),
+              // Every type writes to the one preference. The key stays the
+              // same across picks so the tile, and the focus on it, survive.
+              // The tile picks up a sibling's change on rebuild.
               for (final type in configurableMediaSegmentTypes)
                 StringPickerPreferenceTile(
-                  key: ValueKey(
-                    'segmentAction_${type.name}_$mediaSegmentActions',
-                  ),
+                  key: ValueKey('segmentAction_${type.name}'),
                   preference: UserPreferences.mediaSegmentActions,
                   title: l10n.settingsMediaSegmentTypeAction(type.displayName),
                   icon: Icons.content_cut,
@@ -173,6 +178,13 @@ class _AutomationQueueScreenState extends State<_AutomationQueueScreen> {
                   subtitle: l10n.replaceSkipOutroWithNextUpDisplaySubtitle,
                   icon: Icons.skip_next,
                 ),
+              if (showNextUpOptions)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.showNextAirDate,
+                  title: l10n.showNextAirDate,
+                  subtitle: l10n.showNextAirDateSubtitle,
+                  icon: Icons.event_available_outlined,
+                ),
               EnumPreferenceTile<StillWatchingBehavior>(
                 preference: UserPreferences.stillWatchingBehavior,
                 title: l10n.stillWatchingPrompt,
@@ -194,3 +206,8 @@ class _AutomationQueueScreenState extends State<_AutomationQueueScreen> {
     );
   }
 }
+
+/// The Skipping & Autoplay page on its own, which the panel otherwise only
+/// opens from inside its private navigator.
+@visibleForTesting
+Widget automationQueueScreenForTesting() => const _AutomationQueueScreen();

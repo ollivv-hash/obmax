@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Shared speed for the long-form program descriptions in Live TV.
-const double kLiveTvDescriptionMarqueeMillisPerPixel = 55.0;
+// About the pace subtitle guidelines allow, slow enough to read from across
+// the room.
+const double _readingCharsPerSecond = 17;
 
 class MarqueeText extends StatefulWidget {
   final String text;
@@ -11,8 +13,9 @@ class MarqueeText extends StatefulWidget {
 
   /// The number of lines visible before an overflowing value scrolls. The
   /// default is the original horizontal one-line marquee. Values above one
-  /// use the same pause/repeat timing to scroll vertically through wrapped
-  /// text, keeping the full visible line budget available to the caller.
+  /// scroll vertically through wrapped text at reading pace, holding the first
+  /// lines long enough to read them and stopping on the last one. In that mode
+  /// [millisPerPixel] is ignored and [pauseDurationMs] is the shortest hold.
   final int maxLines;
 
   /// Optional rich content rendered in place of [text], so one scrolling line
@@ -55,11 +58,11 @@ class _MarqueeTextState extends State<MarqueeText>
   late final ScrollController _controller;
   late final AnimationController _anim;
   Timer? _pauseTimer;
-  double _lastTextWidth = 0.0;
+  double _scrollExtent = 0.0;
+  int _holdMs = 0;
+  int _endHoldMs = 0;
   bool _overflows = false;
-
-  double get _endOffset =>
-      widget.maxLines > 1 ? _lastTextWidth : _lastTextWidth + widget.gap;
+  _MarqueeGroupState? _group;
 
   /// What gets painted and measured, the spans when given, otherwise [text].
   TextSpan get _span => widget.spans != null
@@ -76,7 +79,41 @@ class _MarqueeTextState extends State<MarqueeText>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final group = context
+        .dependOnInheritedWidgetOfExactType<_MarqueeGroupScope>()
+        ?.group;
+    if (group == _group) return;
+    _leaveGroup();
+    _group = group;
+    group?.animation.addListener(_onGroupTick);
+    group?.layout.addListener(_onGroupLayout);
+  }
+
+  void _leaveGroup() {
+    final group = _group;
+    if (group == null) return;
+    group.animation.removeListener(_onGroupTick);
+    group.layout.removeListener(_onGroupLayout);
+    group.remove(this);
+    _group = null;
+  }
+
+  void _onGroupTick() {
+    final group = _group;
+    if (group != null && _controller.hasClients) {
+      _controller.jumpTo(group.offset);
+    }
+  }
+
+  void _onGroupLayout() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    _leaveGroup();
     _pauseTimer?.cancel();
     _anim.removeListener(_onTick);
     _anim.removeStatusListener(_onAnimationStatus);
@@ -103,12 +140,23 @@ class _MarqueeTextState extends State<MarqueeText>
 
   void _onTick() {
     if (_controller.hasClients) {
-      _controller.jumpTo(_anim.value * _endOffset);
+      _controller.jumpTo(_anim.value * _scrollExtent);
     }
   }
 
   void _onAnimationStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
+    if (widget.maxLines > 1) {
+      _pauseTimer = Timer(Duration(milliseconds: _endHoldMs), () {
+        _pauseTimer = null;
+        if (mounted) _restart();
+      });
+    } else {
+      _restart();
+    }
+  }
+
+  void _restart() {
     if (_controller.hasClients) _controller.jumpTo(0);
     _anim.value = 0;
     _scheduleScroll();
@@ -116,18 +164,16 @@ class _MarqueeTextState extends State<MarqueeText>
 
   void _scheduleScroll() {
     if (!_overflows || _pauseTimer != null || _anim.isAnimating) return;
-    _pauseTimer = Timer(Duration(milliseconds: widget.pauseDurationMs), () {
+    _pauseTimer = Timer(Duration(milliseconds: _holdMs), () {
       _pauseTimer = null;
       if (mounted && _overflows) _anim.forward(from: 0);
     });
   }
 
-  void _updateAnimation(double textWidth, double parentWidth) {
+  void _updateAnimation(double textExtent, double parentExtent) {
     if (!mounted) return;
 
-    _lastTextWidth = textWidth;
-
-    _overflows = textWidth > parentWidth;
+    _overflows = textExtent > parentExtent;
     if (!_overflows) {
       _pauseTimer?.cancel();
       _pauseTimer = null;
@@ -140,10 +186,31 @@ class _MarqueeTextState extends State<MarqueeText>
       return;
     }
 
-    if (!_anim.isAnimating && _controller.hasClients) {
+    // A pending hold may be the one on the last lines, which a rebuild
+    // mustn't cut short.
+    if (!_anim.isAnimating && _pauseTimer == null && _controller.hasClients) {
       _controller.jumpTo(0);
     }
-    final scrollDurationMs = (_endOffset * widget.millisPerPixel).toInt();
+    final int scrollDurationMs;
+    if (widget.maxLines > 1) {
+      // One pixel down brings in a whole line of words, so the pace and the
+      // holds come from reading time rather than from distance.
+      _scrollExtent = textExtent - parentExtent;
+      final msPerChar = 1000 / _readingCharsPerSecond;
+      final chars = widget.text.length;
+      final visibleMs = chars * parentExtent / textExtent * msPerChar;
+      scrollDurationMs = (chars * _scrollExtent / textExtent * msPerChar)
+          .round();
+      _holdMs = math.max(widget.pauseDurationMs, visibleMs.round());
+      _endHoldMs = math.max(
+        widget.pauseDurationMs,
+        (visibleMs / widget.maxLines).round(),
+      );
+    } else {
+      _scrollExtent = textExtent + widget.gap;
+      scrollDurationMs = (_scrollExtent * widget.millisPerPixel).toInt();
+      _holdMs = widget.pauseDurationMs;
+    }
     final newDuration = Duration(milliseconds: scrollDurationMs);
 
     if (_anim.duration != newDuration) {
@@ -235,6 +302,42 @@ class _MarqueeTextState extends State<MarqueeText>
         final textWidth = textPainter.width;
         textPainter.dispose();
 
+        final group = _group;
+        if (group != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _group == group) {
+              group.report(this, textWidth, parentWidth);
+            }
+          });
+          if (textWidth <= parentWidth || group.period <= 0) {
+            return Text.rich(
+              span,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: widget.textAlign,
+            );
+          }
+          // The first copy is padded to the group's period so every line
+          // wraps back to its start at the same moment.
+          final groupScroll = SingleChildScrollView(
+            controller: _controller,
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: group.period,
+                  child: Text.rich(span, maxLines: 1, softWrap: false),
+                ),
+                Text.rich(span, maxLines: 1, softWrap: false),
+              ],
+            ),
+          );
+          return parentWidth.isFinite
+              ? SizedBox(width: parentWidth, child: groupScroll)
+              : groupScroll;
+        }
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _updateAnimation(textWidth, parentWidth);
         });
@@ -306,4 +409,125 @@ class _MarqueeTextState extends State<MarqueeText>
       },
     );
   }
+}
+
+/// Runs the one-line [MarqueeText]s below it on one clock: the lines that
+/// overflow start together and loop together over the longest line's
+/// distance. A line that fits stays still.
+class MarqueeGroup extends StatefulWidget {
+  final Widget child;
+  final double millisPerPixel;
+  final double gap;
+  final int pauseDurationMs;
+
+  const MarqueeGroup({
+    super.key,
+    required this.child,
+    this.millisPerPixel = 50,
+    this.gap = 16.0,
+    this.pauseDurationMs = 1500,
+  });
+
+  @override
+  State<MarqueeGroup> createState() => _MarqueeGroupState();
+}
+
+class _MarqueeGroupState extends State<MarqueeGroup>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+  final ValueNotifier<int> _layout = ValueNotifier(0);
+  final Map<Object, ({double text, double parent})> _metrics = {};
+  Timer? _pauseTimer;
+  double _period = 0;
+  bool _overflows = false;
+
+  Listenable get animation => _anim;
+  Listenable get layout => _layout;
+  bool get overflows => _overflows;
+
+  /// The distance one loop scrolls: the longest line plus the gap.
+  double get period => _period;
+  double get offset => _anim.value * _period;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(vsync: this);
+    _anim.addStatusListener((status) {
+      if (status != AnimationStatus.completed) return;
+      _anim.value = 0;
+      _scheduleScroll();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pauseTimer?.cancel();
+    _anim.dispose();
+    _layout.dispose();
+    super.dispose();
+  }
+
+  void report(Object member, double textWidth, double parentWidth) {
+    final previous = _metrics[member];
+    if (previous != null &&
+        previous.text == textWidth &&
+        previous.parent == parentWidth) {
+      return;
+    }
+    _metrics[member] = (text: textWidth, parent: parentWidth);
+    _recompute();
+  }
+
+  /// Called from a member's dispose, while the tree is locked, so the
+  /// remaining members are told after the frame.
+  void remove(Object member) {
+    if (_metrics.remove(member) == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recompute());
+  }
+
+  void _recompute() {
+    if (!mounted) return;
+    var longest = 0.0;
+    var overflows = false;
+    for (final m in _metrics.values) {
+      if (m.text > longest) longest = m.text;
+      if (m.text > m.parent) overflows = true;
+    }
+    final period = longest + widget.gap;
+    if (period == _period && overflows == _overflows) return;
+    _period = period;
+    _overflows = overflows;
+    _pauseTimer?.cancel();
+    _pauseTimer = null;
+    _anim.stop();
+    _anim.value = 0;
+    _anim.duration = Duration(
+      milliseconds: (period * widget.millisPerPixel).toInt(),
+    );
+    _layout.value++;
+    _scheduleScroll();
+  }
+
+  void _scheduleScroll() {
+    if (!_overflows || _pauseTimer != null || _anim.isAnimating) return;
+    _pauseTimer = Timer(Duration(milliseconds: widget.pauseDurationMs), () {
+      _pauseTimer = null;
+      if (mounted && _overflows) _anim.forward(from: 0);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      _MarqueeGroupScope(group: this, child: widget.child);
+}
+
+class _MarqueeGroupScope extends InheritedWidget {
+  final _MarqueeGroupState group;
+
+  const _MarqueeGroupScope({required this.group, required super.child});
+
+  @override
+  bool updateShouldNotify(_MarqueeGroupScope oldWidget) =>
+      group != oldWidget.group;
 }

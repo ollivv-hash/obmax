@@ -15,9 +15,12 @@ import '../../../data/offline/connectivity_aware_media_server_client.dart';
 import '../../../data/repositories/multi_server_repository.dart';
 import '../../../data/repositories/search_repository.dart';
 import '../../../data/repositories/seerr_repository.dart';
+import '../../../data/services/plugin_sync_service.dart';
 import '../../../data/services/recent_searches_store.dart';
 import '../../../data/services/remote_search_session.dart';
+import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/services/voice_search_controller.dart';
+import '../../../data/utils/merged_copies.dart';
 import '../../../data/viewmodels/search_view_model.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
@@ -38,6 +41,7 @@ import '../../widgets/bottom_nav/bottom_navbar.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_badge.dart';
 import '../../widgets/media_card.dart';
+import '../../widgets/merged_copy_picker.dart';
 import '../../widgets/navigation_layout.dart';
 import '../../widgets/focus/context_menu_sheet.dart';
 import '../../widgets/focus/request_initial_focus.dart';
@@ -49,11 +53,16 @@ class SearchScreen extends StatefulWidget {
   final String? scopedLibraryId;
   final RemoteSearchSession? remoteSearch;
 
+  /// Opened from the request screens: a search lands on the Requests tab
+  /// when it has request results.
+  final bool preferRequests;
+
   const SearchScreen({
     super.key,
     this.initialQuery,
     this.scopedLibraryId,
     this.remoteSearch,
+    this.preferRequests = false,
   });
 
   @override
@@ -90,6 +99,8 @@ class _SearchScreenState extends State<SearchScreen>
   static const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w342';
   int _selectedTab = 0;
   String? _tabSelectionQuery;
+  // Whether the user picked a tab for the current query.
+  bool _tabPicked = false;
   // The tabs as of the last results, so the selection stays on its tab when a
   // group arrives late.
   List<String> _shownTabKeys = const [];
@@ -122,6 +133,9 @@ class _SearchScreenState extends State<SearchScreen>
               _userPreferences.get(UserPreferences.enableMultiServerLibraries) &&
               !shouldUseOfflineCatalog()
           ? getIt<MultiServerRepository>()
+          : null,
+      pluginSync: getIt.isRegistered<PluginSyncService>()
+          ? getIt<PluginSyncService>()
           : null,
     );
     _vm.addListener(_onViewModelChanged);
@@ -184,18 +198,24 @@ class _SearchScreenState extends State<SearchScreen>
     final keptTab = _selectedTab < _shownTabKeys.length
         ? tabKeys.indexOf(_shownTabKeys[_selectedTab])
         : -1;
+    final requestsArrived =
+        _hasSeerr && !_shownTabKeys.contains('seerr');
     _shownTabKeys = tabKeys;
     if (_tabCount > 0 && query != _tabSelectionQuery) {
       _tabSelectionQuery = query;
-      _selectedTab = _leadingTabCount;
+      _tabPicked = false;
+      _selectedTab = _defaultTab;
+    } else if (widget.preferRequests && requestsArrived && !_tabPicked) {
+      // The request results came after the library's.
+      _selectedTab = _defaultTab;
     } else if (keptTab >= 0) {
       _selectedTab = keptTab;
     } else if (_selectedTab >= _tabCount) {
-      _selectedTab = _tabCount == 0 ? 0 : _leadingTabCount;
+      _selectedTab = _tabCount == 0 ? 0 : _defaultTab;
     }
     if (_focusTabsAfterResults && _tabCount > 0) {
       _focusTabsAfterResults = false;
-      _selectedTab = _leadingTabCount;
+      _selectedTab = _defaultTab;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _tabsFocusNode.canRequestFocus) {
           _tabsFocusNode.requestFocus();
@@ -353,8 +373,16 @@ class _SearchScreenState extends State<SearchScreen>
       !GetIt.instance<UserPreferences>().get(UserPreferences.kidsModeEnabled);
   bool get _hasGames => _vm.gameResults.isNotEmpty;
 
+  List<SeerrDiscoverItem> get _smartSeerr =>
+      GetIt.instance<UserPreferences>().get(UserPreferences.kidsModeEnabled)
+      ? const []
+      : _vm.smartResults.seerr;
+  bool get _hasSmart =>
+      _vm.smartResults.items.isNotEmpty || _smartSeerr.isNotEmpty;
+
   int get _tabCount {
-    final hasContent = _vm.results.isNotEmpty || _hasSeerr || _hasGames;
+    final hasContent =
+        _vm.results.isNotEmpty || _hasSeerr || _hasGames || _hasSmart;
     return hasContent ? _leadingTabCount + 1 + _vm.results.length : 0;
   }
 
@@ -377,11 +405,16 @@ class _SearchScreenState extends State<SearchScreen>
 
   bool _tabIsAll(int index) => index == _leadingTabCount;
 
+  /// The tab a new search lands on: All, or Requests when asked for.
+  int get _defaultTab =>
+      widget.preferRequests && _hasSeerr ? 0 : _leadingTabCount;
+
   // The _vm.results index for a group tab, which follow the All tab.
   int _groupIndex(int tab) => tab - _leadingTabCount - 1;
 
   void _selectTab(int index) {
     if (index == _selectedTab) return;
+    _tabPicked = true;
     setState(() => _selectedTab = index);
     cleanupGridFocusNodes(_currentTabItemCount());
     _lastGridCount = -1;
@@ -551,7 +584,15 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   String _voiceLocaleCode(BuildContext context) {
-    final locale = Localizations.localeOf(context);
+    final appLocale = Localizations.localeOf(context);
+    final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
+    // Recognizers pick their language pack by region, so a bare app language
+    // like en borrows the device's region when the languages match.
+    final locale =
+        (appLocale.countryCode ?? '').isEmpty &&
+            deviceLocale.languageCode == appLocale.languageCode
+        ? deviceLocale
+        : appLocale;
     final languageCode = locale.languageCode.trim();
     final countryCode = locale.countryCode?.trim();
 
@@ -605,6 +646,7 @@ class _SearchScreenState extends State<SearchScreen>
       onText: (text, {required isFinal}) {
         _applyVoiceSearchResult(text, isFinal: isFinal);
       },
+      onError: () => _showVoiceSearchError(_voiceErrorMessage(l10n)),
     );
 
     if (!mounted) return;
@@ -651,11 +693,22 @@ class _SearchScreenState extends State<SearchScreen>
     if (code.contains('error_busy') || code.contains('error_client')) {
       return l10n.voiceSearchServiceBusy;
     }
-    final message = _voiceController.lastErrorMessage?.trim();
-    if (message != null && message.isNotEmpty) {
-      return message;
+    if (code == 'speech_unavailable') {
+      return l10n.speechRecognitionUnavailable;
     }
     return l10n.voiceSearchUnavailable;
+  }
+
+  /// Starting voice search takes focus from everything and only a result gives
+  /// it back, so on TV a failed start or a recognizer error would leave the
+  /// D-pad with nothing focused. Hands it back to the mic button unless
+  /// something else took it or another screen covers this one.
+  void _restoreFocusAfterVoiceFailure() {
+    if (!mounted || !PlatformDetection.isTV) return;
+    if (ModalRoute.of(context)?.isCurrent == false) return;
+    final current = FocusManager.instance.primaryFocus;
+    if (current != null && current is! FocusScopeNode) return;
+    _voiceFocus.requestFocus();
   }
 
   void _showVoiceSearchError(
@@ -663,6 +716,7 @@ class _SearchScreenState extends State<SearchScreen>
     bool showSettingsAction = false,
   }) async {
     if (!mounted) return;
+    _restoreFocusAfterVoiceFailure();
 
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
@@ -681,9 +735,15 @@ class _SearchScreenState extends State<SearchScreen>
     );
 
     // A screen reader can keep the snackbar from auto-dismissing, so close this
-    // specific snackbar after a delay rather than whatever is current then.
-    await Future.delayed(const Duration(seconds: 5));
-    controller.close();
+    // specific snackbar if it's still up after a delay rather than whatever is
+    // current then.
+    await controller.closed.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        controller.close();
+        return SnackBarClosedReason.hide;
+      },
+    );
   }
 
   KeyEventResult _onVoiceKey(FocusNode node, KeyEvent event) {
@@ -745,7 +805,7 @@ class _SearchScreenState extends State<SearchScreen>
           : KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-        !PlatformDetection.isAppleTV) {
+        VoiceSearchController.isSupported) {
       _voiceFocus.requestFocus();
       return KeyEventResult.handled;
     }
@@ -840,15 +900,6 @@ class _SearchScreenState extends State<SearchScreen>
         decoration: BoxDecoration(
           color: backgroundColor,
           shape: BoxShape.circle,
-          boxShadow: isListening
-              ? [
-                  BoxShadow(
-                    color: AppColorScheme.accent.withValues(alpha: 0.27),
-                    blurRadius: 18,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
         ),
         child: Center(
           child: isInitializing
@@ -874,7 +925,15 @@ class _SearchScreenState extends State<SearchScreen>
     return Focus(
       focusNode: _voiceFocus,
       onKeyEvent: _onVoiceKey,
-      child: button,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          if (isListening && !MediaQuery.disableAnimationsOf(context))
+            _ListeningPulse(size: size),
+          button,
+        ],
+      ),
     );
   }
 
@@ -950,8 +1009,8 @@ class _SearchScreenState extends State<SearchScreen>
                                 inputPurpose: InputPurpose.search,
                                 suggestionsBuilder: _fetchKeyboardSuggestions,
                                 recentSuggestions: _recentSearches,
-                                preferSystemIme: _userPreferences.get(
-                                  UserPreferences.preferSystemImeKeyboard,
+                                keyboardStyle: _userPreferences.get(
+                                  UserPreferences.keyboardStyle,
                                 ),
                                 hint: searchHint,
                                 textStyle: TextStyle(
@@ -963,9 +1022,9 @@ class _SearchScreenState extends State<SearchScreen>
                                   fontSize: searchFontSize,
                                 ),
                                 prefixIcon: searchIcon,
-                                suffixIcon: PlatformDetection.isAppleTV
-                                    ? null
-                                    : _buildVoiceActivation(searchIconColor),
+                                suffixIcon: VoiceSearchController.isSupported
+                                    ? _buildVoiceActivation(searchIconColor)
+                                    : null,
                                 filled: true,
                                 fillColor: AppColorScheme.surfaceVariant,
                                 borderRadius: searchHeight / 2,
@@ -1029,7 +1088,8 @@ class _SearchScreenState extends State<SearchScreen>
                                       onPressed: _searchController.clear,
                                       visualDensity: VisualDensity.compact,
                                     ),
-                                  _buildVoiceActivation(searchIconColor),
+                                  if (VoiceSearchController.isSupported)
+                                    _buildVoiceActivation(searchIconColor),
                                   const SizedBox(width: 6),
                                 ],
                               ),
@@ -1061,7 +1121,7 @@ class _SearchScreenState extends State<SearchScreen>
         }
         return _buildResults();
       case SearchState.ready
-          when _vm.results.isEmpty && _vm.seerrResults.isEmpty:
+          when _vm.results.isEmpty && _vm.seerrResults.isEmpty && !_hasSmart:
         return Center(
           child: Text(
             AppLocalizations.of(context).noResultsForQuery(_vm.query),
@@ -1107,7 +1167,9 @@ class _SearchScreenState extends State<SearchScreen>
     final totalCount =
         _vm.results.fold<int>(0, (s, g) => s + g.items.length) +
         _vm.seerrResults.length +
-        _vm.gameResults.length;
+        _vm.gameResults.length +
+        _vm.smartResults.items.length +
+        _smartSeerr.length;
     final labels = <String>[
       if (_hasSeerr) '$seerrLabel: ${_vm.seerrResults.length}',
       if (_hasGames) '${l10n.games}: ${_vm.gameResults.length}',
@@ -1289,21 +1351,86 @@ class _SearchScreenState extends State<SearchScreen>
 
     final hasSeerr = _vm.seerrResults.isNotEmpty;
     final hasGames = _vm.gameResults.isNotEmpty;
+    final smartItems = _vm.smartResults.items;
+    final smartSeerr = _smartSeerr;
     _allRowIds = [
+      if (smartItems.isNotEmpty) 'smart',
+      if (smartSeerr.isNotEmpty) 'smart_seerr',
       for (final g in groups) g.itemTypes.first,
       if (hasSeerr) 'seerr',
       if (hasGames) 'games',
     ];
-    // Library groups come first, then the Seerr and Games rows when present.
+    // Smart search rows come first, then the library groups, then the Seerr
+    // and Games rows when present.
     final rowLens = <int>[
+      if (smartItems.isNotEmpty) smartItems.length,
+      if (smartSeerr.isNotEmpty) smartSeerr.length,
       for (final g in groups) g.items.length,
       if (hasSeerr) _vm.seerrResults.length,
       if (hasGames) _vm.gameResults.length,
     ];
 
     final rows = <Widget>[];
-    for (var r = 0; r < groups.length; r++) {
-      final group = groups[r];
+    if (smartItems.isNotEmpty) {
+      final row = rows.length;
+      // Types are mixed here, so each card keeps its own shape and the row
+      // fits the tallest.
+      final ratios = [
+        for (final item in smartItems) MediaCard.aspectRatioForType(item.type),
+      ];
+      double widthFor(double ar) => ar == 2 / 3 ? 108.0 : 150.0;
+      rows.add(
+        LibraryRow(
+          key: _allRowKey(row),
+          title: l10n.smartSearch,
+          rowHeight: ratios
+              .map((ar) => widthFor(ar) / ar + 56)
+              .reduce((a, b) => a > b ? a : b),
+          children: [
+            for (var c = 0; c < smartItems.length; c++)
+              _resultItemCard(
+                item: smartItems[c],
+                width: widthFor(ratios[c]),
+                ar: ratios[c],
+                focusColor: focusColor,
+                cardFocusExpansion: cardFocusExpansion,
+                focusNode: _allCardNode(row, c),
+                onNavKey: (node, event) =>
+                    _onAllCardKey(row, c, rowLens, event),
+              ),
+          ],
+        ),
+      );
+    }
+    if (smartSeerr.isNotEmpty) {
+      final row = rows.length;
+      const cardWidth = 108.0;
+      rows.add(
+        LibraryRow(
+          key: _allRowKey(row),
+          title: l10n.smartSearchOnSeerr(
+            GetIt.instance<SeerrPreferences>().labelOrDefault(l10n.seerr),
+          ),
+          rowHeight: cardWidth / (2 / 3) + 56,
+          children: [
+            for (var c = 0; c < smartSeerr.length; c++)
+              _seerrResultCard(
+                item: smartSeerr[c],
+                width: cardWidth,
+                focusColor: focusColor,
+                cardFocusExpansion: cardFocusExpansion,
+                focusNode: _allCardNode(row, c),
+                onNavKey: (node, event) =>
+                    _onAllCardKey(row, c, rowLens, event),
+              ),
+          ],
+        ),
+      );
+    }
+    final groupRowOffset = rows.length;
+    for (var g = 0; g < groups.length; g++) {
+      final group = groups[g];
+      final r = groupRowOffset + g;
       final ar = MediaCard.aspectRatioForType(group.items.first.type);
       final cardWidth = (ar == 2/3) ? 108.0 : 150.0;
       rows.add(
@@ -1315,7 +1442,7 @@ class _SearchScreenState extends State<SearchScreen>
             for (var c = 0; c < group.items.length; c++)
               _buildAllItemCard(
                 r,
-                r,
+                g,
                 c,
                 cardWidth,
                 ar,
@@ -1328,7 +1455,7 @@ class _SearchScreenState extends State<SearchScreen>
       );
     }
     if (hasSeerr) {
-      final seerrRow = groups.length;
+      final seerrRow = rows.length;
       final cardWidth = 108.0;
       final seerrLabel = GetIt.instance<SeerrPreferences>().labelOrDefault(
         l10n.seerr,
@@ -1353,7 +1480,7 @@ class _SearchScreenState extends State<SearchScreen>
       );
     }
     if (hasGames) {
-      final gamesRow = groups.length + (hasSeerr ? 1 : 0);
+      final gamesRow = rows.length;
       final cardWidth = 108.0;
       rows.add(
         LibraryRow(
@@ -1415,7 +1542,7 @@ class _SearchScreenState extends State<SearchScreen>
     bool cardFocusExpansion,
   ) {
     return _seerrResultCard(
-      index: col,
+      item: _vm.seerrResults[col],
       width: cardWidth,
       focusColor: focusColor,
       cardFocusExpansion: cardFocusExpansion,
@@ -1460,15 +1587,19 @@ class _SearchScreenState extends State<SearchScreen>
       MediaQuery.devicePixelRatioOf(context),
       ArtworkShape.forAspectRatio(ar),
     );
-    final serverName = _vm.serverNameFor(item);
+    // A result several servers hold shows how many instead of one's name.
+    final serverName = serverCountOf(item) > 1 ? null : _vm.serverNameFor(item);
     // A person's round portrait would clip the badge, so their server goes on
     // the line under the name instead.
     final serverOnSubtitle = serverName != null && item.type == 'Person';
     return MediaCard(
+      // A person has no file to read labels from.
+      posterBadgeItemId: item.type == 'Person' ? null : item.id,
       title: item.name,
       subtitle: serverOnSubtitle ? serverName : _subtitle(item),
       imageUrl: _imageUrl(item, maxWidth: requestWidth),
       imageOverlays: [
+        ...mergedServerCountOverlays(context, item),
         if (serverName != null && !serverOnSubtitle)
           Positioned(
             left: 6,
@@ -1495,11 +1626,15 @@ class _SearchScreenState extends State<SearchScreen>
           : (node, event) {
               if (event.isActionable && _isPlayKey(event.logicalKey)) {
                 if (event is KeyDownEvent) {
-                  context.push(
-                    Destinations.item(
-                      item.id,
-                      serverId: item.serverId,
-                      autoPlay: true,
+                  openPickedCopy(
+                    context,
+                    item,
+                    (copy) => context.push(
+                      Destinations.item(
+                        copy.id,
+                        serverId: copy.serverId,
+                        autoPlay: true,
+                      ),
                     ),
                   );
                 }
@@ -1507,12 +1642,16 @@ class _SearchScreenState extends State<SearchScreen>
               }
               return onNavKey(node, event);
             },
-      onTap: () => context.push(
-        Destinations.itemOrPhoto(
-          item.id,
-          serverId: item.serverId,
-          type: item.type,
-          channelId: item.channelId,
+      onTap: () => openPickedCopy(
+        context,
+        item,
+        (copy) => context.push(
+          Destinations.itemOrPhoto(
+            copy.id,
+            serverId: copy.serverId,
+            type: copy.type,
+            channelId: copy.channelId,
+          ),
         ),
       ),
       onLongPress: () => showContextMenu(
@@ -1527,14 +1666,13 @@ class _SearchScreenState extends State<SearchScreen>
 
   // Shared Seerr card body, used by both the grid and the All-tab rows.
   Widget _seerrResultCard({
-    required int index,
+    required SeerrDiscoverItem item,
     required double width,
     required Color focusColor,
     required bool cardFocusExpansion,
     required FocusNode? focusNode,
     required KeyEventResult Function(FocusNode, KeyEvent)? onNavKey,
   }) {
-    final item = _vm.seerrResults[index];
     final year = item.releaseDate ?? item.firstAirDate;
     final yearStr = (year != null && year.length >= 4)
         ? year.substring(0, 4)
@@ -1674,7 +1812,7 @@ class _SearchScreenState extends State<SearchScreen>
     bool cardFocusExpansion,
   ) {
     return _seerrResultCard(
-      index: index,
+      item: _vm.seerrResults[index],
       width: cellWidth,
       focusColor: focusColor,
       cardFocusExpansion: cardFocusExpansion,
@@ -1767,6 +1905,53 @@ class _ServerBadge extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A red ring that keeps growing out of the mic while it listens.
+class _ListeningPulse extends StatefulWidget {
+  const _ListeningPulse({required this.size});
+
+  final double size;
+
+  @override
+  State<_ListeningPulse> createState() => _ListeningPulseState();
+}
+
+class _ListeningPulseState extends State<_ListeningPulse>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, _) {
+        final t = _controller.value;
+        // Scaling at paint time keeps the mic's layout size fixed, so the
+        // ring doesn't push the search field around as it grows.
+        return Transform.scale(
+          scale: 1 + 0.6 * t,
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.red.withValues(alpha: 0.5 * (1 - t)),
+            ),
+          ),
+        );
+      },
     );
   }
 }

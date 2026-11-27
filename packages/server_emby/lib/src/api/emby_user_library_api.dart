@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:server_core/server_core.dart';
 
-class EmbyUserLibraryApi implements UserLibraryApi {
+class EmbyUserLibraryApi implements UserLibraryApi, ResumeVisibilityApi {
   final Dio _dio;
   final String Function() _getUserId;
 
@@ -44,6 +44,20 @@ class EmbyUserLibraryApi implements UserLibraryApi {
       'PlaybackPositionTicks': positionTicks,
       'LastPlayedDate': DateTime.now().toUtc().toIso8601String(),
     });
+  }
+
+  // Emby keeps a per-user HideFromResume flag next to the played state, so an
+  // item can leave Continue Watching with its resume position intact.
+  @override
+  Future<void> setHiddenFromResume(
+    String itemId, {
+    required bool hidden,
+  }) async {
+    final userId = _getUserId();
+    await _dio.post(
+      '/Users/$userId/Items/$itemId/HideFromResume',
+      queryParameters: {'Hide': hidden},
+    );
   }
 
   // Emby's own rating routes answer 200 and store nothing, and it leaves the

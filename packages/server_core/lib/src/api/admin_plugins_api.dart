@@ -22,11 +22,14 @@ abstract class AdminPluginsApi {
 
   Future<PackageInfo?> getPackageInfo(String name, {String? assemblyGuid});
 
+  /// [updateClass] is the version's release channel. Emby looks the version
+  /// up in it, Jellyfin ignores it.
   Future<void> installPackage(
     String name, {
     String? assemblyGuid,
     String? version,
     String? repositoryUrl,
+    String? updateClass,
   });
 
   Future<void> cancelPackageInstallation(String packageId);

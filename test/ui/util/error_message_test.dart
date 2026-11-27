@@ -46,6 +46,19 @@ void main() {
       expect(describeError(error, _l10n), _unableToConnect);
     });
 
+    test("reads plex.tv's list of errors", () {
+      final refused = _badResponse(401, {
+        'errors': [
+          {
+            'code': 1001,
+            'message': 'User could not be authenticated',
+            'status': 401,
+          },
+        ],
+      });
+      expect(describeError(refused, _l10n), 'User could not be authenticated');
+    });
+
     test('prefers the reason the server sent', () {
       final missingName = _badResponse(400, {'message': 'Name is required'});
       expect(describeError(missingName, _l10n), 'Name is required');
@@ -87,5 +100,20 @@ void main() {
       );
       expect(describeError(StateError('bad'), _l10n), 'Bad state: bad');
     });
+  });
+
+  test('isPremiereError matches the plain text Emby sends', () {
+    expect(
+      isPremiereError(
+        _badResponse(
+          500,
+          'Creating series recordings requires an active Emby Premiere '
+          'subscription.',
+        ),
+      ),
+      isTrue,
+    );
+    expect(isPremiereError(_badResponse(500, 'Premiere night')), isFalse);
+    expect(isPremiereError(StateError('Emby Premiere')), isFalse);
   });
 }

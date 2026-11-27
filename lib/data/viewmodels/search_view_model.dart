@@ -2,15 +2,22 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
+import 'package:server_plex/server_plex.dart'
+    show plexItemToJellyfin, plexPersonToJellyfin;
 
 import '../../l10n/current_app_localizations.dart';
+import '../../preference/user_preferences.dart';
 import '../../util/accent_folding.dart';
 import '../models/aggregated_item.dart';
 import '../repositories/multi_server_repository.dart';
 import '../repositories/search_repository.dart';
 import '../repositories/seerr_repository.dart';
+import '../services/plugin_sync_service.dart';
 import '../services/seerr/seerr_api_models.dart';
+import '../utils/blocked_ratings.dart';
+import '../utils/merged_copies.dart';
 
 class SearchResultGroup {
   final String title;
@@ -37,6 +44,57 @@ class GameSearchResult {
   const GameSearchResult({required this.libraryId, required this.game});
 }
 
+/// What Moonbase's natural-language search found: library items as item
+/// cards, and titles the library lacks in Seerr's own search result shape.
+class SmartSearchResults {
+  final List<AggregatedItem> items;
+  final List<SeerrDiscoverItem> seerr;
+
+  const SmartSearchResults({this.items = const [], this.seerr = const []});
+
+  static const empty = SmartSearchResults();
+
+  bool get isEmpty => items.isEmpty && seerr.isEmpty;
+
+  /// A server still building its first index answers with Ready false. On
+  /// [plex] the items are Plex metadata and people are Role tags, so they go
+  /// through the Plex client's own mappers and act like any other Plex item.
+  factory SmartSearchResults.fromJson(
+    Map<String, dynamic> json, {
+    required String serverId,
+    bool plex = false,
+    bool includeSeerr = true,
+  }) {
+    if (json['Ready'] != true) return empty;
+    final items = [
+      for (final raw in (json['Items'] as List? ?? const []).whereType<Map>())
+        if (!plex)
+          raw.cast<String, dynamic>()
+        else if (raw['type'] == 'person')
+          plexPersonToJellyfin(raw)
+        else
+          plexItemToJellyfin(raw.cast<String, dynamic>()),
+    ];
+    return SmartSearchResults(
+      items: withoutBlockedItems([
+        for (final data in items)
+          AggregatedItem(
+            id: data['Id']?.toString() ?? '',
+            serverId: serverId,
+            rawData: data,
+          ),
+      ]),
+      seerr: includeSeerr
+          ? [
+              for (final raw
+                  in (json['Seerr'] as List? ?? const []).whereType<Map>())
+                SeerrDiscoverItem.fromJson(raw.cast<String, dynamic>()),
+            ].where((item) => !item.isBlacklisted).toList()
+          : const [],
+    );
+  }
+}
+
 enum SearchState { idle, loading, ready, error }
 
 class SearchViewModel extends ChangeNotifier {
@@ -45,6 +103,7 @@ class SearchViewModel extends ChangeNotifier {
   final String? _scopedParentId;
   // Only set when search should cover every signed-in server.
   final MultiServerRepository? _multiServerRepository;
+  final PluginSyncService? _pluginSync;
   SeerrRepository? _seerrRepository;
 
   SearchViewModel(
@@ -53,8 +112,10 @@ class SearchViewModel extends ChangeNotifier {
     SeerrRepository? seerrRepository,
     String? scopedParentId,
     MultiServerRepository? multiServerRepository,
+    PluginSyncService? pluginSync,
   }) : _seerrRepository = seerrRepository,
        _multiServerRepository = multiServerRepository,
+       _pluginSync = pluginSync,
        _scopedParentId =
            (scopedParentId != null && scopedParentId.isNotEmpty)
                ? scopedParentId
@@ -88,6 +149,12 @@ class SearchViewModel extends ChangeNotifier {
   List<GameSearchResult> _gameResults = const [];
   List<GameSearchResult> get gameResults => _gameResults;
 
+  SmartSearchResults _smartResults = SmartSearchResults.empty;
+  SmartSearchResults get smartResults => _smartResults;
+  // The query [_smartResults] answered, so searching it again (on submit after
+  // the debounce already ran) keeps the rows up until the new answer lands.
+  String _smartQuery = '';
+
   // All games across every game library, fetched once per session and filtered
   // client-side since the plugin exposes no search endpoint.
   Future<List<GameSearchResult>>? _allGamesFuture;
@@ -105,6 +172,7 @@ class SearchViewModel extends ChangeNotifier {
   // takes too long.
   static const _peopleGrace = Duration(seconds: 1);
   static const _peopleTimeout = Duration(seconds: 10);
+  static const _smartTimeout = Duration(seconds: 10);
 
   // Counts searches, so people that answer late only fill in their own search.
   int _searchRun = 0;
@@ -121,6 +189,7 @@ class SearchViewModel extends ChangeNotifier {
     final l10n = currentAppLocalizations();
     return [
       SearchResultGroup(title: l10n.books, itemTypes: const ['Book']),
+      SearchResultGroup(title: l10n.audiobooks, itemTypes: const ['AudioBook']),
       SearchResultGroup(title: l10n.movies, itemTypes: const ['Movie']),
       SearchResultGroup(title: l10n.series, itemTypes: const ['Series']),
       SearchResultGroup(title: l10n.seasons, itemTypes: const ['Season']),
@@ -162,6 +231,8 @@ class SearchViewModel extends ChangeNotifier {
       _results = const [];
       _seerrResults = const [];
       _gameResults = const [];
+      _smartResults = SmartSearchResults.empty;
+      _smartQuery = '';
       _state = SearchState.idle;
       notifyListeners();
       return;
@@ -195,6 +266,7 @@ class SearchViewModel extends ChangeNotifier {
           ? _bookSearchGroups()
           : _searchGroups();
       final seerrFuture = _fetchSeerrResults(query);
+      final smartFuture = _fetchSmartResults(query);
       final gamesFuture = _scopedParentId != null
           ? Future.value(const <GameSearchResult>[])
           : _fetchGameResults(query);
@@ -218,24 +290,39 @@ class SearchViewModel extends ChangeNotifier {
       final seerr = await seerrFuture;
       final games = await gamesFuture;
 
-      // With nothing else to show, the results wait for people instead of
-      // coming up empty.
-      final hasOtherResults =
+      // With nothing else to show, the results wait for smart search and
+      // people instead of coming up empty.
+      final hasLibraryResults =
           groups.any((g) => g.items.isNotEmpty) ||
           seerr.isNotEmpty ||
           games.isNotEmpty;
+      final smart = hasLibraryResults ? null : await smartFuture;
+      final hasOtherResults = hasLibraryResults || !(smart?.isEmpty ?? true);
       final people = hasOtherResults
           ? await peopleFuture
                 .then<List<AggregatedItem>?>((found) => found)
                 .timeout(_peopleGrace, onTimeout: () => null)
           : await peopleFuture;
 
-      if (query != _query) return;
+      if (run != _searchRun || query != _query) return;
 
       _results = _withPeople(groups, people ?? const []);
       _seerrResults = seerr;
       _gameResults = games;
+      if (smart != null || _smartQuery != query) {
+        _smartResults = smart ?? SmartSearchResults.empty;
+        _smartQuery = query;
+      }
       _state = SearchState.ready;
+      if (smart == null) {
+        unawaited(
+          smartFuture.then((found) {
+            if (found.isEmpty || run != _searchRun || query != _query) return;
+            _smartResults = found;
+            notifyListeners();
+          }),
+        );
+      }
       if (people == null) {
         unawaited(
           peopleFuture.then((found) {
@@ -246,7 +333,7 @@ class SearchViewModel extends ChangeNotifier {
         );
       }
     } catch (e) {
-      if (query != _query) return;
+      if (run != _searchRun || query != _query) return;
       _error = e;
       _state = SearchState.error;
     }
@@ -274,14 +361,24 @@ class SearchViewModel extends ChangeNotifier {
     ).then(_interleave).catchError((_) => <AggregatedItem>[]);
     final channelsFuture = _channelMatches(query);
     final perServerItems = await _searchEachServer(
-      (repository) => repository.search(
+      (repository) => repository.searchGroups(
         query,
-        parentId: _scopedParentId,
+        [
+          for (final group in activeGroups)
+            if (!group.itemTypes.contains('Person') &&
+                !group.itemTypes.contains('LiveTvChannel'))
+              group.itemTypes,
+        ],
+        perGroup: _resultLimit,
         limit: _globalFetchLimit,
       ),
       label: 'search',
     );
     final channels = await channelsFuture;
+    final foldsCopies =
+        _serverNames.isNotEmpty &&
+        GetIt.instance.isRegistered<UserPreferences>() &&
+        GetIt.instance<UserPreferences>().effectiveMergeLibrariesByType;
 
     final grouped = <SearchResultGroup>[];
     for (final group in activeGroups) {
@@ -296,8 +393,10 @@ class SearchViewModel extends ChangeNotifier {
       final matched = _interleave([
         for (final items in perServerItems)
           items.where((item) => group.itemTypes.contains(item.type)).toList(),
-      ]).take(_resultLimit).toList();
-      grouped.add(group.copyWith(items: matched));
+      ]);
+      // With merged libraries a title several servers hold is one result.
+      final shown = foldsCopies ? foldCopies(matched) : matched;
+      grouped.add(group.copyWith(items: shown.take(_resultLimit).toList()));
     }
 
     return (grouped, peopleFuture);
@@ -378,6 +477,32 @@ class SearchViewModel extends ChangeNotifier {
     }
   }
 
+  Future<SmartSearchResults> _fetchSmartResults(String query) async {
+    final pluginSync = _pluginSync;
+    if (pluginSync == null || !pluginSync.smartSearchEnabled) {
+      return SmartSearchResults.empty;
+    }
+    if (_scopedParentId != null || query.toLowerCase().startsWith('studio:')) {
+      return SmartSearchResults.empty;
+    }
+    // A single word is a title or a name, which the normal search handles.
+    if (query.split(RegExp(r'\s+')).length < 2) return SmartSearchResults.empty;
+    try {
+      final data = await pluginSync
+          .fetchSmartSearch(_client, query)
+          .timeout(_smartTimeout);
+      if (data == null) return SmartSearchResults.empty;
+      return SmartSearchResults.fromJson(
+        data,
+        serverId: _client.baseUrl,
+        plex: _client.serverType == ServerType.plex,
+        includeSeerr: _seerrRepository?.isAvailable ?? false,
+      );
+    } catch (_) {
+      return SmartSearchResults.empty;
+    }
+  }
+
   Future<List<GameSearchResult>> _fetchGameResults(String query) async {
     // Games have no search endpoint, so the whole set is matched here and the
     // folding is this side's to do.
@@ -418,7 +543,7 @@ class SearchViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _debounceTimer?.cancel();
-    // Keeps people that answer after the screen closed from landing on it.
+    // Keeps searches that answer after the screen closed from landing on it.
     _searchRun++;
     super.dispose();
   }

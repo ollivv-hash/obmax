@@ -4,13 +4,13 @@ import 'games_api.dart';
 import '../models/games_models.dart';
 import '../models/server_type.dart';
 
-/// Talks to the Moonbase plugin retro-games (EmulatorJS) endpoints under /Moonfin/Games and
-/// /Moonfin/EmulatorJS. These endpoints are identical on Jellyfin and Emby (the Moonbase
-/// plugin exposes the same routes on both), so this implementation is server-agnostic; the
-/// Jellyfin and Emby clients each construct it with their own Dio + base URL + token.
+/// Talks to Moonbase's retro games (EmulatorJS) routes under /Moonfin/Games and
+/// /Moonfin/EmulatorJS. Jellyfin, Emby and Moonbase for Plex serve the same routes, so each
+/// client builds this with its own Dio, base URL and token.
 ///
-/// ROM / BIOS / save / player URLs embed the access token as a query parameter (ApiKey on
-/// Jellyfin, api_key on Emby) so the WebView's plain requests authenticate.
+/// ROM, BIOS, save and player URLs carry the access token as a query parameter (ApiKey on
+/// Jellyfin, api_key on Emby, X-Plex-Token on Plex), so the WebView's plain requests are
+/// signed in.
 class MoonbaseGamesApi implements GamesApi {
   final Dio _dio;
   final String Function() _baseUrlProvider;
@@ -174,6 +174,21 @@ class MoonbaseGamesApi implements GamesApi {
   }
 
   @override
+  Future<List<RecentGame>> getRecentGames(
+    String libraryId, {
+    bool released = false,
+    int limit = 16,
+  }) async {
+    final response = await _dio.get(
+      '/Moonfin/Games/${Uri.encodeComponent(libraryId)}/Recent',
+      queryParameters: {'sort': released ? 'released' : 'added', 'limit': limit},
+    );
+    return _asList(
+      response.data,
+    ).map((m) => RecentGame.fromJson(m)).toList(growable: false);
+  }
+
+  @override
   Future<GameDetail?> getGame(String libraryId, String gameId) async {
     final response = await _dio.get(
       '/Moonfin/Games/${Uri.encodeComponent(libraryId)}/Games/${Uri.encodeComponent(gameId)}',
@@ -289,15 +304,19 @@ class MoonbaseGamesApi implements GamesApi {
     String? gameName,
     bool includeSaveUrl = false,
     String? saveId,
+    bool includeSramUrl = false,
   }) {
     final params = <String, String>{
       'core': core,
-      // Arcade cores identify a set by its ZIP filename. Other systems retain
+      // Arcade cores identify a set by its ZIP filename, and the PlayStation
+      // core only opens a .pbp whose name ends in .pbp. Other systems retain
       // the legacy token-only route so their request behavior does not change.
       'rom': _romUrl(
         libraryId,
         gameId,
-        fileName: core == 'mame' || core == 'arcade' ? romFileName : null,
+        fileName: core == 'mame' || core == 'arcade' || core == 'psx'
+            ? romFileName
+            : null,
       ),
     };
     if (biosId != null && biosId.isNotEmpty) {
@@ -309,6 +328,11 @@ class MoonbaseGamesApi implements GamesApi {
     if (includeSaveUrl) {
       params['save'] = _withApiKey(
         '$_base/Moonfin/Games/Saves/${Uri.encodeComponent(saveId ?? gameId)}?kind=state',
+      );
+    }
+    if (includeSramUrl && !includeSaveUrl) {
+      params['sram'] = _withApiKey(
+        '$_base/Moonfin/Games/Saves/${Uri.encodeComponent(gameId)}?kind=sram',
       );
     }
     final query = params.entries
@@ -347,6 +371,31 @@ class MoonbaseGamesApi implements GamesApi {
         headers: {Headers.contentLengthHeader: data.length},
       ),
     );
+  }
+
+  @override
+  Future<RommAccount> getRommAccount() =>
+      _rommAccount(() => _dio.get('/Moonfin/Games/Romm/Account'));
+
+  @override
+  Future<RommAccount> startRommLink() =>
+      _rommAccount(() => _dio.post('/Moonfin/Games/Romm/Account'));
+
+  @override
+  Future<RommAccount> unlinkRomm() =>
+      _rommAccount(() => _dio.delete('/Moonfin/Games/Romm/Account'));
+
+  /// A plugin older than RomM accounts answers 404.
+  Future<RommAccount> _rommAccount(Future<Response> Function() send) async {
+    try {
+      final data = (await send()).data;
+      return data is Map
+          ? RommAccount.fromJson(data.cast<String, dynamic>())
+          : RommAccount.unavailable;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return RommAccount.unavailable;
+      rethrow;
+    }
   }
 
   String _withApiKey(String url) {

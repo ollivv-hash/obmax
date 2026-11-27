@@ -6,6 +6,7 @@ class _LibrariesCategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final prefs = GetIt.instance<UserPreferences>();
     return Scaffold(
       appBar: buildSettingsAppBar(context, Text(l10n.libraries)),
       body: ListView(
@@ -34,11 +35,33 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                 icon: Icons.dns,
                 onChanged: _pushPersonalizationSync,
               ),
+              // Rebuild on preference changes so this tile's enabled state
+              // follows the switch above, which writes through its own
+              // binding.
+              ListenableBuilder(
+                listenable: prefs,
+                builder: (context, _) => SwitchPreferenceTile(
+                  preference: UserPreferences.mergeLibrariesByType,
+                  title: l10n.mergeLibrariesByType,
+                  subtitle: l10n.mergeLibrariesByTypeDescription,
+                  icon: Icons.merge_type,
+                  enabled: prefs.get(
+                    UserPreferences.enableMultiServerLibraries,
+                  ),
+                ),
+              ),
               SwitchPreferenceTile(
                 preference: UserPreferences.showBookDiscoverTab,
                 title: l10n.showBookDiscoverTab,
                 subtitle: l10n.showBookDiscoverTabDescription,
                 icon: Icons.explore,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.bookFoldersAsSeries,
+                title: l10n.bookFoldersAsSeries,
+                subtitle: l10n.bookFoldersAsSeriesDescription,
+                icon: Icons.book,
                 onChanged: _pushPersonalizationSync,
               ),
             ],
@@ -58,6 +81,34 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                   LibraryStyle.classic => l10n.libraryStyleClassic,
                   LibraryStyle.modern => l10n.libraryStyleModern,
                   LibraryStyle.docked => l10n.libraryStyleDocked,
+                },
+                onChanged: _pushPersonalizationSync,
+              ),
+              EnumPreferenceTile<BookLibraryStyle>(
+                key: const ValueKey('pref_book_library_style'),
+                preference: UserPreferences.bookLibraryStyle,
+                title: l10n.bookLibraryStyle,
+                description: l10n.bookLibraryStyleDescription,
+                icon: Icons.auto_stories_outlined,
+                labelOf: (v) => switch (v) {
+                  BookLibraryStyle.classic => l10n.bookLibraryStyleClassic,
+                  BookLibraryStyle.readingRoom =>
+                    l10n.bookLibraryStyleReadingRoom,
+                  BookLibraryStyle.bookstore => l10n.bookLibraryStyleBookstore,
+                },
+                onChanged: _pushPersonalizationSync,
+              ),
+              EnumPreferenceTile<MusicLibraryStyle>(
+                key: const ValueKey('pref_music_library_style'),
+                preference: UserPreferences.musicLibraryStyle,
+                title: l10n.musicLibraryStyle,
+                description: l10n.musicLibraryStyleDescription,
+                icon: Icons.library_music_outlined,
+                labelOf: (v) => switch (v) {
+                  MusicLibraryStyle.classic => l10n.musicLibraryStyleClassic,
+                  MusicLibraryStyle.quickAccess =>
+                    l10n.musicLibraryStyleQuickAccess,
+                  MusicLibraryStyle.immersive => l10n.musicLibraryStyleImmersive,
                 },
                 onChanged: _pushPersonalizationSync,
               ),
@@ -114,6 +165,20 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                 onChanged: _pushPersonalizationSync,
               ),
               SwitchPreferenceTile(
+                preference: UserPreferences.libraryCardTitles,
+                title: l10n.libraryCardTitles,
+                subtitle: l10n.libraryCardTitlesDescription,
+                icon: Icons.title,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.hideBackdropsInLibraries,
+                title: l10n.libraryBackdrops,
+                icon: Icons.photo,
+                inverted: true,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
                 preference: UserPreferences.useDetailedSubHeadings,
                 title: l10n.useDetailedSubHeadings,
                 subtitle: l10n.useDetailedSubHeadingsDescription,
@@ -121,9 +186,17 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                 onChanged: _pushPersonalizationSync,
               ),
               SwitchPreferenceTile(
-                preference: UserPreferences.hideBackdropsInLibraries,
-                title: l10n.hideBackdropsInLibraries,
-                icon: Icons.hide_image_outlined,
+                preference: UserPreferences.hideLibraryWatchProgress,
+                title: l10n.hideHomeWatchProgress,
+                subtitle: l10n.hideHomeWatchProgressSubtitle,
+                icon: Icons.linear_scale,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.hideLibraryUnwatchedCount,
+                title: l10n.hideHomeUnwatchedCount,
+                subtitle: l10n.hideHomeUnwatchedCountSubtitle,
+                icon: Icons.filter_9_plus_outlined,
                 onChanged: _pushPersonalizationSync,
               ),
             ],
@@ -133,3 +206,7 @@ class _LibrariesCategoryScreen extends StatelessWidget {
     );
   }
 }
+
+/// The page is otherwise only reachable inside the panel's private navigator.
+@visibleForTesting
+Widget librariesSettingsScreenForTesting() => const _LibrariesCategoryScreen();

@@ -28,7 +28,57 @@ class UserDataSync extends ChangeNotifier {
   static const _maxTrackedItems = 2000;
 
   final Map<String, Map<String, dynamic>> _userData = {};
+  final Map<String, int> _itemRevisions = {};
+  final Map<String, bool> _pendingFavorites = {};
+  final Map<String, bool> _confirmedFavorites = {};
+  int _revision = 0;
+  int get revision => _revision;
+  int revisionFor(String itemId) => _itemRevisions[itemId] ?? 0;
+
+  /// Bumped by [reset], so work queued for one user can tell it is stale.
+  int get session => _session;
+  int _session = 0;
+
+  /// Shows [value] as the favorite flag straight away, before the server
+  /// has it, so a quick next toggle starts from what the user last chose.
+  void requestFavorite(String itemId, bool value) {
+    if (!_pendingFavorites.containsKey(itemId)) {
+      _confirmedFavorites[itemId] = favoriteFor(itemId) ?? !value;
+    }
+    _pendingFavorites[itemId] = value;
+    publish(itemId, {'IsFavorite': value});
+  }
+
+  /// The flag the user last asked for, while the server is catching up.
+  bool? pendingFavorite(String itemId) => _pendingFavorites[itemId];
+
+  /// The flag the server last confirmed for a change still in progress.
+  bool? confirmedFavorite(String itemId) => _confirmedFavorites[itemId];
+
+  /// The server now holds [value]. The change ends if that's what was asked.
+  void confirmFavorite(String itemId, bool value) {
+    _confirmedFavorites[itemId] = value;
+    if (_pendingFavorites[itemId] != value) return;
+    _pendingFavorites.remove(itemId);
+    _confirmedFavorites.remove(itemId);
+    _itemRevisions[itemId] = ++_revision;
+  }
+
+  /// Drops the change and shows what the server last confirmed.
+  void failFavoriteChange(String itemId) {
+    final confirmed = _confirmedFavorites.remove(itemId);
+    if (_pendingFavorites.remove(itemId) == null) return;
+    _itemRevisions[itemId] = ++_revision;
+    if (confirmed != null) publish(itemId, {'IsFavorite': confirmed});
+  }
+
+  bool favoriteChangePending(String itemId) =>
+      _pendingFavorites.containsKey(itemId);
   StreamSubscription<ServerWebSocketMessage>? _socketSubscription;
+
+  /// The synced favorite flag, or null when none is known.
+  bool? favoriteFor(String itemId) =>
+      _pendingFavorites[itemId] ?? _userData[itemId]?['IsFavorite'] as bool?;
 
   /// Records this client's own change before the server confirms it. Merges, so
   /// a patch that only carries `Played` leaves a known play count alone.
@@ -48,11 +98,24 @@ class UserDataSync extends ChangeNotifier {
     changes.forEach((itemId, patch) {
       if (itemId.isEmpty || patch.isEmpty) return;
       final existing = _userData[itemId];
+      // The server leaves out a percentage it has cleared, and a missing key
+      // would keep the old progress bar on the item it is merged into. Only a
+      // whole user data record says that, and every server's record carries
+      // the position: a partial one (a Silo event whose read-back failed, only
+      // `IsFavorite` or `Played`) says nothing about progress.
       final merged = replace
-          ? Map<String, dynamic>.from(patch)
+          ? <String, dynamic>{
+              if (patch.containsKey('PlaybackPositionTicks'))
+                'PlayedPercentage': null,
+              ...patch,
+            }
           : <String, dynamic>{...?existing, ...patch};
+      if (_pendingFavorites.containsKey(itemId)) {
+        merged['IsFavorite'] = _pendingFavorites[itemId];
+      }
       if (existing != null && mapEquals(existing, merged)) return;
       _userData[itemId] = merged;
+      _itemRevisions[itemId] = ++_revision;
       changed = true;
     });
     if (!changed) return;
@@ -101,10 +164,16 @@ class UserDataSync extends ChangeNotifier {
     MediaServerClient client,
     Iterable<String> itemIds,
   ) async {
-    final ids = <String>{
+    final all = <String>{
       for (final id in itemIds)
         if (id.isNotEmpty) id,
     }.toList();
+    // A server that reads items one at a time narrows the list to what may
+    // have changed (Silo).
+    final api = client.itemsApi;
+    final ids = api is UserDataRefreshScope
+        ? (api as UserDataRefreshScope).userDataMayHaveChanged(all)
+        : all;
     if (ids.isEmpty) return;
 
     for (var start = 0; start < ids.length; start += _refreshChunkSize) {
@@ -167,8 +236,13 @@ class UserDataSync extends ChangeNotifier {
   void reset() {
     _socketSubscription?.cancel();
     _socketSubscription = null;
-    if (_userData.isEmpty) return;
+    _session++;
+    if (_userData.isEmpty && _pendingFavorites.isEmpty) return;
     _userData.clear();
+    _itemRevisions.clear();
+    _pendingFavorites.clear();
+    _confirmedFavorites.clear();
+    _revision++;
     notifyListeners();
   }
 
@@ -179,6 +253,7 @@ class UserDataSync extends ChangeNotifier {
     final excess = _userData.length - _maxTrackedItems;
     for (final key in _userData.keys.take(excess).toList()) {
       _userData.remove(key);
+      _itemRevisions.remove(key);
     }
   }
 

@@ -13,31 +13,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'Moonfin';
 
   @override
-  String get animeMarkerFiller => 'Filler';
+  String get animeMarkerFiller => '原创剧情';
 
   @override
-  String get animeMarkerMixed => 'Mixed';
+  String get animeMarkerMixed => '混合剧情';
 
   @override
-  String get animeMarkerAnimeCanon => 'Anime Canon';
+  String get animeMarkerAnimeCanon => '动画原创';
 
   @override
-  String get animeMarkerMangaCanon => 'Manga Canon';
+  String get animeMarkerMangaCanon => '漫画原作';
 
   @override
-  String get animeMarkerSubbed => 'Subbed';
+  String get animeMarkerSubbed => '字幕版';
 
   @override
-  String get animeMarkerDubbed => 'Dubbed';
+  String get animeMarkerDubbed => '配音版';
 
   @override
-  String get animeMarkerSubbedAndDubbed => 'Subbed/Dubbed';
+  String get animeMarkerSubbedAndDubbed => '字幕/配音版';
 
   @override
-  String get animeMarkerPending => 'Pending';
+  String get animeMarkerSubbedShort => '字幕';
 
   @override
-  String get animeMarkerRecap => 'Recap';
+  String get animeMarkerDubbedShort => '配音';
+
+  @override
+  String get animeMarkerSubbedAndDubbedShort => '字幕/配音';
+
+  @override
+  String get animeMarkerPending => '待处理';
+
+  @override
+  String get animeMarkerRecap => '回顾';
 
   @override
   String get interfaceLanguage => '界面语言';
@@ -47,6 +56,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get signIn => '登录';
+
+  @override
+  String get signingIn => '正在登录…';
 
   @override
   String get empty => '空';
@@ -72,6 +84,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quickConnectInstruction => '在服务器的 Web 控制台中输入此代码：';
 
   @override
+  String get quickConnectScanHint => '或使用已登录服务器的手机扫描此代码';
+
+  @override
+  String get quickConnectTapOrScanHint => '在浏览器中点击以批准，或使用其他设备扫描此代码';
+
+  @override
+  String get timesUpTitle => '时间到';
+
+  @override
+  String get timesUpMessage => '此账号当前不可用。';
+
+  @override
+  String timesUpResumesToday(String time) {
+    return '今天 $time 可再次使用。';
+  }
+
+  @override
+  String timesUpResumesTomorrow(String time) {
+    return '明天 $time 可再次使用。';
+  }
+
+  @override
+  String timesUpResumesOn(String day, String time) {
+    return '$day $time 可再次使用。';
+  }
+
+  @override
   String get waitingForAuthorization => '正在等待授权…';
 
   @override
@@ -82,6 +121,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get loginFailed => '登录失败';
+
+  @override
+  String get loginForbidden => '此账号当前无法登录。可能不在允许的时间段内、已被锁定或已禁用。请稍后重试或联系管理员。';
 
   @override
   String quickConnectUnavailable(String detail) {
@@ -95,6 +137,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get whosWatching => '谁在观看？';
+
+  @override
+  String get signedInOnThisDevice => '已在此设备登录';
+
+  @override
+  String get pinRequired => '需要 PIN';
+
+  @override
+  String get passwordRequired => '需要密码';
+
+  @override
+  String continueAsUser(String name) {
+    return '以 $name 身份继续';
+  }
+
+  @override
+  String switchToUser(String name) {
+    return '切换到 $name';
+  }
+
+  @override
+  String signedInAsOnServer(String user, String server) {
+    return '已在 $server 上以 $user 身份登录';
+  }
+
+  @override
+  String get accountActive => '启用中';
 
   @override
   String get addUser => '添加用户';
@@ -168,7 +237,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get detailScreenStyle => '详情界面样式';
 
   @override
-  String get detailScreenStyleSubtitle => 'Moonfin 是经典布局；Modern 是自适应影院风布局。';
+  String get detailScreenStyleSubtitle =>
+      'Moonfin 是经典布局；Modern 是自适应影院风布局。Spotlight 是一种以主视觉区优先、带有弹出式内容卡片的布局。Nouveau 是一种全屏布局，各个版块沿页面自上而下堆叠。Minimalist 是有封面图、一个播放按钮和各集列表。';
 
   @override
   String get detailScreenStyleMoonfin => 'Moonfin';
@@ -177,54 +247,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get detailScreenStyleModern => '现代';
 
   @override
-  String get detailScreenStyleSpotlight => 'Spotlight';
+  String get detailScreenStyleSpotlight => '聚光灯';
 
   @override
-  String get spotlightMoreActions => 'More Actions';
+  String get spotlightMoreActions => '更多操作';
 
   @override
-  String get spotlightCastCrewStudios => 'Cast, Crew, and Studios';
+  String get spotlightCastCrewStudios => '演员、工作人员和工作室';
 
   @override
-  String get spotlightChaptersExtras => 'Chapters and Extras';
+  String get spotlightChaptersExtras => '章节和花絮';
 
   @override
-  String get spotlightFileDetails => 'File Details';
+  String get spotlightFileDetails => '文件详情';
 
   @override
-  String get spotlightSimilarRecommendations => 'Similar and Recommendations';
+  String get spotlightSimilarRecommendations => '相似推荐与推荐';
 
   @override
-  String get spotlightSeasonsEpisodes => 'Seasons and Episodes';
+  String get spotlightSeasonsEpisodes => '季和集';
 
   @override
-  String get spotlightMoreEpisodes => 'More Episodes';
+  String get spotlightMoreEpisodes => '更多集数';
 
   @override
-  String get spotlightFilmography => 'Filmography';
+  String get spotlightFilmography => '作品列表';
 
   @override
-  String get spotlightCollectionsCard => 'Collections';
+  String get spotlightCollectionsCard => '合集';
 
   @override
-  String get spotlightPlaylistOrder => 'Playlist Order';
+  String get spotlightPlaylistOrder => '播放列表顺序';
 
   @override
-  String get spotlightMoviesAndShows => 'Movies & Shows';
+  String get spotlightMoviesAndShows => '电影和电视剧';
 
   @override
-  String get spotlightSimilarSeerr => 'Similar (Seerr)';
+  String get spotlightSimilarSeerr => '相似推荐（Seerr）';
 
   @override
-  String get spotlightRecommendationsSeerr => 'Recommendations (Seerr)';
+  String get spotlightRecommendationsSeerr => '推荐（Seerr）';
 
   @override
   String spotlightPeopleCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people',
-      one: '1 person',
+      other: '$count 人',
+      one: '1 人',
     );
     return '$_temp0';
   }
@@ -234,8 +304,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count facts',
-      one: '1 fact',
+      other: '$count 条信息',
+      one: '1 条信息',
     );
     return '$_temp0';
   }
@@ -245,8 +315,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count tags',
-      one: '1 tag',
+      other: '$count 个标签',
+      one: '1 个标签',
     );
     return '$_temp0';
   }
@@ -256,8 +326,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count studios',
-      one: '1 studio',
+      other: '$count 个工作室',
+      one: '1 个工作室',
     );
     return '$_temp0';
   }
@@ -267,8 +337,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count chapters',
-      one: '1 chapter',
+      other: '$count 个章节',
+      one: '1 个章节',
     );
     return '$_temp0';
   }
@@ -278,8 +348,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count extras',
-      one: '1 extra',
+      other: '$count 段花絮',
+      one: '1 段花絮',
     );
     return '$_temp0';
   }
@@ -289,8 +359,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count seasons',
-      one: '1 season',
+      other: '$count 季',
+      one: '1 季',
     );
     return '$_temp0';
   }
@@ -300,8 +370,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count episodes',
-      one: '1 episode',
+      other: '$count 集',
+      one: '1 集',
     );
     return '$_temp0';
   }
@@ -311,8 +381,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count movies',
-      one: '1 movie',
+      other: '$count 部电影',
+      one: '1 部电影',
     );
     return '$_temp0';
   }
@@ -322,8 +392,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count shows',
-      one: '1 show',
+      other: '$count 部电视剧',
+      one: '1 部电视剧',
     );
     return '$_temp0';
   }
@@ -333,8 +403,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count tracks',
-      one: '1 track',
+      other: '$count 个曲目',
+      one: '1 个曲目',
     );
     return '$_temp0';
   }
@@ -344,8 +414,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items',
-      one: '1 item',
+      other: '$count 个媒体项',
+      one: '1 个媒体项',
     );
     return '$_temp0';
   }
@@ -355,8 +425,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count albums',
-      one: '1 album',
+      other: '$count 张专辑',
+      one: '1 张专辑',
     );
     return '$_temp0';
   }
@@ -366,8 +436,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count collections',
-      one: '1 collection',
+      other: '$count 个合集',
+      one: '1 个合集',
     );
     return '$_temp0';
   }
@@ -377,17 +447,40 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count titles',
-      one: '1 title',
+      other: '$count 个标题',
+      one: '1 个标题',
     );
     return '$_temp0';
   }
 
   @override
-  String get detailScreenStyleNouveau => 'Nouveau';
+  String get detailScreenStyleNouveau => '新潮';
 
   @override
-  String get detailScreenStyleMinimalist => 'Minimalist';
+  String get detailScreenStyleMinimalist => '极简';
+
+  @override
+  String get detailScreenStyleStage => '舞台';
+
+  @override
+  String get detailScreenStylePremiere => '首映';
+
+  @override
+  String get detailScreenStyleQuickLook => '速览';
+
+  @override
+  String get detailScreenStyleFrost => '磨砂';
+
+  @override
+  String get quickLookOpenFullPage => '打开完整页面';
+
+  @override
+  String get quickLookBackToClose => '返回以关闭';
+
+  @override
+  String quickLookSeasonPlayed(int played, int total) {
+    return '$played / $total';
+  }
 
   @override
   String get expandedTabs => '自动展开标签页';
@@ -396,7 +489,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get expandedTabsSubtitle => '浏览时自动加载标签内容；关闭后需手动展开/收起标签。';
 
   @override
-  String get showTechnicalDetails => '显示媒体技术参数？';
+  String get showTechnicalDetails => '显示媒体详情';
 
   @override
   String get showTechnicalDetailsSubtitle => '在顶部概览栏显示编码、分辨率及音视频流信息';
@@ -406,19 +499,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recommendationSystemSubtitle =>
-      '可选用「Moonfin本地资料库推荐算法」，或线上 TMDb 相似度匹配算法。注意：线上推荐功能需要对接 Seerr 服务。';
+      '使用 Moonfin Recommends 本地媒体库算法、Jellyfin Recommends 服务器引擎，或在线 TMDb 的相似度指标。注意：在线推荐需要集成 Seerr。';
 
   @override
   String get recommendationSystemMoonfin => 'Moonfin 智能推荐';
 
   @override
-  String get recommendationSystemJellyfin => 'Jellyfin Recommends';
+  String get recommendationSystemJellyfin => '服务器推荐';
 
   @override
   String get recommendationSystemTmdb => 'TMDb 相似影片推荐';
 
   @override
-  String get recommendationsApplyParentalRatingCap => '是否启用家长分级上限限制？';
+  String get recommendationsApplyParentalRatingCap => '启用推荐分级限制';
 
   @override
   String get recommendationsApplyParentalRatingCapSubtitle =>
@@ -503,14 +596,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get performanceModeReduced => '降低';
 
   @override
-  String get rendererMode => 'Renderer';
+  String get rendererMode => '渲染器';
 
   @override
   String get rendererModeSubtitle =>
-      'Auto uses Impeller on boxes whose graphics run it smoothly and Skia everywhere else. Pick Skia if animations or video look wrong. Takes effect on the next launch.';
+      '自动模式会在图形处理能流畅运行 Impeller 的设备上使用 Impeller，其他设备使用 Skia。如果动画或视频显示异常，请选择 Skia。下次启动时生效。';
 
   @override
-  String get rendererModeAuto => 'Auto';
+  String get rendererModeAuto => '自动';
 
   @override
   String get rendererModeSkia => 'Skia';
@@ -529,10 +622,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get customThemeSubtitle => '自定义主题可更改 Moonfin 全部视觉元素，从中挑选一款贴合你的使用风格。';
 
   @override
-  String get keyboardPreferSystemIme => '优先使用系统键盘';
+  String get keyboardStyle => '键盘样式';
 
   @override
-  String get keyboardPreferSystemImeDescription => '文本输入默认使用设备输入法';
+  String get keyboardStyleDescription =>
+      '原生使用电视自带的键盘。经典是 Moonfin 原有的键盘。玻璃是带更大按键的磨砂面板。停靠式占据屏幕底部，并在按键上方显示你输入的内容。';
+
+  @override
+  String get keyboardStyleNative => '原生';
+
+  @override
+  String get keyboardStyleClassic => 'Moonfin';
+
+  @override
+  String get keyboardStyleGlass => '玻璃';
+
+  @override
+  String get keyboardStyleDocked => '停靠式';
+
+  @override
+  String get keyboardSpace => '空格';
+
+  @override
+  String get keyboardHoldForAccents => '长按可输入变音符号';
+
+  @override
+  String get keyboardClose => '关闭';
 
   @override
   String get controller => '手柄控制器';
@@ -595,6 +710,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get embyConnectNetworkError => '连接 Emby Connect 或所选服务器时出现网络错误';
 
   @override
+  String get signInWithPlex => '使用 Plex 登录';
+
+  @override
+  String get plexLinkInstructions => '在任意设备上访问 plex.tv/link 并输入此代码';
+
+  @override
+  String get plexOpenLink => '打开 plex.tv/link';
+
+  @override
+  String get plexWaitingForApproval => '正在等待你批准代码…';
+
+  @override
+  String get plexSignInWithPassword => '使用密码登录';
+
+  @override
+  String get plexVerificationCode => '验证码';
+
+  @override
+  String get plexNoServers => '此账号下未找到 Plex 服务器';
+
+  @override
   String get loadingLinkedServers => '正在加载关联服务器…';
 
   @override
@@ -639,17 +775,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameFastForward => '快进';
 
   @override
-  String get gameOrientation => 'Game orientation';
+  String get gameOrientation => '游戏屏幕方向';
 
   @override
-  String get gameOrientationSubtitle =>
-      'Screen orientation while playing games';
+  String get gameOrientationSubtitle => '玩游戏时的屏幕方向';
 
   @override
-  String get landscape => 'Landscape';
+  String get landscape => '横屏';
 
   @override
-  String get portrait => 'Portrait';
+  String get portrait => '竖屏';
 
   @override
   String get gameEmulatorSettings => '模拟器设置';
@@ -661,20 +796,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameHoldToOpenMenu => '按住打开菜单';
 
   @override
-  String get gameKeepPlaying => 'Keep playing';
+  String get gameKeepPlaying => '继续游玩';
 
   @override
-  String get gameSaveAndExit => 'Save & exit';
+  String get gameSaveAndExit => '保存并退出';
 
   @override
-  String get gameExitGame => 'Exit game';
+  String get gameExitGame => '退出游戏';
 
   @override
-  String get gameSavingBeforeExit => 'Saving…';
+  String get gameSavingBeforeExit => '正在保存…';
 
   @override
-  String get gameSaveFailedStillPlaying =>
-      'Could not save state. Still playing.';
+  String get gameSaveFailedStillPlaying => '无法保存状态，游戏仍在进行。';
 
   @override
   String get gamePlaybackUnsupported => '此设备暂不支持游戏播放。';
@@ -812,10 +946,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get extraLarge => '超大';
 
   @override
-  String get uiScaleGrandparents => 'Grandparents';
+  String get uiScaleGrandparents => '祖父母';
 
   @override
-  String get uiScaleGreatGrandparents => 'Great-Grandparents';
+  String get uiScaleGreatGrandparents => '曾祖父母';
 
   @override
   String get scrollDirection => '滚动方向';
@@ -883,9 +1017,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverySubjects => '发现主题';
 
   @override
-  String get pickDiscoverySubjects => '选择要在“发现”中显示的主题源。';
-
-  @override
   String get apply => '应用';
 
   @override
@@ -896,20 +1027,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get audiobookGenres => '有声读物类型';
-
-  @override
-  String get pickAudiobookGenres => '选择要在有声书发现页中显示的类型。';
-
-  @override
-  String get discoverAudiobooks => '发现有声读物';
-
-  @override
-  String get librivoxDescription => 'LibriVox 上热门的公版作品。';
-
-  @override
-  String titlesCount(int count) {
-    return '$count 部作品';
-  }
 
   @override
   String get scrollLeft => '向左滚动';
@@ -1040,9 +1157,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discover => '发现';
 
   @override
-  String get trendingTitlesOpenLibrary => 'Open Library 上按主题推荐的热门作品。';
-
-  @override
   String get noBookmarkedItems => '还没有添加书签的媒体项';
 
   @override
@@ -1122,7 +1236,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bookFormatComic => '漫画';
 
   @override
-  String get noBooksFound => '未找到该作者的图书。';
+  String get noBooksFound => '未找到该作者的图书';
 
   @override
   String get noBooksFoundDescription => '此媒体库中暂无书籍、有声书或漫画。';
@@ -1333,7 +1447,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get extras => '额外';
 
   @override
-  String get additionalParts => 'Additional Parts';
+  String get additionalParts => '附加部分';
 
   @override
   String get behindTheScenes => '幕后花絮';
@@ -1542,6 +1656,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get audioTrack => '音轨';
 
   @override
+  String get noOtherAudioTracks => '没有其他音轨';
+
+  @override
   String get subtitleTrack => '字幕轨道';
 
   @override
@@ -1551,7 +1668,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadSubtitlesLabel => '下载字幕...';
 
   @override
-  String get searchOpenSubtitlesPlugin => '使用 OpenSubtitles 插件进行搜索';
+  String get searchOpenSubtitlesPlugin => '使用 OpenSubtitles 搜索';
 
   @override
   String get downloadSubtitles => '下载字幕';
@@ -1560,7 +1677,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchingSubtitles => '正在搜索字幕…';
 
   @override
-  String get fetchingSubtitles => 'Fetching subtitles';
+  String get fetchingSubtitles => '正在获取字幕';
 
   @override
   String get downloadingSubtitle => '正在下载字幕…';
@@ -1689,6 +1806,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get writers => '编剧';
 
   @override
+  String get episodeDirector => '本集导演';
+
+  @override
+  String episodeDirectorWithRole(String role) {
+    return '$role（本集导演）';
+  }
+
+  @override
+  String get episodeWriter => '本集编剧';
+
+  @override
+  String episodeWriterWithRole(String role) {
+    return '$role（本集编剧）';
+  }
+
+  @override
+  String get guestStar => '客串演员';
+
+  @override
+  String guestStarWithRole(String role) {
+    return '$role（客串演员）';
+  }
+
+  @override
   String get studio => '制片公司';
 
   @override
@@ -1794,11 +1935,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String framerateFps(String rate) {
     return '$rate 帧/秒';
-  }
-
-  @override
-  String channelsCount(int count) {
-    return '${count}ch';
   }
 
   @override
@@ -1937,9 +2073,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get bitrateOverride => '码率覆盖';
-
-  @override
   String get audioDelay => '音频延迟';
 
   @override
@@ -1971,41 +2104,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hideMpvStats => '隐藏 mpv 统计信息（Shift+I）';
 
   @override
-  String get keyboardShortcutsTitle => 'Keyboard shortcuts';
+  String get keyboardShortcutsTitle => '键盘快捷键';
 
   @override
-  String get keyboardShortcutsSubtitle =>
-      'Keys for the app, video player and reader';
+  String get keyboardShortcutsSubtitle => '应用、视频播放器和阅读器的按键';
 
   @override
-  String get keyboardShortcutsPlayerHint =>
-      'Press ? or F1 while a video plays to see this list without leaving the player.';
+  String get keyboardShortcutsPlayerHint => '播放视频时按 ? 或 F1，即可在不退出播放器的情况下查看此列表。';
 
   @override
-  String get keyboardShortcutsSectionApp => 'Everywhere';
+  String get keyboardShortcutsSectionApp => '所有界面';
 
   @override
-  String get keyboardShortcutsSectionAppScope => 'On any screen';
+  String get keyboardShortcutsSectionAppScope => '在任意界面';
 
   @override
-  String get keyboardShortcutsSectionPlayer => 'Video player';
+  String get keyboardShortcutsSectionPlayer => '视频播放器';
 
   @override
-  String get keyboardShortcutsSectionPlayerScope =>
-      'While a video is open, playing or paused';
+  String get keyboardShortcutsSectionPlayerScope => '视频打开、播放或暂停时';
 
   @override
-  String get keyboardShortcutsSectionReader => 'Book and comic reader';
+  String get keyboardShortcutsSectionReader => '图书和漫画阅读器';
 
   @override
-  String get keyboardShortcutsSectionReaderScope =>
-      'While reading a book or comic';
+  String get keyboardShortcutsSectionReaderScope => '阅读图书或漫画时';
 
   @override
-  String get keyNameArrowKeys => 'Arrow keys';
+  String get keyNameArrowKeys => '方向键';
 
   @override
-  String get keyNameSpace => 'Space';
+  String get keyNameSpace => '空格';
 
   @override
   String get keyNameEnter => 'Enter';
@@ -2017,13 +2146,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keyNameBackspace => 'Backspace';
 
   @override
+  String get keyNameDelete => '删除';
+
+  @override
   String get keyNamePageUp => 'Page Up';
 
   @override
   String get keyNamePageDown => 'Page Down';
 
   @override
-  String get keyNameHome => 'Home';
+  String get keyNameHome => '主页';
 
   @override
   String get keyNameEnd => 'End';
@@ -2038,102 +2170,103 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keyNameAlt => 'Alt';
 
   @override
-  String get keyNameScrollWheel => 'Scroll wheel';
+  String get keyNameScrollWheel => '滚轮';
 
   @override
-  String get shortcutMoveFocus => 'Move between items';
+  String get shortcutMoveFocus => '在媒体项之间移动';
 
   @override
-  String get shortcutActivate => 'Open the selected item';
+  String get shortcutActivate => '打开所选媒体项';
 
   @override
-  String get shortcutGoBack => 'Go back';
+  String get shortcutGoBack => '返回';
 
   @override
-  String get shortcutToggleFullscreen => 'Fullscreen on or off';
+  String get shortcutToggleFullscreen => '开启或关闭全屏';
 
   @override
-  String get shortcutQuit => 'Quit OB Max';
+  String get shortcutQuit => '退出 Moonfin';
 
   @override
-  String get shortcutPlayPause => 'Play or pause';
+  String get shortcutPlayPause => '播放或暂停';
 
   @override
-  String get shortcutShowControlsOrPlayPause =>
-      'Show controls, or play/pause if shown';
+  String get shortcutShowControlsOrPlayPause => '显示控制栏；若已显示则播放/暂停';
 
   @override
-  String get shortcutSeekBack => 'Seek back (hold for bigger jumps)';
+  String get shortcutSeekBack => '快退（长按可大幅跳转）';
 
   @override
-  String get shortcutSeekForward => 'Seek forward (hold for bigger jumps)';
+  String get shortcutSeekForward => '快进（长按可大幅跳转）';
 
   @override
-  String get shortcutVolumeUp => 'Volume up';
+  String get shortcutVolumeUp => '提高音量';
 
   @override
-  String get shortcutVolumeDown => 'Volume down';
+  String get shortcutVolumeDown => '降低音量';
 
   @override
-  String get shortcutMute => 'Mute or unmute';
+  String get shortcutMute => '静音或取消静音';
 
   @override
-  String get shortcutToggleSubtitles => 'Subtitles on or off';
+  String get shortcutToggleSubtitles => '开启或关闭字幕';
 
   @override
-  String get shortcutSlower => 'Slow down';
+  String get shortcutSlower => '减慢播放速度';
 
   @override
-  String get shortcutFaster => 'Speed up';
+  String get shortcutFaster => '加快播放速度';
 
   @override
-  String get shortcutPlaybackInfo => 'Show playback information';
+  String get shortcutPlaybackInfo => '显示播放信息';
 
   @override
-  String get shortcutMpvStats => 'mpv statistics on or off';
+  String get shortcutMpvStats => '开启或关闭 mpv 统计信息';
 
   @override
-  String get shortcutRecropBlackBars => 'Recrop black bars';
+  String get shortcutRecropBlackBars => '重新裁剪黑边';
 
   @override
-  String get shortcutLeaveFullscreenOrStop =>
-      'Exit fullscreen, or stop if not fullscreen';
+  String get shortcutLeaveFullscreenOrStop => '退出全屏；若非全屏则停止播放';
 
   @override
-  String get shortcutStopPlayback => 'Stop playback';
+  String get shortcutHideControls => '隐藏控制栏';
 
   @override
-  String get shortcutNextItem => 'Next item';
+  String get shortcutStopPlayback => '停止播放';
 
   @override
-  String get shortcutPreviousItem => 'Previous item';
+  String get shortcutNextItem => '下一个媒体项';
 
   @override
-  String get shortcutSkipSegment => 'Skip intro or credits when offered';
+  String get shortcutPreviousItem => '上一个媒体项';
 
   @override
-  String get shortcutShowShortcuts => 'Show this list';
+  String get shortcutSkipSegment => '出现提示时跳过片头或片尾';
 
   @override
-  String get shortcutNextPage => 'Next page';
+  String get shortcutShowShortcuts => '显示此列表';
 
   @override
-  String get shortcutPreviousPage => 'Previous page';
+  String get shortcutNextPage => '下一页';
 
   @override
-  String get shortcutScrollPage => 'Scroll the page (ebooks)';
+  String get shortcutPreviousPage => '上一页';
 
   @override
-  String get shortcutFirstPage => 'First page, or start of chapter';
+  String get shortcutScrollPage => '滚动页面（电子书）';
 
   @override
-  String get shortcutLastPage => 'Last page, or end of chapter';
+  String get shortcutFirstPage => '第一页，或章节开头';
 
   @override
-  String get shortcutZoom => 'Zoom in or out (comics)';
+  String get shortcutLastPage => '最后一页，或章节末尾';
 
   @override
-  String get shortcutResetZoom => 'Reset zoom (comics)';
+  String get shortcutZoom => '放大或缩小（漫画）';
+
+  @override
+  String get shortcutResetZoom => '重置缩放（漫画）';
 
   @override
   String get playback => '播放';
@@ -2172,58 +2305,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hdr => 'HDR';
 
   @override
-  String get hdrOutput => 'HDR输出';
-
-  @override
-  String hdrOutputActive(String format) {
-    return '已启用 — $format';
-  }
-
-  @override
-  String get hdrOutputActiveTonemapped => '已启用 — 为当前显示器色调映射至 SDR';
-
-  @override
-  String get hdrOutputContentSdr => '未启用 — 内容为 SDR';
-
-  @override
-  String get hdrOutputDisabled => '未启用 — 设置中已关闭';
-
-  @override
-  String get hdrOutputFailed => '未启用 — 启动失败，使用标准输出模式';
-
-  @override
-  String get videoRenderer => 'Video Renderer';
+  String get videoRenderer => '视频渲染器';
 
   @override
   String get videoRendererDescription =>
-      'Native window gives the smoothest motion and sends HDR to the display untouched. Try another option if video misbehaves.';
+      '原生窗口提供最流畅的动态画面，并将 HDR 原样发送到显示器。如果视频显示异常，请尝试其他选项。';
 
   @override
-  String get videoRendererNativeWindow => 'Native window (recommended)';
+  String get videoRendererNativeWindow => '原生窗口（推荐）';
 
   @override
-  String get videoRendererNativeHdrOnly => 'Native window for HDR only';
+  String get videoRendererNativeHdrOnly => '仅 HDR 使用原生窗口';
 
   @override
-  String get videoRendererInApp => 'In-app (legacy)';
-
-  @override
-  String get codec => '编解码器';
-
-  @override
-  String get videoBitrate => '视频码率';
+  String get videoRendererInApp => '应用内（旧版）';
 
   @override
   String get track => '音轨';
 
   @override
   String get channels => '声道';
-
-  @override
-  String get audioBitrate => '音频码率';
-
-  @override
-  String get sampleRate => '采样率';
 
   @override
   String get format => '格式';
@@ -2246,6 +2347,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get epubUnavailableOnPlatform => '应用内 EPUB 渲染在此平台上尚不可用。';
+
+  @override
+  String get bookReadingUnavailableTitle => 'Apple TV 上无法阅读图书';
+
+  @override
+  String get bookReadingUnavailableMessage =>
+      '请在手机、平板电脑或电脑上的 Moonfin 中打开阅读。有声书仍可在此播放。';
 
   @override
   String formatCannotRenderInApp(String extension) {
@@ -2410,7 +2518,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get premiere => '首映';
 
   @override
-  String get guideRepeatBadge => 'Repeat';
+  String get guideRepeatBadge => '重播';
 
   @override
   String get guideTimeline => '节目指南时间轴';
@@ -2424,13 +2532,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noChannelsFound => '未找到频道';
 
   @override
-  String get noProgramData => 'No program data';
+  String get noProgramData => '无节目数据';
 
   @override
   String get liveBadge => '直播';
 
   @override
-  String get liveTvJumpToLive => 'Jump to Live';
+  String get liveTvJumpToLive => '跳转到直播';
 
   @override
   String guideNextProgram(String time, String title) {
@@ -2475,21 +2583,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String nextSeriesRecording(String dateTime) {
-    return 'Next series recording: $dateTime';
+    return '下次剧集录制：$dateTime';
   }
 
   @override
-  String get noUpcomingSeriesRecording =>
-      'Series recording is scheduled, but the guide has no upcoming episodes';
+  String get noUpcomingSeriesRecording => '已安排剧集录制，但节目指南中没有即将播出的集数';
 
   @override
-  String get recordCurrentEpisode => 'Record This Episode';
+  String get seriesRecordingSkipsShowing => '剧集录制将跳过本次播出';
 
   @override
-  String get recordCurrentProgram => 'Record This Program';
+  String get seriesRecordingEpisodesQuestion => '要录制哪些集？';
 
   @override
-  String get cancelCurrentRecording => 'Cancel This Recording';
+  String get seriesRecordingAllEpisodes => '全季所有集数';
+
+  @override
+  String get seriesRecordingAllEpisodesDescription => '所有播出场次，包括重播';
+
+  @override
+  String get seriesRecordingNotRecordedEpisodes => '尚未录制的集数';
+
+  @override
+  String get seriesRecordingNotRecordedEpisodesDescription =>
+      '跳过媒体库中已有的集数，每集只录制一次';
+
+  @override
+  String get seriesRecordingNewEpisodesOnly => '仅新集数';
+
+  @override
+  String get seriesRecordingNewEpisodesOnlyDescription => '仅首播，不含重播';
+
+  @override
+  String get seriesRecordingSettings => '剧集设置';
+
+  @override
+  String get seriesRecordingUpdated => '剧集录制已更新';
+
+  @override
+  String get failedToUpdateSeriesRecording => '无法更新剧集录制';
+
+  @override
+  String get recordCurrentEpisode => '录制本集';
+
+  @override
+  String get recordCurrentProgram => '录制本节目';
+
+  @override
+  String get cancelCurrentRecording => '取消此录制';
 
   @override
   String get cancelRecordingAction => '取消录制';
@@ -2519,7 +2660,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get watch => '观看';
 
   @override
-  String get watchChannelLive => 'Watch channel live';
+  String get watchChannelLive => '观看频道直播';
 
   @override
   String get close => '关闭';
@@ -2530,16 +2671,19 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get playbackStreamLost =>
-      'Playback stopped and could not be recovered.';
+  String get playbackStreamLost => '播放已停止，无法恢复。';
 
   @override
-  String get playbackVideoUnsupported =>
-      'This device can\'t play this video\'s format. Try an external player.';
+  String get playbackVideoUnsupported => '此设备无法播放该视频的格式。请尝试使用外部播放器。';
 
   @override
   String liveReconnecting(int attempt, int total) {
-    return 'Reconnecting… ($attempt of $total)';
+    return '正在重新连接…（第 $attempt 次，共 $total 次）';
+  }
+
+  @override
+  String playerMatchingDisplayRate(String fps) {
+    return '正在将显示刷新率匹配至 $fps fps…';
   }
 
   @override
@@ -2758,52 +2902,51 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadedItems => '已下载媒体项';
 
   @override
-  String get activeDownloads => 'Active Downloads';
+  String get activeDownloads => '进行中的下载';
 
   @override
   String savedMediaCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items',
-      one: '1 item',
+      other: '$count 个媒体项',
+      one: '1 个媒体项',
     );
     return '$_temp0';
   }
 
   @override
   String savedMediaOfLimit(String used, String limit) {
-    return '$used of $limit';
+    return '$used / $limit';
   }
 
   @override
-  String get savedMediaSelectItems => 'Select items';
+  String get savedMediaSelectItems => '选择媒体项';
 
   @override
-  String get savedMediaNoDownloads => 'Nothing saved yet';
+  String get savedMediaNoDownloads => '尚无已保存内容';
 
   @override
-  String get savedMediaNoDownloadsDetail =>
-      'Downloads you start appear here and play without a connection.';
+  String get savedMediaNoDownloadsDetail => '你发起的下载会显示在这里，并可在无网络连接时播放。';
 
   @override
-  String get savedMediaNoActiveDownloads => 'Nothing downloading right now';
+  String get savedMediaNoActiveDownloads => '当前没有正在下载的内容';
 
   @override
-  String get savedMediaNoResults => 'No downloads match that search';
+  String get savedMediaNoResults => '没有符合该搜索条件的下载内容';
 
   @override
-  String get savedMediaPlayFromStart => 'Play from start';
+  String get savedMediaPlayFromStart => '从头播放';
 
   @override
-  String get savedMediaGoToDetails => 'Go to details';
+  String get savedMediaGoToDetails => '查看详情';
 
   @override
-  String get savedMediaDeleteDownload => 'Delete download';
+  String get savedMediaDeleteDownload => '删除下载';
 
   @override
   String savedMediaDeleteSeason(String season) {
-    return 'Delete $season';
+    return '删除 $season';
   }
 
   @override
@@ -2811,32 +2954,32 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Delete $count episodes',
-      one: 'Delete 1 episode',
+      other: '删除 $count 集',
+      one: '删除 1 集',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedMediaOpenShow => 'Open show';
+  String get savedMediaOpenShow => '打开电视剧';
 
   @override
-  String get savedMediaPlayNextUnwatched => 'Play next unwatched';
+  String get savedMediaPlayNextUnwatched => '播放下一个未观看集数';
 
   @override
-  String get savedMediaRead => 'Read';
+  String get savedMediaRead => '已读';
 
   @override
-  String get savedMediaCancelDownload => 'Cancel download';
+  String get savedMediaCancelDownload => '取消下载';
 
   @override
-  String get sortBySize => 'Size';
+  String get sortBySize => '大小';
 
   @override
-  String get sortByName => 'Name';
+  String get sortByName => '名字';
 
   @override
-  String get sortByDateAdded => 'Date added';
+  String get sortByDateAdded => '添加日期';
 
   @override
   String get storageLimit => '存储限制';
@@ -2962,6 +3105,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get watchedIndicators => '已观看标记';
 
   @override
+  String get showPosterLabels => '海报标签';
+
+  @override
+  String get showPosterLabelsSubtitle => '在海报上显示标签，例如 4K 或 HDR。';
+
+  @override
   String get always => '总是';
 
   @override
@@ -2984,12 +3133,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scaleFocusedCards => '缩放聚焦或悬停的卡片和图块';
-
-  @override
-  String get backgroundBackdrops => '背景图';
-
-  @override
-  String get showBackdropImages => '在内容后方显示背景图';
 
   @override
   String get seriesThumbnails => '显示剧集缩略图';
@@ -3112,7 +3255,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingAnimationSpeedUltra => '极速';
 
   @override
-  String get showLoadingAnimationText => '显示文字？';
+  String get showLoadingAnimationText => '显示文字';
 
   @override
   String get loadingAnimationPreview => '预览';
@@ -3130,86 +3273,100 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fallingLeaves => '落叶';
 
   @override
-  String get seasonalChristmas => 'Christmas';
+  String get seasonalChristmas => '圣诞节';
 
   @override
-  String get seasonalPetals => 'Spring Petals';
+  String get seasonalPetals => '春日花瓣';
 
   @override
-  String get seasonalFireflies => 'Fireflies';
+  String get seasonalFireflies => '萤火虫';
 
   @override
-  String get seasonalHalloween => 'Halloween';
+  String get seasonalHalloween => '万圣节';
 
   @override
-  String get seasonalDensity => 'Density';
+  String get seasonalDensity => '密度';
 
   @override
-  String get seasonalDensityLight => 'Light';
+  String get seasonalDensityLight => '稀疏';
 
   @override
-  String get seasonalDensityNormal => 'Normal';
+  String get seasonalDensityNormal => '正常';
 
   @override
-  String get seasonalDensityHeavy => 'Heavy';
+  String get seasonalDensityHeavy => '密集';
 
   @override
-  String get seasonalRow => 'Seasonal Row';
+  String get seasonalFollower => '焦点跟随';
 
   @override
-  String get seasonalRowDescription =>
-      'Show a row of holiday movies from your library, with Seerr suggestions when available.';
+  String get seasonalFollowerDescription => '节日装饰（如万圣节的灵应牌）会跟随你在首页上的选择';
 
   @override
-  String get seasonalRowSubtitle => 'Seasonal';
+  String get seasonalFollowerPointerDescription => '节日装饰（如万圣节的灵应牌）会替代首页上的鼠标指针';
 
   @override
-  String get seasonalRowCountry => 'Country';
+  String get seasonalRow => '节日推荐行';
 
   @override
-  String get seasonalRowCountryAuto => 'Automatic';
+  String get seasonalRowDescription => '显示媒体库中的节日电影行，并在可用时显示 Seerr 建议。';
 
   @override
-  String get countryUnitedStates => 'United States';
+  String get seasonalRowSubtitle => '节日';
 
   @override
-  String get countryCanada => 'Canada';
+  String get seasonalRowCountry => '国家/地区';
 
   @override
-  String get seasonalRowCountryOther => 'Other';
+  String get seasonalRowCountryAuto => '自动模式';
 
   @override
-  String get seasonalRowHolidays => 'Holidays';
+  String get countryUnitedStates => '美国';
 
   @override
-  String get seasonalRowHolidaysHint => 'Untick a holiday to hide its row.';
+  String get countryCanada => '加拿大';
 
   @override
-  String get holidayNewYear => 'New Year\'s';
+  String get seasonalRowCountryOther => '其他';
 
   @override
-  String get holidayValentines => 'Valentine\'s Day';
+  String get seasonalRowHolidays => '节日';
 
   @override
-  String get holidayEaster => 'Easter';
+  String get seasonalRowHolidaysHint => '取消勾选某个节日即可隐藏其推荐行。';
 
   @override
-  String get holidayPride => 'Pride';
+  String get seasonalRowAllYear => '全年显示';
 
   @override
-  String get holidayHalloween => 'Halloween';
+  String get seasonalRowAllYearDescription => '在节日日期之外也显示节日推荐行，每天轮换一个已勾选的节日。';
 
   @override
-  String get holidayThanksgiving => 'Thanksgiving';
+  String get holidayNewYear => '新年';
 
   @override
-  String get holidayChristmas => 'Christmas Movies';
+  String get holidayValentines => '情人节';
 
   @override
-  String get holidayLunarNewYear => 'Lunar New Year';
+  String get holidayEaster => '复活节';
 
   @override
-  String get holidayDiwali => 'Diwali';
+  String get holidayPride => '骄傲月';
+
+  @override
+  String get holidayHalloween => '万圣节';
+
+  @override
+  String get holidayThanksgiving => '感恩节';
+
+  @override
+  String get holidayChristmas => '圣诞电影';
+
+  @override
+  String get holidayLunarNewYear => '农历新年';
+
+  @override
+  String get holidayDiwali => '排灯节';
 
   @override
   String get themeMusic => '主题音乐';
@@ -3238,7 +3395,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loopThemeMusicSubtitle => '单曲循环，而非仅播放一次';
 
   @override
-  String get detailsBackgroundBlur => '详情页背景模糊';
+  String get detailsBackgroundBlur => '背景虚化';
 
   @override
   String get detailsBackgroundOpacity => '详情页背景不透明度';
@@ -3285,27 +3442,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoCrop => '自动裁剪';
 
   @override
-  String get cropBlackBars => 'Crop Black Bars';
+  String get cropBlackBars => '裁剪黑边';
 
   @override
   String get settingsCropBlackBarsDescription =>
-      'Detect encoded letterbox bars after playback starts, crop them, then fill the screen. Recrop from the player zoom button.';
+      '播放开始后检测画面中的编码黑边，将其裁剪并铺满屏幕。可在播放器的缩放按钮中重新裁剪。';
 
   @override
-  String get cropBlackBarsRecropInterval => 'Recrop Interval';
+  String get cropBlackBarsRecropInterval => '重新裁剪间隔';
 
   @override
-  String get cropBlackBarsOnce => 'Once at start';
+  String get cropBlackBarsOnce => '开始时一次';
 
   @override
-  String get cropBlackBarsEverySecond => 'Every second';
+  String get cropBlackBarsEverySecond => '每秒';
 
   @override
-  String get settingsCropBlackBarsIntervalDescription =>
-      'Follow aspect ratio changes during playback.';
+  String get settingsCropBlackBarsIntervalDescription => '播放过程中跟随宽高比变化。';
 
   @override
-  String get playerRecroppingBlackBars => 'Recropping black bars';
+  String get playerRecroppingBlackBars => '正在重新裁剪黑边';
+
+  @override
+  String get playerBlackBarsCropped => '已裁剪黑边';
+
+  @override
+  String get playerNoBlackBarsFound => '未发现黑边';
+
+  @override
+  String get playerBlackBarsNotDetected => '无法检测到黑边。请在较亮的场景中重试';
 
   @override
   String get stretch => '拉伸';
@@ -3359,11 +3524,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trickplayFollowScrubPositionSubtitle => '预览画面跟随滑块沿进度条移动，而非固定居中';
 
   @override
-  String get trickplayPauseWhileScrubbing => 'Pause While Scrubbing';
+  String get trickplayPauseWhileScrubbing => '拖动进度时暂停';
 
   @override
   String get trickplayPauseWhileScrubbingSubtitle =>
-      'Playback pauses while you seek and resumes when you press play. Turn this off to keep playing and jump straight to the new spot';
+      '拖动进度时暂停播放，按播放键后恢复。关闭此选项可在跳转时继续播放并直接跳到新位置';
 
   @override
   String get showDescriptionOnPause => '暂停时显示简介';
@@ -3372,11 +3537,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dimVideoShowOverview => '暂停时调暗视频并显示简介文本';
 
   @override
-  String get showChapterMarkers => 'Chapter Marks';
+  String get showChapterMarkers => '章节标记';
 
   @override
-  String get showChapterMarkersDescription =>
-      'Mark where each chapter starts on the seek bar';
+  String get showChapterMarkersDescription => '在进度条上标记每一章的开始位置';
 
   @override
   String get osdLockButton => 'OSD 锁定按钮';
@@ -3389,6 +3553,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get playerSwipeGesturesDescription => '在播放器上上下滑动，左侧改变亮度，右侧改变音量';
+
+  @override
+  String get invertGestureIndicators => '反转手势指示器';
+
+  @override
+  String get invertGestureIndicatorsDescription =>
+      '将亮度和音量的视觉指示器放在与滑动操作相同或相反的屏幕一侧';
+
+  @override
+  String get gestureIndicatorSame => '相同';
+
+  @override
+  String get gestureIndicatorInverted => '相反';
 
   @override
   String get osdButtons => '播放器按钮';
@@ -3411,208 +3588,282 @@ class AppLocalizationsZh extends AppLocalizations {
       '播放按钮固定置顶，锁定按钮始终可见。其余项目可自定义，不同设备类型拥有独立配置。';
 
   @override
-  String get actionButtonsOnScreen => 'Action Buttons on Screen';
+  String get actionButtonsOnScreen => '屏幕上的操作按钮';
 
   @override
-  String get actionButtonsOnScreenDescription =>
-      'Customize how many action buttons appear before folding into the More Actions menu.';
+  String get actionButtonsOnScreenDescription => '自定义在折叠到“更多操作”菜单之前显示多少个操作按钮。';
 
   @override
-  String get actionButtonsOnScreenAuto => 'Auto (Theme Default)';
+  String get actionButtonsOnScreenAuto => '自动（主题默认）';
 
   @override
-  String get actionButtonsOnScreenPlayOnly => '1 (Play only)';
+  String get actionButtonsOnScreenPlayOnly => '1（仅播放）';
 
   @override
-  String get actionButtonsOnScreenAll => 'All (Horizontal Scroll)';
+  String get actionButtonsOnScreenAll => '全部（横向滚动）';
 
   @override
-  String get detailMetadata => 'Metadata Row';
+  String get detailMetadata => '元数据行';
 
   @override
-  String get detailMetadataDescription =>
-      'Choose and reorder what metadata the details screen shows';
+  String get detailMetadataDescription => '选择并重新排列详情页显示的元数据';
 
   @override
   String get detailMetadataSectionDescription =>
-      'Turn metadata items on or off, and arrange the order they appear on the details screen. Each kind of device keeps its own list.';
+      '开启或关闭元数据项，并排列它们在详情页上的显示顺序。每种设备各自保留自己的列表。';
 
   @override
-  String get detailMetadataYear => 'Release Year';
+  String get detailMetadataYear => '发行年份';
 
   @override
-  String get detailMetadataParentalRating => 'Parental Rating';
+  String get detailMetadataParentalRating => '家长评级';
 
   @override
-  String get detailMetadataRuntimeAndSeasons => 'Runtime & Seasons';
+  String get detailMetadataRuntimeAndSeasons => '片长与季数';
 
   @override
-  String get detailMetadataStatus => 'Series Status';
+  String get detailMetadataStatus => '剧集状态';
 
   @override
-  String get detailMetadataStatusSubtitle =>
-      'Shows whether the series is continuing, ended, or returning';
+  String get detailMetadataStatusSubtitle => '显示剧集是连载中、已完结还是即将回归';
 
   @override
-  String get detailMetadataGenres => 'Genres';
+  String get detailMetadataGenres => '类型';
 
   @override
-  String get detailMetadataSeerrAvailability => 'Seerr Availability';
+  String get detailMetadataSeerrAvailability => 'Seerr 可用状态';
 
   @override
-  String get detailMetadataSeerrAvailabilitySubtitle =>
-      'Shows request and media availability status from Seerr';
+  String get detailMetadataSeerrAvailabilitySubtitle => '显示来自 Seerr 的请求和媒体可用状态';
 
   @override
-  String get detailMetadataUpcomingEpisodeDate => 'Upcoming Episodes';
+  String get detailMetadataUpcomingEpisodeDate => '即将播出的剧集';
 
   @override
   String get detailMetadataUpcomingEpisodeDateSubtitle =>
-      'Uses Sonarr and TMDB to show upcoming release dates';
+      '使用 Sonarr 和 TMDB 显示即将播出的日期';
 
   @override
-  String get detailSections => 'Sections';
+  String get detailSections => '分区';
 
   @override
-  String get detailSectionsDescription =>
-      'Choose which parts of the Details screen to show';
+  String get detailSectionsDescription => '选择详情页要显示的部分';
 
   @override
   String get detailSectionsScreenDescription =>
-      'Only the sections the current Details screen style can show are listed. Hiding one hides it in every style that has it.';
+      '仅列出当前详情页样式可以显示的分区。隐藏某个分区会在所有包含该分区的样式中将其隐藏。';
 
   @override
-  String get detailSectionGroupHeader => 'Header';
+  String get detailSectionGroupHeader => '头部';
 
   @override
-  String get detailSectionGroupSections => 'Sections';
+  String get detailSectionGroupSections => '分区';
 
   @override
-  String get detailSectionGroupPerson => 'Person pages';
+  String get detailSectionGroupPerson => '人物页面';
 
   @override
-  String get detailSectionGroupCollection => 'Collection pages';
+  String get detailSectionGroupCollection => '合集页面';
 
   @override
-  String get detailSectionGroupOther => 'Other';
+  String get detailSectionGroupOther => '其他';
 
   @override
-  String get detailSectionLogo => 'Logo';
+  String get detailSectionLogo => '徽标';
 
   @override
-  String get detailSectionLogoSubtitle => 'Shows the title as text when off';
+  String get detailSectionLogoSubtitle => '关闭时以文字形式显示标题';
 
   @override
-  String get detailSectionTagline => 'Tagline';
+  String get detailSectionTagline => '标语';
 
   @override
-  String get detailSectionPoster => 'Poster';
+  String get detailSectionPoster => '海报';
 
   @override
-  String get detailSectionVersionBadge => 'Version badge';
+  String get detailSectionVersionBadge => '版本徽章';
 
   @override
-  String get detailSectionUpNext => 'Next Up';
+  String get detailSectionUpNext => '下一集';
 
   @override
-  String get detailSectionLyrics => 'Lyrics';
+  String get detailSectionLyrics => '歌词';
 
   @override
-  String get detailSectionCast => 'Cast';
+  String get detailSectionCast => '投屏';
 
   @override
-  String get detailSectionCastSubtitle => 'Also on collection pages';
+  String get detailSectionCastSubtitle => '也显示在合集页面上';
 
   @override
-  String get detailSectionCrew => 'Directors & writers';
+  String get detailSectionCrew => '导演与编剧';
 
   @override
-  String get detailSectionStudios => 'Studios';
+  String get detailSectionStudios => '工作室';
 
   @override
-  String get detailSectionChapters => 'Chapters';
+  String get detailSectionChapters => '章节';
 
   @override
-  String get detailSectionExtras => 'Extras';
+  String get detailSectionExtras => '花絮';
 
   @override
-  String get detailSectionCollections => 'Collections';
+  String get detailSectionCollections => '合集';
 
   @override
-  String get detailSectionMoreLikeThis => 'More Like This';
+  String get detailSectionMoreLikeThis => '相似推荐';
 
   @override
-  String get detailSectionMoreLikeThisSubtitle =>
-      'Also similar albums and artists';
+  String get detailSectionMoreLikeThisSubtitle => '也包括相似专辑和艺人';
 
   @override
-  String get detailSectionMoreEpisodes => 'More episodes';
+  String get detailSectionMoreEpisodes => '更多剧集';
 
   @override
-  String get detailSectionMoreEpisodesSubtitle => 'On episode pages';
+  String get detailSectionMoreEpisodesSubtitle => '在剧集页面上';
 
   @override
-  String get detailSectionMediaInfo => 'Media info';
+  String get detailSectionMediaInfo => '媒体信息';
 
   @override
-  String get detailSectionMediaInfoSubtitle =>
-      'File, streams and Direct Play check';
+  String get detailSectionMediaInfoSubtitle => '文件、媒体流和直接播放检查';
 
   @override
-  String get detailSectionSeerrGenresTags => 'Genres & tags';
+  String get detailSectionSeerrGenresTags => '类型与标签';
 
   @override
-  String get detailSectionSeerrStats => 'Stats';
+  String get detailSectionSeerrStats => '统计';
 
   @override
-  String get detailSectionSeerrRecommendations => 'Recommendations';
+  String get detailSectionSeerrStreaming => '流媒体服务';
 
   @override
-  String get detailSectionSeerrSimilar => 'Similar titles';
+  String get seerrStreamingOn => '流媒体平台';
 
   @override
-  String get detailSectionSeerrCollection => 'Collection banner';
+  String get detailSectionSeerrRecommendations => '推荐';
 
   @override
-  String get detailSectionSeerrPersonAppearances => 'Appearances';
+  String get detailSectionSeerrSimilar => '相似作品';
 
   @override
-  String get detailSectionSeerrPersonCrew => 'Crew credits';
+  String get detailSectionSeerrCollection => '合集横幅';
 
   @override
-  String get detailSectionPersonPagesSubtitle => 'On person pages';
+  String get detailSectionSeerrPersonAppearances => '参演作品';
 
   @override
-  String get detailSectionBiography => 'Biography';
+  String get detailSectionSeerrPersonCrew => '幕后作品';
 
   @override
-  String get detailSectionBirthplace => 'Birthplace';
+  String get detailSectionPersonPagesSubtitle => '在人物页面上';
 
   @override
-  String get detailSectionGuestAppearances => 'Guest appearances';
+  String get detailSectionBiography => '传记';
 
   @override
-  String get detailSectionMusicVideos => 'Music videos';
+  String get detailSectionBirthplace => '出生地';
 
   @override
-  String get detailSectionPlaylistOrder => 'Playlist order';
+  String get detailSectionPersonLinks => '链接';
 
   @override
-  String get detailSectionBookGenres => 'Book genres';
+  String get detailSectionPersonLinksSubtitle => 'IMDb、TMDB 和社交媒体';
 
   @override
-  String get detailSectionPhotoExif => 'Photo details';
+  String get detailSectionGuestAppearances => '客串演出';
+
+  @override
+  String get detailSectionMusicVideos => '音乐视频';
+
+  @override
+  String get detailSectionPlaylistOrder => '播放列表顺序';
+
+  @override
+  String get detailSectionBookGenres => '图书类型';
+
+  @override
+  String get detailSectionPhotoExif => '照片详情';
 
   @override
   String upcomingEpisodeNext(String date, int season, int episode) {
-    return 'Next: $date (S$season:E$episode)';
+    return '下一集：$date（S$season:E$episode）';
   }
 
   @override
-  String get upcomingEpisodeToday => 'Today';
+  String get upcomingEpisodeToday => '今天';
 
   @override
-  String get upcomingEpisodeTomorrow => 'Tomorrow';
+  String get upcomingEpisodeTomorrow => '明天';
+
+  @override
+  String get radarrCalendarRow => '即将上映的电影（Radarr）';
+
+  @override
+  String get sonarrCalendarRow => '即将播出的电视剧（Sonarr）';
+
+  @override
+  String get mergedCalendarRow => '即将发布';
+
+  @override
+  String get arrCalendarsRowSubtitle => 'Radarr 和 Sonarr 日历';
+
+  @override
+  String get radarrCalendarRowSubtitle => 'Radarr 日历';
+
+  @override
+  String get sonarrCalendarRowSubtitle => 'Sonarr 日历';
+
+  @override
+  String calendarReleaseIn(int days, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days 天后',
+      one: '明天',
+      zero: '今天',
+    );
+    return '$_temp0（$date）';
+  }
+
+  @override
+  String get calendarReleaseCinema => '影院上映';
+
+  @override
+  String get calendarReleaseDigital => '数字';
+
+  @override
+  String get calendarReleasePhysical => '实体发行';
+
+  @override
+  String get upcomingCalendars => '即将上线日历';
+
+  @override
+  String get upcomingCalendarsDescription => '选择 Radarr 和 Sonarr 行显示的内容。';
+
+  @override
+  String get radarrCalendarShowCinema => '显示即将在影院上映的电影';
+
+  @override
+  String get radarrCalendarShowDigital => '显示即将数字发行的电影';
+
+  @override
+  String get radarrCalendarShowPhysical => '显示即将实体发行的电影';
+
+  @override
+  String get calendarShowReleaseDate => '在首页显示发行日期';
+
+  @override
+  String get radarrCalendarHideDownloaded => '隐藏服务器上已有的电影';
+
+  @override
+  String get sonarrCalendarShowEpisodeInfo => '显示单集信息';
+
+  @override
+  String get sonarrCalendarHideDownloaded => '隐藏服务器上已有的单集';
+
+  @override
+  String get mergeRadarrSonarrCalendars => '合并 Sonarr 和 Radarr 日历';
 
   @override
   String get moveUp => '上移';
@@ -3624,8 +3875,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get buttonOrderHint => '使用箭头调整顺序。遥控器可通过左右方向键移动选中按钮；关闭按钮将自动后置。';
 
   @override
-  String get buttonShownInSyncPlayGroup =>
-      'Only shows while you\'re in a SyncPlay group';
+  String get buttonShownInSyncPlayGroup => '仅在观影派对中显示';
 
   @override
   String get orientationLock => '方向锁定';
@@ -3656,21 +3906,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get preferAudioDescriptionDescription => '优先播放无障碍音画描述音轨，替代普通音轨。';
-
-  @override
-  String get transcodingAudio => '转码（仅音频）';
-
-  @override
-  String get directStreamRemux => '直流（封装转码）';
-
-  @override
-  String get transcodingBitrateOrResolution => '转码（码率/分辨率适配）';
-
-  @override
-  String get transcodingVideoAndAudio => '转码（视频+音频）';
-
-  @override
-  String get transcodingVideo => '转码（仅视频）';
 
   @override
   String get autoServerDefault => '自动（服务器默认）';
@@ -3747,6 +3982,12 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get settingsAudioFallbackCodecDescription =>
       '选择多声道源音频无法直接播放或直通时的转码目标格式。';
+
+  @override
+  String get transcodeAudioCodecs => '音频转码编解码器';
+
+  @override
+  String get transcodeAudioCodecsDescription => '服务器会转换这些格式的音频，而不是原样发送。';
 
   @override
   String get settingsAudioFallbackCodecAuto => '自动检测\n（推荐）';
@@ -3838,21 +4079,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAudioPassthroughModeManual => '手动（请在下方选择格式）';
 
   @override
-  String get settingsAudioPassthroughOutput => 'Passthrough Output';
+  String get settingsAudioPassthroughOutput => '直通输出';
 
   @override
   String get settingsAudioPassthroughOutputDescription =>
-      'Who packs bitstreams for the HDMI link. Try the app packer if passthrough is silent or glitchy on this device.';
+      '由谁为 HDMI 链路封装比特流。如果此设备上的直通没有声音或出现卡顿，请尝试使用应用封装器。';
 
   @override
   String get settingsAudioPassthroughOutputPlatform =>
-      'Automatic, system packer (AudioTrack RAW)';
+      '自动，系统封装器（AudioTrack RAW）';
 
   @override
-  String get settingsAudioPassthroughOutputIec => 'App packer (AudioTrack IEC)';
+  String get settingsAudioPassthroughOutputIec => '应用封装器（AudioTrack IEC）';
 
   @override
-  String get settingsAudioPassthroughOutputIecLabel => 'App (IEC)';
+  String get settingsAudioPassthroughOutputIecLabel => '应用（IEC）';
 
   @override
   String get settingsDownmixToStereoDescription => '将所有解码后的音频混合成两个声道。';
@@ -3909,37 +4150,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String settingsAudioPcmChannels(int count) {
     return '${count}ch PCM';
   }
-
-  @override
-  String get settingsAudioDiagnostics => '诊断';
-
-  @override
-  String get settingsAudioDiagnosticsVideoLevel => '视频电平';
-
-  @override
-  String get settingsAudioDiagnosticsVideoRange => '视频范围';
-
-  @override
-  String get settingsAudioDiagnosticsSubtitleCodec => '字幕编解码器';
-
-  @override
-  String get settingsAudioDiagnosticsAllowedAudioCodecs => '允许的音频编解码器';
-
-  @override
-  String get settingsAudioDiagnosticsHlsMpegTsAudioCodecs =>
-      'HLS MPEG-TS 音频编解码器';
-
-  @override
-  String get settingsAudioDiagnosticsHlsFmp4AudioCodecs => 'HLS fMP4 音频编解码器';
-
-  @override
-  String get settingsAudioDiagnosticsAudioSpdifPassthrough => 'audio-spdif 直通';
-
-  @override
-  String get settingsAudioDiagnosticsActiveAudioRoute => '当前音频路由';
-
-  @override
-  String get settingsAudioDiagnosticsRouteHdAudioSupport => '音频路由的高清音频支持';
 
   @override
   String get nightMode => '夜间模式';
@@ -4049,15 +4259,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get defaultSubtitleLanguage => '默认字幕语言';
 
   @override
-  String get subtitleDownloadLanguages => 'Subtitle Download Languages';
+  String get subtitleDownloadLanguages => '字幕下载语言';
 
   @override
   String get subtitleDownloadLanguagesDescription =>
-      'Languages to search when downloading subtitles, up to 5. Auto searches one language picked from your default subtitle language or the video.';
+      '下载字幕时搜索的语言，最多 5 种。自动模式会从默认字幕语言或视频中选择一种语言进行搜索。';
 
   @override
-  String get preferredSecondarySubtitleLanguage =>
-      'Preferred Secondary Subtitle Language';
+  String get preferredSecondarySubtitleLanguage => '首选次要字幕语言';
+
+  @override
+  String get secondarySubtitlesEnabledSubtitle =>
+      '同时显示第二条字幕轨道。启用后，字幕菜单会先询问选择主轨道还是次轨道';
 
   @override
   String get defaultToNoSubtitles => '默认不启用字幕';
@@ -4069,22 +4282,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subtitleSize => '字幕大小';
 
   @override
-  String get primarySubtitleSlot => 'Primary';
+  String get primarySubtitleSlot => '主轨道';
 
   @override
-  String get secondarySubtitleSlot => 'Secondary';
+  String get secondarySubtitleSlot => '次轨道';
 
   @override
-  String get secondarySubtitleTrack => 'Secondary Subtitle Track';
+  String get secondarySubtitleTrack => '次要字幕';
+
+  @override
+  String get secondaryDelayAdjustment => '次要字幕延迟调整';
 
   @override
   String decreaseValue(String setting) {
-    return 'Decrease $setting';
+    return '减小 $setting';
   }
 
   @override
   String increaseValue(String setting) {
-    return 'Increase $setting';
+    return '增大 $setting';
   }
 
   @override
@@ -4181,19 +4397,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get semiTransparentBlack => '半透明黑色';
 
   @override
-  String get semiTransparentWhite => 'Semi-transparent White';
+  String get semiTransparentWhite => '半透明白色';
 
   @override
-  String get lightGray => 'Light Gray';
+  String get lightGray => '浅灰色';
 
   @override
-  String get darkGray => 'Dark Gray';
+  String get darkGray => '深灰色';
 
   @override
-  String get blue => 'Blue';
+  String get blue => '蓝色';
 
   @override
-  String get magenta => 'Magenta';
+  String get magenta => '洋红色';
 
   @override
   String get global => '全局';
@@ -4382,13 +4598,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showFavoritesButton => '显示收藏按钮';
 
   @override
-  String get showLiveTvButton => 'Show Live TV Button';
+  String get showLiveTvButton => '显示直播电视按钮';
 
   @override
   String get showDownloadsButton => '显示下载按钮';
 
   @override
   String get showLibrariesInToolbar => '在工具栏中显示媒体库';
+
+  @override
+  String get showLibrariesIndividually => '单独显示媒体库';
+
+  @override
+  String get showLibrariesIndividuallySubtitle =>
+      '在导航栏中将每个媒体库显示为独立按钮，而不是放在“媒体库”菜单中';
 
   @override
   String get navbarAlwaysExpanded => '始终展开导航栏标签';
@@ -4460,6 +4683,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showLibrariesFromAllServers => '显示所有已连接服务器的媒体库';
 
   @override
+  String get mergeLibrariesByType => '合并电影和电视剧媒体库';
+
+  @override
+  String get mergeLibrariesByTypeDescription =>
+      '启用多服务器媒体库后，为所有服务器显示一个“电影”媒体库和一个“电视剧”媒体库。多个服务器共有的作品只列出一次。';
+
+  @override
+  String mergedServerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '在 $count 个服务器上',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mergedCopiesNotChanged(String servers) {
+    return '在 $servers 上未更改';
+  }
+
+  @override
+  String get recentlyAddedAndReleased => '最近添加和发布';
+
+  @override
+  String get hideWatchedInRecentRows => '隐藏已观看内容';
+
+  @override
+  String get hideWatchedInRecentRowsDescription =>
+      '从“最近添加”和“最近发布”首页栏目中隐藏已观看的内容。';
+
+  @override
   String get mergeRecentRowsByType => '按类型合并最近行';
 
   @override
@@ -4470,39 +4725,107 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryView => '媒体库视图';
 
   @override
-  String get libraryStyle => 'Library Style';
+  String get libraryStyle => '视频媒体库样式';
 
   @override
   String get libraryStyleDescription =>
-      'Classic is the original header with icon buttons. Modern puts search and labeled sort, group and filter buttons in one bar. Docked moves the controls and the letters into a side panel.';
+      '经典为带图标按钮的原始头部。现代将搜索以及带标签的排序、分组和筛选按钮放在同一栏中。停靠将控件和字母移到侧边面板。';
 
   @override
   String get libraryStyleDescriptionPhone =>
-      'Classic is the original header with icon buttons. Modern adds labeled sort, group and filter chips under the search. Docked keeps the controls in a bar at the bottom of the screen.';
+      '经典为带图标按钮的原始头部。现代在搜索框下方添加带标签的排序、分组和筛选按钮组。停靠将控件保留在屏幕底部的栏中。';
 
   @override
-  String get libraryStyleClassic => 'Classic';
+  String get libraryStyleClassic => 'Moonfin';
 
   @override
-  String get libraryStyleModern => 'Modern';
+  String get libraryStyleModern => '现代';
 
   @override
-  String get libraryStyleDocked => 'Docked';
+  String get libraryStyleDocked => '停靠';
 
   @override
-  String get libraryShowLabel => 'Show';
+  String get bookLibraryStyle => '图书媒体库样式';
 
   @override
-  String get libraryAToZ => 'A to Z';
+  String get bookLibraryStyleDescription =>
+      '经典为精选作品下方的原始书架。阅览室以大卡片突出你正在阅读的图书。书店以网格形式浏览整个媒体库。';
 
   @override
-  String get libraryJumpToLetter => 'Jump to letter';
+  String get bookLibraryStyleClassic => 'Moonfin';
 
   @override
-  String get enableFolderView => '启用文件夹视图';
+  String get bookLibraryStyleReadingRoom => '阅览室';
 
   @override
-  String get showFolderBrowsingOption => '显示文件夹浏览选项';
+  String get bookLibraryStyleBookstore => '书店';
+
+  @override
+  String get musicLibraryStyle => '音乐媒体库样式';
+
+  @override
+  String get musicLibraryStyleDescription =>
+      '经典为“快速继续”卡片下方的原始列表。快捷访问以你最近的专辑和播放列表网格开始。沉浸以你正在聆听的专辑为主。';
+
+  @override
+  String get musicLibraryStyleClassic => 'Moonfin';
+
+  @override
+  String get musicLibraryStyleQuickAccess => '快捷访问';
+
+  @override
+  String get musicLibraryStyleImmersive => '沉浸式';
+
+  @override
+  String get jumpBackIn => '快速继续';
+
+  @override
+  String get yourPlaylists => '你的播放列表';
+
+  @override
+  String get fromThisAlbum => '来自此专辑';
+
+  @override
+  String get searchMusic => '搜索音乐';
+
+  @override
+  String bookSeriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 套丛书',
+      one: '1 套丛书',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bookInProgressCount(int count) {
+    return '$count 本在读';
+  }
+
+  @override
+  String bookBrowseAllTitles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '浏览全部 $count 本书',
+      one: '浏览 1 本书',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get searchBooks => '搜索图书';
+
+  @override
+  String get libraryShowLabel => '显示';
+
+  @override
+  String get libraryAToZ => 'A 到 Z';
+
+  @override
+  String get libraryJumpToLetter => '跳转到字母';
 
   @override
   String get groupItemsIntoCollections => '将影片归类至系列合集';
@@ -4530,21 +4853,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showInLatestMedia => '在最新媒体中显示';
 
   @override
-  String get libraryOrder => 'Library Order';
+  String get libraryOrder => '媒体库顺序';
 
   @override
-  String get libraryOrderSubtitle => 'Choose the order of your libraries';
+  String get libraryOrderSubtitle => '选择媒体库的顺序';
 
   @override
   String get libraryOrderDescription =>
-      'Your libraries appear in this order on My Media, the recently added rows and the navigation bar. The order is saved to your server account, so other apps you sign in to use it too.';
+      '你的媒体库会按此顺序显示在“我的媒体”、最近添加栏目和导航栏中。此顺序会保存到你的服务器账号，因此你登录的其他应用也会使用它。';
 
   @override
-  String get libraryOrderTvHint =>
-      'Press left or right to move the highlighted library.';
+  String get libraryOrderTvHint => '按左或右方向键移动高亮的媒体库。';
 
   @override
-  String get libraryOrderSaveFailed => 'Couldn\'t save the library order';
+  String get libraryOrderSaveFailed => '无法保存媒体库顺序';
 
   @override
   String get sourceLibraries => '源媒体库';
@@ -4582,6 +4904,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mediaBarModeDescription => '选择不同的媒体栏样式，或关闭媒体栏';
 
   @override
+  String get peekHomeRows => '预览首页栏目';
+
+  @override
+  String get peekHomeRowsDescription => '在媒体栏底部显示第一行栏目的上半部分';
+
+  @override
   String get mediaBarModeMoonfin => 'Moonfin';
 
   @override
@@ -4616,6 +4944,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mediaBarSourceRandom => '随机';
+
+  @override
+  String get mediaBarNewReleaseBanner => '新发布横幅';
+
+  @override
+  String get mediaBarNewReleaseDaysDescription => '单集播出后多长时间内仍算作新内容。';
+
+  @override
+  String get mediaBarNewSeries => '新剧集';
+
+  @override
+  String get mediaBarNewSeason => '新一季';
+
+  @override
+  String get mediaBarNewEpisodes => '新单集';
+
+  @override
+  String get mediaBarNewMovie => '新电影';
+
+  @override
+  String get mediaBarNewReleasesSection => '新发布';
+
+  @override
+  String get mediaBarSourceNewReleasesAll => '新发布';
+
+  @override
+  String get mediaBarNewReleaseBannerAllDescription => '标记新剧集、新季、新单集和新电影。';
+
+  @override
+  String get mediaBarNewReleaseKinds => '标签';
+
+  @override
+  String get mediaBarNewEpisodeDays => '新单集时间窗口';
+
+  @override
+  String get mediaBarNewMovieDays => '新电影时间窗口';
+
+  @override
+  String get mediaBarNewMovieDaysDescription =>
+      '电影上映后多长时间内仍算作新内容。院线电影往往在上映一段时间后才进入服务器，因此这个时间应比单集更长。';
+
+  @override
+  String get mediaBarNewMovieDetail => '显示标语';
+
+  @override
+  String get mediaBarNewMovieDetailDescription =>
+      '在“新电影”下方显示电影标语。没有标语时，标签仍单独显示。';
 
   @override
   String get moviesAndTvShows => '电影和剧集';
@@ -4657,6 +5032,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableTrailerAudio => '媒体栏预告片开启音效';
 
   @override
+  String get trailerVolume => '预告片音量';
+
+  @override
+  String get trailerVolumeDescription => '媒体栏预告片的播放音量';
+
+  @override
   String get trailerCaptions => '预告片字幕';
 
   @override
@@ -4679,6 +5060,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get enablePreviewAudio => '为预告片和剧集预览启用音频';
+
+  @override
+  String get previewVolume => '预览音量';
+
+  @override
+  String get previewVolumeDescription => '卡片上媒体预览的播放音量';
 
   @override
   String get latestMedia => '最新媒体';
@@ -4736,6 +5123,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get combineBothRows => '将两行合并为一个首页栏目';
 
   @override
+  String get continueWatchingDefaultAction => '默认操作';
+
+  @override
+  String get continueWatchingDefaultActionDescription =>
+      '选择“继续观看”或“接下来播放”中的媒体项时执行的操作';
+
+  @override
+  String get goToDetailsScreen => '前往详情页';
+
+  @override
+  String get playImmediately => '立即播放';
+
+  @override
   String get nextUpMaxDays => '下个播放最大保留天数';
 
   @override
@@ -4757,6 +5157,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeRowsPaddingDescription => '自定义首页各行之间的内边距';
+
+  @override
+  String get homeRowsGenresAndStudios => '类型和工作室';
+
+  @override
+  String get homeRowsExternalLists => '外部榜单';
+
+  @override
+  String get homeRowsStreamingServices => '流媒体服务';
 
   @override
   String get perRowSettings => '每行设置';
@@ -4796,6 +5205,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get enablePinCode => '启用 PIN 码';
+
+  @override
+  String get pinSynced => 'PIN 已同步';
+
+  @override
+  String get pinResetFailed => '无法清除服务器上的 PIN。如果 PIN 仍然存在，请让服务器管理员将其移除。';
 
   @override
   String get requirePinToAccess => '需要 PIN 码才能访问你的账号';
@@ -4843,6 +5258,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dimmingLevel => '变暗程度';
+
+  @override
+  String get screensaverDuringAudio => '音乐和有声书播放时显示';
+
+  @override
+  String get screensaverDuringAudioDescription =>
+      '允许在音频播放时启动屏幕保护程序，避免封面图长时间停留在屏幕上。';
+
+  @override
+  String get sleepAfterIdle => '闲置后让电视休眠';
+
+  @override
+  String get sleepAfterIdleDescriptionAndroid =>
+      '在无按键操作达到此时间后关闭 Moonfin，以便电视自带的屏幕保护程序和睡眠定时器接管。暂停的内容会先停止，从而保留续播进度。';
+
+  @override
+  String get sleepAfterIdleDescriptionAppleTv =>
+      '在无按键操作达到此时间后，将屏幕交还给 Apple TV 自带的屏幕保护程序和睡眠设置。Moonfin 保持运行，因此你可以从上次的位置继续观看。';
 
   @override
   String get maxAgeRating => '最高年龄分级';
@@ -4958,6 +5391,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get additionalRatings => '附加评分';
 
   @override
+  String get mdblistWatchingNow => '正在 MDBList 上观看';
+
+  @override
+  String watchingNowWatchersCount(int count) {
+    return '$count 人正在观看';
+  }
+
+  @override
+  String watchingNowLiveSummary(String users, String movies, String shows) {
+    return '$users 人正在观看 · $movies 部电影 · $shows 部剧集';
+  }
+
+  @override
+  String watchingNowLiveSummaryToday(
+    String users,
+    String movies,
+    String shows,
+  ) {
+    return '今日 $users 人观看 · $movies 部电影 · $shows 部剧集';
+  }
+
+  @override
   String get showMdbListAndTmdbRatings => '显示 MDBList 和 TMDB 评级';
 
   @override
@@ -4994,44 +5449,46 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pluginNotDetectedDescription => '当前未检测到服务器插件。本地设置仍然使用其保存的值或内置默认值。';
 
   @override
-  String get pluginConnected => 'Connected';
+  String get moonbaseAddress => 'Moonbase 地址';
+
+  @override
+  String get pluginConnected => '已连接';
 
   @override
   String pluginConnectedVersion(String version) {
-    return 'Connected, version $version';
+    return '已连接，版本 $version';
   }
 
   @override
-  String get pluginSyncOn => 'Sync on';
+  String get pluginSyncOn => '同步已开启';
 
   @override
-  String get pluginSyncOff => 'Sync off';
+  String get pluginSyncOff => '同步已关闭';
 
   @override
-  String get syncProfileDescription =>
-      'This device syncs with the profile you pick until you pick another.';
+  String get syncProfileDescription => '此设备会与所选配置方案保持同步，直到你选择另一个。';
 
   @override
-  String get profileAppliesEverywhere => 'Applies everywhere';
+  String get profileAppliesEverywhere => '适用于所有位置';
 
   @override
-  String get profileOverridesGlobal => 'Overrides Global';
+  String get profileOverridesGlobal => '覆盖全局';
 
   @override
-  String get profileThisDevice => 'This device';
+  String get profileThisDevice => '此设备';
 
   @override
-  String get profileLoad => 'Load';
+  String get profileLoad => '加载';
 
   @override
-  String get profileLoadSubtitle => 'Server to this device';
+  String get profileLoadSubtitle => '从服务器到此设备';
 
   @override
-  String get profileSaveSubtitle => 'This device to server';
+  String get profileSaveSubtitle => '从此设备到服务器';
 
   @override
   String resetNamedProfile(String profile) {
-    return 'Reset $profile Profile';
+    return '重置 $profile 配置方案';
   }
 
   @override
@@ -5077,7 +5534,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get seerrDiscoveryRows => 'Seerr 发现栏目';
 
   @override
-  String get seerrDiscoverSliders => 'Seerr Discover Sliders';
+  String get seerrDiscoverSliders => 'Seerr 发现页滑块';
 
   @override
   String get yourWatchlist => '我的观看清单';
@@ -5101,18 +5558,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hideAdultContent => '在结果中隐藏成人内容';
 
   @override
-  String get showMissingCollectionItems => 'Show Missing Collection Items';
+  String get showMissingCollectionItems => '显示合集中缺失的媒体项';
 
   @override
-  String get showMissingCollectionItemsDesc =>
-      'Include missing items on Collection pages';
+  String get showMissingCollectionItemsDesc => '在合集页面中包含缺失的媒体项';
 
   @override
-  String get showSeerrAvailabilityBadges => 'Show Seerr Availability Badges';
+  String get showSeerrAvailabilityBadges => '显示 Seerr 可用状态徽章';
 
   @override
-  String get showSeerrAvailabilityBadgesDescription =>
-      'Show season availability badges on media details pages';
+  String get showSeerrAvailabilityBadgesDescription => '在整个应用的海报和季上显示 Seerr 状态';
+
+  @override
+  String get seerrBadgeStyle => '徽章样式';
+
+  @override
+  String get seerrBadgeStyleDescription => '徽章将 Seerr 的圆点放在角落。横幅将状态显示在海报顶部。';
+
+  @override
+  String get seerrBadgeStyleBadge => '徽章';
 
   @override
   String get seerrNotificationsSection => '通知';
@@ -5140,6 +5604,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get seerrNotifyNewMediaSubtitle => '服务器媒体库新增内容提醒';
+
+  @override
+  String get seerrTestNotification => 'Send Test Notification';
+
+  @override
+  String get seerrTestNotificationDesc =>
+      'Verify in-app and background push delivery';
+
+  @override
+  String seerrTestNotificationSentBody(num count) {
+    final intl.NumberFormat countNumberFormat = intl.NumberFormat.compact(
+      locale: localeName,
+    );
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString devices',
+      one: '1 device',
+    );
+    return 'Dispatched to $_temp0.';
+  }
+
+  @override
+  String get seerrTestNotificationPushDisabled =>
+      'In-app notification sent. Server push is not enabled.';
+
+  @override
+  String get seerrTestNotificationFailed => 'Failed to send test notification';
+
+  @override
+  String get seerrPushServerStatus => 'Server Push';
+
+  @override
+  String get seerrPushDeviceStatus => 'Device Push';
+
+  @override
+  String get seerrPushDeviceRegistered => 'Registered';
+
+  @override
+  String get seerrPushDeviceNotRegistered => 'Not registered';
 
   @override
   String loggedInAs(String username) {
@@ -5254,9 +5760,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get featuredContentAppearance => '特色内容、外观';
 
   @override
-  String get posterSizeImageTypeFolderView => '海报尺寸、图片类型、文件夹视图';
-
-  @override
   String gbValue(String value) {
     return '$value GB';
   }
@@ -5317,6 +5820,58 @@ class AppLocalizationsZh extends AppLocalizations {
   String get seerrImportingStatus => '入库中';
 
   @override
+  String get seerrWaitingForImport => '已下载，等待导入';
+
+  @override
+  String get seerrDownloadStalled => '已停滞';
+
+  @override
+  String get seerrDownloadFailed => '下载失败';
+
+  @override
+  String get seerrImportBlocked => '导入受阻';
+
+  @override
+  String get seerrNotFoundYet => '尚未找到';
+
+  @override
+  String get seerrSearchingIndexers => '正在搜索索引器';
+
+  @override
+  String seerrNotFoundYetSearched(String when) {
+    return '尚未找到 · 已于 $when 搜索';
+  }
+
+  @override
+  String get seerrNotAvailableYet => '尚不可用';
+
+  @override
+  String seerrAvailableOn(String date) {
+    return '于 $date 可用';
+  }
+
+  @override
+  String seerrNextEpisodeOn(String date) {
+    return '下一集 $date';
+  }
+
+  @override
+  String get seerrGetDifferentRelease => '获取其他版本';
+
+  @override
+  String seerrGetDifferentReleaseConfirm(String service, String release) {
+    return '$service 将从下载客户端中移除 $release，阻止其再次被抓取，并搜索其他版本。';
+  }
+
+  @override
+  String seerrGetDifferentReleaseDone(String service) {
+    return '已移除。$service 正在搜索其他版本。';
+  }
+
+  @override
+  String get seerrGetDifferentReleaseFailed => '无法移除下载任务';
+
+  @override
   String itemsCount(int count) {
     return '$count 个媒体项';
   }
@@ -5349,7 +5904,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playInMoonfin => '在 Moonfin 中播放';
 
   @override
-  String get requestedByLabel => 'Requested by';
+  String get requestedByLabel => '请求者';
 
   @override
   String requestedByName(String name) {
@@ -5429,6 +5984,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get seerrSeriesContinuing => '剧集连载中・可申请后续季数';
+
+  @override
+  String get seerrSeriesMatchDescription => '我们无法自动匹配这部剧集。请在下方选择正确的剧集。';
+
+  @override
+  String get seerrSeriesNoMatch => '我们找不到这部剧集的匹配项，因此无法请求。';
+
+  @override
+  String get seerrSeriesMatchFailed =>
+      'Sonarr 找不到这部剧集的匹配项，或无法连接到 Sonarr。请重试，或在 Seerr 上检查该剧集。';
 
   @override
   String get advancedOptions => '高级选项';
@@ -5884,802 +6449,1303 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adminExitTooltip => '退出管理';
 
   @override
+  String get adminPremiereNoteLiveTv =>
+      '直播电视需要 Emby Premiere。没有它，服务器不会导入频道或录制任何内容。';
+
+  @override
+  String get adminPremiereNoteBackups => '备份与还原在试用期结束后需要 Emby Premiere。';
+
+  @override
+  String get adminGeneralRunAtStartup => '开机时自动运行服务器';
+
+  @override
+  String get adminGeneralLaunchWebApp => '服务器启动时在浏览器中打开 Web 应用';
+
+  @override
+  String get adminGeneralBannerText => '首页横幅文字';
+
+  @override
+  String get adminGeneralBannerTextHelp => '在所有用户的首页上显示';
+
+  @override
+  String get adminGeneralSectionMaintenance => '维护模式';
+
+  @override
+  String get adminGeneralMaintenanceMode => '使服务器进入维护模式';
+
+  @override
+  String get adminGeneralMaintenanceModeHelp => '用户只能看到维护消息。';
+
+  @override
+  String get adminGeneralMaintenanceMessage => '维护消息';
+
+  @override
+  String get adminGeneralMaintenanceMessageHelp => '留空则使用每种用户语言的通用消息。';
+
+  @override
+  String get adminGeneralSectionUpdates => '自动更新';
+
+  @override
+  String get adminGeneralAutoUpdate => '自动更新服务器';
+
+  @override
+  String get adminGeneralAutoRestart => '自动重启以应用更新';
+
+  @override
+  String get adminGeneralAutoRestartHelp => '服务器仅在无用户活动时重启。';
+
+  @override
+  String adminTaskTriggerSystemEvent(String event) {
+    return '在系统事件（$event）之后';
+  }
+
+  @override
+  String get adminPluginNeedsPremiere => '14 天免费试用后需要 Emby Premiere';
+
+  @override
+  String get adminEmbyBackupsHelp => 'Emby 通过其备份与还原插件进行备份。';
+
+  @override
+  String get adminEmbyBackupsNoPlugin => '未安装备份与还原插件。请从插件目录安装它以备份此服务器。';
+
+  @override
+  String get adminEmbyBackupNow => '立即备份';
+
+  @override
+  String get adminEmbyFullBackup => '完整备份';
+
+  @override
+  String get adminEmbyLightBackups => '数据库备份';
+
+  @override
+  String adminEmbyBackupServerVersion(String version) {
+    return 'Emby $version';
+  }
+
+  @override
+  String adminEmbyRestoreConfirm(String name) {
+    return '还原 $name 吗？此操作将替换此服务器的媒体库、设置、用户和密码，完成后服务器将关闭。你可能需要手动重新启动它。';
+  }
+
+  @override
+  String get adminEmbyRestoreServerId => '还原服务器 ID';
+
+  @override
+  String get adminEmbyRestoreServerIdHelp => '将同一备份还原到多台服务器时，请关闭此选项。';
+
+  @override
+  String get adminEmbyRestoreShuttingDown => '还原已完成，服务器正在关闭。如果没有自动重启，请手动启动它。';
+
+  @override
+  String get adminHiddenRemotely => '远程连接时在登录屏幕上隐藏';
+
+  @override
+  String get adminHiddenFromUnusedDevices => '在从未登录过的设备上隐藏于登录屏幕';
+
+  @override
+  String get adminSimultaneousStreamLimitHelp => '限制此用户可同时播放的视频数量。';
+
+  @override
+  String get adminUnlimited => '无限制';
+
+  @override
+  String get adminAutoRemoteQuality => '自动远程画质（Mbps）';
+
+  @override
+  String get adminAutoRemoteQualityHelp => '当播放器设置为自动画质时用于远程连接。留空以自动检测。';
+
+  @override
+  String get adminAllowCameraUpload => '允许相机上传';
+
+  @override
+  String get adminAllowSubtitleDownloading => '允许下载字幕';
+
+  @override
+  String get adminAllowMediaConversion => '允许媒体转换';
+
+  @override
+  String get adminAllowSyncTranscoding => '允许需要转码的下载';
+
+  @override
+  String get adminAllowSharingPersonalItems => '允许与其他用户共享播放列表';
+
+  @override
+  String get adminAllowPreferenceAccess => '允许修改自己的密码和个人资料图片';
+
+  @override
+  String get adminTagMode => '标签模式';
+
+  @override
+  String get adminEmbyConnect => 'Emby Connect';
+
+  @override
+  String get adminEmbyConnectUser => 'Emby Connect 用户名或电子邮件';
+
+  @override
+  String get adminEmbyConnectHelp => '让此用户无需知道服务器地址即可从任何 Emby 应用登录。';
+
+  @override
+  String get adminEmbyConnectLink => '链接';
+
+  @override
+  String get adminEmbyConnectUnlink => '取消链接';
+
+  @override
+  String get adminEmbyConnectLinked => '已链接到 Emby Connect';
+
+  @override
+  String get adminEmbyConnectPending => '邀请已发送。对方接受后即可建立链接。';
+
+  @override
+  String get adminEmbyConnectUnlinked => 'Emby Connect 链接已移除';
+
+  @override
+  String get adminEmbyConnectNotFound => '没有与该用户名或电子邮件匹配的 Emby Connect 账户。';
+
+  @override
+  String get adminLibImportPlaylists => '导入播放列表文件';
+
+  @override
+  String get adminLibExcludeFromSearch => '从全局搜索中排除';
+
+  @override
+  String get adminLibForcedSubtitlesOnly => '仅下载强制字幕';
+
+  @override
+  String get adminLibImportCollections => '从元数据下载器导入合集';
+
+  @override
+  String get adminLibThumbnailInterval => '预览缩略图间隔';
+
+  @override
+  String adminLibThumbnailEverySeconds(int count) {
+    return '每 $count 秒';
+  }
+
+  @override
+  String get adminLibThumbnailAtChapters => '在章节标记处';
+
+  @override
+  String get adminLibSaveThumbnailsWithMedia => '将预览缩略图保存到媒体文件夹';
+
+  @override
+  String get adminLibrarySectionMarkers => '片头标记';
+
+  @override
+  String get adminLibIntroDetection => '检测片头';
+
+  @override
+  String get adminLibIntroDetectionDuringScan => '在媒体库扫描期间检测片头';
+
+  @override
+  String get adminProviderEmbyGuide => 'Emby 节目指南数据';
+
+  @override
+  String get adminLiveTvEmbyGuideSelectLineup =>
+      '选择频道阵容。如果列表为空，请检查邮政编码。频道阵容需要 Emby Premiere。';
+
+  @override
+  String get adminLiveTvWakeServer => '为录制内容唤醒服务器';
+
+  @override
+  String get adminDrawerLiveTvChannels => '直播电视频道';
+
+  @override
+  String get adminPageDescLiveTvChannels => '开启或关闭频道并设置其顺序';
+
+  @override
+  String get adminLiveTvChannelsEmpty => '尚无频道。设置调谐器并由服务器导入频道后，它们会显示在此处。';
+
+  @override
+  String get adminTranscodingHwaAdvanced => '高级';
+
+  @override
+  String get adminTranscodingHwaHelp => '在“高级”中可以选择硬件编解码器并调整其顺序。';
+
+  @override
+  String get adminTranscodingHwDecoders => '首选硬件解码器';
+
+  @override
+  String get adminTranscodingHwEncoders => '首选硬件编码器';
+
+  @override
+  String get adminTranscodingTempPathHelp => '转码器存放工作文件的位置。留空则使用服务器的数据文件夹。';
+
+  @override
+  String get adminTranscodingThrottleHelp => '缓冲足够后降低转码速度，以减少 CPU 占用。';
+
+  @override
+  String get adminTranscodingDownmixHelp => '音频缩混时提高音量。1 表示保持原始音量。';
+
+  @override
+  String get adminTranscodingFontExtraction => '允许实时提取字体';
+
+  @override
+  String get adminTranscodingMaxResolution => '最大转码分辨率';
+
+  @override
+  String get adminTranscodingMaxResolutionHelp => '对所有转码设置的限制，无论应用请求何种画质。';
+
+  @override
+  String get adminTranscodingToneMapSoftware => '软件转码中的色调映射';
+
+  @override
+  String get adminTranscodingToneMapHardware => '硬件转码中的色调映射';
+
+  @override
+  String get adminTranscodingToneMapHelp => '防止 HDR 视频在转码后显得暗淡发白。';
+
+  @override
+  String get adminNetworkingLocalAddress => '本地 IP 地址';
+
+  @override
+  String get adminNetworkingLocalAddressHelp => '服务器提供给应用的本地地址。留空则自动检测。';
+
+  @override
+  String get adminNetworkingBehindProxy => 'HTTPS 由反向代理处理';
+
+  @override
+  String get adminNetworkingExternalDomain => '外部域名';
+
+  @override
+  String get adminNetworkingExternalDomainHelp =>
+      '用于远程连接的域名或动态 DNS 名称，不含协议或端口。自定义证书需要此设置。';
+
+  @override
+  String get adminNetworkingUpnp => '启用自动端口映射';
+
+  @override
+  String get adminNetworkingUpnpHelp => '尝试使用 UPnP 将公共端口映射到本地端口。部分路由器不支持此功能。';
+
+  @override
+  String get adminNetworkingProxyHeaders => '读取代理标头以获取客户端地址';
+
+  @override
+  String get adminNetworkingProxyHeadersHelp =>
+      '使用 X-Forwarded-For 等标头确定各客户端的地址。仅在反向代理后方启用此选项。';
+
+  @override
+  String get adminNetworkingProxyHeadersRemote => '仅在包含远程地址时';
+
+  @override
+  String get adminNetworkingIpv4Only => '对外请求使用 IPv4';
+
+  @override
+  String get adminNetworkingIpv4OnlyHelp => '适用于元数据提供方和其他服务无法通过 IPv6 访问的情况。';
+
+  @override
+  String get adminOnePerLine => '每行一项';
+
+  @override
+  String get adminStreamingStreamLimit => '最大同时视频串流数';
+
+  @override
+  String get adminStreamingStreamLimitHelp => '整个服务器同时可播放的视频数量。0 表示无限制。';
+
+  @override
+  String get adminSyncJobsConversions => '转换任务';
+
+  @override
+  String get adminSyncJobsDownloads => '下载任务';
+
+  @override
+  String get adminSyncJobsEmpty => '暂无任务';
+
+  @override
+  String get adminSyncJobCancel => '取消任务';
+
+  @override
+  String adminSyncJobCancelConfirm(String name) {
+    return '取消“$name”并从列表中移除吗？';
+  }
+
+  @override
+  String get adminSyncJobConverting => '转换中';
+
+  @override
+  String get adminSyncJobReady => '等待传输';
+
+  @override
+  String get adminSyncJobTransferring => '传输中';
+
+  @override
+  String get adminSyncJobCompletedWithError => '已完成但有错误';
+
+  @override
+  String adminSyncJobItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个媒体项',
+      one: '1 个媒体项',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminDrawerDatabase => '数据库';
+
+  @override
+  String get adminPageDescDatabase => '缓存大小与维护';
+
+  @override
+  String get adminDatabaseWarning => '这些是高级选项。除非有需要，否则请保持默认值。';
+
+  @override
+  String get adminDatabaseCacheSize => '数据库缓存大小（MB）';
+
+  @override
+  String get adminDatabaseCacheSizeHelp =>
+      '服务器在每个数据库文件中保留在内存中的量。增大可提升服务器速度。重启后生效。';
+
+  @override
+  String get adminDatabaseOptimize => '服务器关闭时优化数据库';
+
+  @override
+  String get adminDatabaseOptimizeHelp =>
+      '通常不会执行任何操作，但偶尔会运行有助于服务器查询的分析。关闭时间可能变长。';
+
+  @override
+  String get adminDatabaseAnalysisLimit => '分析行数上限';
+
+  @override
+  String get adminDatabaseAnalysisLimitHelp =>
+      '优化步骤读取每个索引的大致行数。行数越多效果越好，但可能延长关闭时间。';
+
+  @override
+  String get adminDatabaseVacuum => '下次启动时清理数据库';
+
+  @override
+  String get adminDatabaseVacuumHelp =>
+      '重建数据库文件以占用最少空间，有助于提升性能。运行期间服务器不可用且不显示进度，请勿强制关闭。该选项会在那次启动后自动关闭。';
+
+  @override
+  String get adminDrawerCinemaIntros => '影院片头';
+
+  @override
+  String get adminPageDescCinemaIntros => '播放前的预告片和片头';
+
+  @override
+  String get adminCinemaIntrosPlayBefore => '在此内容前播放片头';
+
+  @override
+  String get adminCinemaIntrosUpcoming => '包含新上映和即将上映电影的预告片';
+
+  @override
+  String get adminCinemaIntrosOlder => '包含较早电影的预告片';
+
+  @override
+  String get adminCinemaIntrosLibrary => '包含我媒体库中电影的预告片';
+
+  @override
+  String get adminCinemaIntrosLibraryHelp => '需要先设置本地预告片。';
+
+  @override
+  String get adminCinemaIntrosCount => '要播放的预告片数量';
+
+  @override
+  String get adminCinemaIntrosParental => '智能家长控制';
+
+  @override
+  String get adminCinemaIntrosParentalHelp => '仅选择与正在观看内容分级相同或更低的预告片。';
+
+  @override
+  String get adminCinemaIntrosUnwatchedOnly => '仅在未观看内容前播放片头';
+
+  @override
+  String get adminCinemaIntrosSimilarOnly => '仅播放与正在观看内容相似的预告片';
+
+  @override
+  String get adminCinemaIntrosSimilarOnlyHelp => '依据共同的类型、标签、工作室等判断。';
+
+  @override
+  String get adminCinemaIntrosCustom => '自定义片头';
+
+  @override
+  String get adminCinemaIntrosCustomPath => '自定义片头文件夹';
+
+  @override
+  String get adminCinemaIntrosCustomPathHelp => '存放视频的文件夹。会随机选择一个，在预告片之后播放。';
+
+  @override
+  String get adminCinemaIntrosCodecPath => '编解码器片头文件夹';
+
+  @override
+  String get adminCinemaIntrosCodecPathHelp =>
+      '存放视频的文件夹。文件名与视频编解码器、音频编解码器、音频配置文件或标签匹配的视频会在正片之前播放。';
+
+  @override
+  String get adminDrawerDlna => 'DLNA';
+
+  @override
+  String get adminPageDescDlna => '推送播放与 DLNA 服务器';
+
+  @override
+  String get adminDlnaPlayTo => '启用 DLNA 推送播放';
+
+  @override
+  String get adminDlnaPlayToHelp => 'Emby 可发现网络中的设备并对其进行远程控制。';
+
+  @override
+  String get adminDlnaServer => '启用 DLNA 服务器';
+
+  @override
+  String get adminDlnaServerHelp => '允许服务器向 DLNA 设备串流媒体。';
+
+  @override
+  String get adminDlnaDefaultUser => '默认用户';
+
+  @override
+  String get adminDlnaDefaultUserHelp => '连接设备可看到哪些用户的媒体库。设备配置文件可覆盖此设置。';
+
+  @override
+  String get adminDlnaDebugLog => '启用 DLNA 调试日志';
+
+  @override
+  String get adminDlnaDebugLogHelp => '会生成较大的日志文件。仅在排查问题时启用。';
+
+  @override
+  String get adminDrawerCameraUpload => '相机上传';
+
+  @override
+  String get adminPageDescCameraUpload => '手机照片的保存位置';
+
+  @override
+  String get adminCameraUploadPath => '相机上传文件夹';
+
+  @override
+  String get adminCameraUploadPathHelp => '留空则使用默认文件夹。自定义文件夹还需添加为媒体库。';
+
+  @override
+  String get adminCameraUploadSubfolders => '为每台设备创建子文件夹';
+
+  @override
+  String get adminDrawerConversions => '转换';
+
+  @override
+  String get adminPageDescConversions => '转换后的媒体与下载内容';
+
+  @override
+  String get adminConversionsTempPath => '临时文件文件夹';
+
+  @override
+  String get adminConversionsTempPathHelp => '转换期间媒体的存放位置。';
+
+  @override
+  String get adminConversionsFullSpeed => '全速转换';
+
+  @override
+  String get adminConversionsFullSpeedHelp => '转换默认以较慢速度运行，以降低负载。';
+
+  @override
+  String get adminDrawerPremiere => 'Emby Premiere';
+
+  @override
+  String get adminPageDescPremiere => '许可证状态与密钥';
+
+  @override
+  String get adminPremiereActive => '此服务器上的 Premiere 已激活。';
+
+  @override
+  String get adminPremiereInactive => '此服务器没有 Premiere 密钥。';
+
+  @override
+  String get adminPremiereKeyInvalid => '已设置密钥但未激活。可能输入错误或已过期。';
+
+  @override
+  String get adminPremiereCurrentKey => '当前密钥';
+
+  @override
+  String get adminPremiereNewKey => '新密钥';
+
+  @override
+  String get adminPremiereNewKeyHint => '粘贴 Emby Premiere 电子邮件中的密钥。';
+
+  @override
+  String get adminPremiereSaveKey => '保存密钥';
+
+  @override
+  String get adminPremiereRemoveKey => '移除密钥';
+
+  @override
+  String get adminPremiereKeyRejected => 'Emby 已保存该密钥，但未接受。';
+
+  @override
+  String get adminPremiereLoadFailed => '无法加载 Premiere 状态';
+
+  @override
+  String get embyPremiereRequiredTitle => '需要 Emby Premiere';
+
+  @override
+  String get embyPremiereRequiredBody => '此功能需要服务器上拥有有效的 Emby Premiere 订阅。';
+
+  @override
+  String get embyPremiereRequiredSaveBody =>
+      '此功能需要有效的 Emby Premiere 订阅。Emby 会保留该设置，但在 Premiere 激活前不会使用它。';
+
+  @override
+  String get embyPremiereLearnMore => '了解更多';
+
+  @override
+  String get embyPremiereSaveAnyway => '仍然保存';
+
+  @override
+  String get embyPremiereEnterKey => '输入密钥';
+
+  @override
+  String get adminPremiereNote =>
+      '需要 Emby Premiere。服务器会保留此设置，但在 Premiere 激活前不会使用它。';
+
+  @override
   String adminExternalIdLabel(String name) {
     return '$name Id';
   }
 
   @override
-  String get adminExternalIdTypePerson => 'Person';
+  String get adminExternalIdTypePerson => '人物';
 
   @override
-  String get adminExternalIdTypeArtist => 'Artist';
+  String get adminExternalIdTypeArtist => '艺术家';
 
   @override
-  String get adminExternalIdTypeAlbumArtist => 'Album Artist';
+  String get adminExternalIdTypeAlbumArtist => '专辑艺术家';
 
   @override
-  String get adminExternalIdTypeOtherArtist => 'Other Artist';
+  String get adminExternalIdTypeOtherArtist => '其他艺术家';
 
   @override
-  String get adminExternalIdTypeReleaseGroup => 'Release Group';
+  String get adminExternalIdTypeReleaseGroup => '发行组';
 
   @override
-  String get adminExternalIdTypeBook => 'Book';
+  String get adminExternalIdTypeBook => '图书';
 
   @override
   String get adminPlaybackHwAccelWarning =>
-      'Hardware acceleration can be unstable on some systems. Keep the operating system and video drivers up to date, and set this back to None if video stops playing.';
+      '硬件加速在某些系统上可能不稳定。请保持操作系统和视频驱动程序为最新版本；如果视频停止播放，请将此项重新设置为“无”。';
 
   @override
   String get adminLibMetadataChangeHelp =>
-      'Changes to metadata settings apply to new content. To update existing content, refresh it from its detail page or refresh the library.';
+      '元数据设置的更改适用于新内容。要更新现有内容，请从其详情页刷新或刷新媒体库。';
 
   @override
-  String get adminLibFetcherSettings => 'Fetcher settings';
+  String get adminLibFetcherSettings => '获取器设置';
 
   @override
   String adminLibImageOptionsTitle(String type) {
-    return 'Image options for $type';
+    return '$type 的图片选项';
   }
 
   @override
-  String get adminLibFetchImages => 'Fetch images';
+  String get adminLibFetchImages => '获取图片';
 
   @override
-  String get adminLibMaxBackdrops => 'Maximum number of backdrops per item';
+  String get adminLibMaxBackdrops => '每个媒体项的背景图数量上限';
 
   @override
-  String get adminLibMinBackdropWidth => 'Minimum backdrop download width';
+  String get adminLibMinBackdropWidth => '背景图最小下载宽度';
 
   @override
-  String get adminImageTypeArt => 'Clearart';
+  String get adminImageTypeArt => '清晰艺术图';
 
   @override
-  String get adminImageTypeBox => 'Box';
+  String get adminImageTypeBox => '盒装封面';
 
   @override
-  String get adminImageTypeBoxRear => 'Box (back)';
+  String get adminImageTypeBoxRear => '盒装封面（背面）';
 
   @override
-  String get adminImageTypeDisc => 'Disc';
+  String get adminImageTypeDisc => '光盘';
 
   @override
-  String get adminImageTypeMenu => 'Menu';
+  String get adminImageTypeMenu => '菜单';
 
   @override
-  String get adminActivityMediaDetails => 'Media details';
+  String get adminActivityMediaDetails => '媒体详情';
 
   @override
   String get adminNetworkingOtherPublishedUriHint =>
-      'e.g. 192.168.1.0/24=http://192.168.1.5:8096';
+      '例如 192.168.1.0/24=http://192.168.1.5:8096';
 
   @override
-  String get adminMetadataFieldOriginalLanguage => 'Original language';
+  String get adminMetadataFieldOriginalLanguage => '原始语言';
 
   @override
-  String get adminMetadataFieldDateAdded => 'Date added';
+  String get adminMetadataFieldDateAdded => '添加日期';
 
   @override
-  String get adminMetadataFieldArtists => 'Artists';
+  String get adminMetadataFieldArtists => '艺术家';
 
   @override
-  String get adminMetadataFieldAlbumArtists => 'Album artists';
+  String get adminMetadataFieldAlbumArtists => '专辑艺术家';
 
   @override
-  String get adminMetadataFieldAlbum => 'Album';
+  String get adminMetadataFieldAlbum => '专辑';
 
   @override
-  String get adminMetadataFieldSeriesName => 'Series name';
+  String get adminMetadataFieldSeriesName => '剧集名称';
 
   @override
-  String get adminMetadataFieldEpisodeNumber => 'Episode number';
+  String get adminMetadataFieldEpisodeNumber => '集号';
 
   @override
-  String get adminMetadataFieldSeasonNumber => 'Season number';
+  String get adminMetadataFieldSeasonNumber => '季号';
 
   @override
-  String get adminMetadataFieldTrackNumber => 'Track number';
+  String get adminMetadataFieldTrackNumber => '曲目号';
 
   @override
-  String get adminMetadataFieldDiscNumber => 'Disc number';
+  String get adminMetadataFieldDiscNumber => '光盘号';
 
   @override
-  String get adminMetadataFieldAirTime => 'Air time';
+  String get adminMetadataFieldAirTime => '播出时间';
 
   @override
-  String get adminMetadataFieldRuntime => 'Runtime in minutes';
+  String get adminMetadataFieldRuntime => '时长（分钟）';
 
   @override
-  String get adminMetadataFieldPlaceOfBirth => 'Place of birth';
+  String get adminMetadataFieldPlaceOfBirth => '出生地';
 
   @override
-  String get adminMetadataFieldBirthDate => 'Birth date';
+  String get adminMetadataFieldBirthDate => '出生日期';
 
   @override
-  String get adminMetadataFieldBirthYear => 'Birth year';
+  String get adminMetadataFieldBirthYear => '出生年份';
 
   @override
-  String get adminMetadataFieldDeathDate => 'Death date';
+  String get adminMetadataFieldDeathDate => '逝世日期';
 
   @override
-  String get adminMetadataFieldAspectRatio => 'Original aspect ratio';
+  String get adminMetadataFieldAspectRatio => '原始宽高比';
 
   @override
-  String get adminMetadataFieldAirsBeforeSeason => 'Airs before season';
+  String get adminMetadataFieldAirsBeforeSeason => '季前播出';
 
   @override
-  String get adminMetadataFieldAirsAfterSeason => 'Airs after season';
+  String get adminMetadataFieldAirsAfterSeason => '季后播出';
 
   @override
-  String get adminMetadataFieldAirsBeforeEpisode => 'Airs before episode';
+  String get adminMetadataFieldAirsBeforeEpisode => '集前播出';
 
   @override
-  String get adminMetadataNamesHelp =>
-      'Separate several names with a semicolon.';
+  String get adminMetadataNamesHelp => '用分号分隔多个名称。';
 
   @override
-  String get adminMetadataSectionRatings => 'Ratings';
+  String get adminMetadataSectionRatings => '评分';
 
   @override
-  String get adminMetadataItemLocked =>
-      'This item\'s metadata is locked. Unlock it before you identify it.';
+  String get adminMetadataItemLocked => '此媒体项的元数据已锁定。请先解锁再进行识别。';
 
   @override
-  String get adminMetadataNameOrIdRequired => 'Enter a name or an external ID.';
+  String get adminMetadataNameOrIdRequired => '请输入名称或外部 ID。';
 
   @override
-  String get adminLibMetadataReaders => 'Metadata readers';
+  String get adminLibMetadataReaders => '元数据读取器';
 
   @override
   String adminLibSimilarProvidersFor(String type) {
-    return 'Similar item providers: $type';
+    return '相似媒体项提供方：$type';
   }
 
   @override
-  String get adminLibMediaSegmentProviders => 'Media segment providers';
+  String get adminLibMediaSegmentProviders => '媒体分段提供方';
 
   @override
-  String get adminLibEnableLibrary => 'Enable the library';
+  String get adminLibEnableLibrary => '启用媒体库';
 
   @override
-  String get adminLibEnableLibraryHelp =>
-      'Disabling the library hides it from all user views.';
+  String get adminLibEnableLibraryHelp => '禁用媒体库后，它将在所有用户视图中隐藏。';
 
   @override
-  String get adminLibSaveLyricsWithMedia => 'Save lyrics into media folders';
+  String get adminLibSaveLyricsWithMedia => '将歌词保存到媒体文件夹';
 
   @override
-  String get adminLibUseCustomTagDelimiters => 'Use custom tag delimiter';
+  String get adminLibUseCustomTagDelimiters => '使用自定义标签分隔符';
 
   @override
-  String get adminLibCustomTagDelimiters => 'Custom tag delimiter';
+  String get adminLibCustomTagDelimiters => '自定义标签分隔符';
 
   @override
-  String get adminLibCustomTagDelimitersHelp =>
-      'Characters to treat as delimiters that separate tags.';
+  String get adminLibCustomTagDelimitersHelp => '用作分隔标签的分隔符的字符。';
 
   @override
-  String get adminLibDelimiterWhitelist => 'Delimiter whitelist';
+  String get adminLibDelimiterWhitelist => '分隔符白名单';
 
   @override
-  String get adminLibDelimiterWhitelistHelp =>
-      'Items to leave out of tag splitting, one per line.';
+  String get adminLibDelimiterWhitelistHelp => '不参与标签拆分的项目，每行一项。';
 
   @override
-  String get adminLibDownloadLanguages => 'Download languages';
+  String get adminLibDownloadLanguages => '下载语言';
 
   @override
-  String get adminLibraryFolderRequired =>
-      'Add at least one folder to this library.';
+  String get adminLibraryFolderRequired => '请为此媒体库添加至少一个文件夹。';
 
   @override
-  String get adminRenameLibraryWarning =>
-      'Renaming a library loses all of its metadata. Proceed with caution.';
+  String get adminRenameLibraryWarning => '重命名媒体库会丢失其所有元数据。请谨慎操作。';
 
   @override
   String adminDeleteLibraryConfirm(String name) {
-    return 'Remove the library \"$name\"? Files on disk are not deleted.';
+    return '移除媒体库“$name”吗？磁盘上的文件不会被删除。';
   }
 
   @override
-  String get adminDeleteLibraryLocations =>
-      'These media locations will be removed from the library:';
+  String get adminDeleteLibraryLocations => '以下媒体位置将从媒体库中移除：';
 
   @override
-  String get adminRefreshMode => 'Refresh mode';
+  String get adminRefreshMode => '刷新模式';
 
   @override
-  String get adminRefreshModeScan => 'Scan for new and updated files';
+  String get adminRefreshModeScan => '扫描新增和更新的文件';
 
   @override
-  String get adminRefreshModeMissing => 'Search for missing metadata';
+  String get adminRefreshModeMissing => '搜索缺失的元数据';
 
   @override
-  String get adminReplaceTrickplayImages => 'Replace existing trickplay images';
+  String get adminReplaceTrickplayImages => '替换现有的 Trickplay 图片';
 
   @override
-  String get adminRefreshDialogHelp =>
-      'Metadata is refreshed based on the settings and internet services enabled in the dashboard.';
+  String get adminRefreshDialogHelp => '元数据将依据仪表板中启用的设置和互联网服务进行刷新。';
 
   @override
   String adminActivityCount(String shown, String total) {
-    return '$shown of $total';
+    return '$shown / $total';
   }
 
   @override
-  String get adminLiveTvTabSources => 'Tuners and guide';
+  String get adminLiveTvTabSources => '调谐器与节目指南';
 
   @override
-  String get adminLiveTvTabRecordings => 'Recordings';
+  String get adminLiveTvTabRecordings => '录制内容';
 
   @override
-  String get adminLiveTvAddTuner => 'Add tuner device';
+  String get adminLiveTvAddTuner => '添加调谐器设备';
 
   @override
-  String get adminLiveTvEditTuner => 'Edit tuner device';
+  String get adminLiveTvEditTuner => '编辑调谐器设备';
 
   @override
-  String get adminLiveTvTunerType => 'Tuner type';
+  String get adminLiveTvTunerType => '调谐器类型';
 
   @override
-  String get adminLiveTvDetectDevices => 'Detect my devices';
+  String get adminLiveTvDetectDevices => '检测我的设备';
 
   @override
-  String get adminLiveTvNoNewDevices => 'No new devices found';
+  String get adminLiveTvNoNewDevices => '未发现新设备';
 
   @override
-  String get adminLiveTvDrmNote => 'Channels with DRM will not be imported.';
+  String get adminLiveTvDrmNote => '带有 DRM 的频道将不会被导入。';
 
   @override
-  String get adminLiveTvTunerSaved => 'Tuner saved';
+  String get adminLiveTvTunerSaved => '调谐器已保存';
 
   @override
-  String get adminLiveTvDeleteTuner => 'Delete tuner device';
+  String get adminLiveTvDeleteTuner => '删除调谐器设备';
 
   @override
-  String get adminLiveTvDeleteTunerConfirm =>
-      'Are you sure you want to delete this tuner device?';
+  String get adminLiveTvDeleteTunerConfirm => '确定要删除此调谐器设备吗？';
 
   @override
-  String get adminLiveTvDeleteProvider => 'Delete guide provider';
+  String get adminLiveTvDeleteProvider => '删除节目指南提供方';
 
   @override
-  String get adminLiveTvDeleteProviderConfirm =>
-      'Are you sure you want to delete this guide provider?';
+  String get adminLiveTvDeleteProviderConfirm => '确定要删除此节目指南提供方吗？';
 
   @override
-  String get adminLiveTvProviderSaved => 'Guide provider saved';
+  String get adminLiveTvProviderSaved => '节目指南提供方已保存';
 
   @override
-  String get adminLiveTvAddProvider => 'Add provider';
+  String get adminLiveTvAddProvider => '添加提供方';
 
   @override
-  String get adminLiveTvRefreshGuide => 'Refresh guide data';
+  String get adminLiveTvRefreshGuide => '刷新节目指南数据';
 
   @override
-  String get adminLiveTvMapChannels => 'Map channels';
+  String get adminLiveTvMapChannels => '映射频道';
 
   @override
-  String get adminLiveTvNoTunerChannels => 'No tuner channels found';
+  String get adminLiveTvNoTunerChannels => '未发现调谐器频道';
 
   @override
   String get adminLiveTvXmltvPathHelp =>
-      'A path or URL to an XMLTV file. The server reads it and checks it for updates. You are responsible for creating and updating the file.';
+      'XMLTV 文件的路径或 URL。服务器会读取并检查其更新。您需要自行创建和更新该文件。';
 
   @override
   String adminLiveTvSdCreateAccount(String url) {
-    return 'Create an account at $url';
+    return '在 $url 创建账户';
   }
 
   @override
-  String get adminLiveTvSdSignIn => 'Sign in';
+  String get adminLiveTvSdSignIn => '登录';
 
   @override
-  String get adminLiveTvSdLineup => 'Lineup';
+  String get adminLiveTvSdLineup => '频道阵容';
 
   @override
-  String get adminLiveTvSdSelectLineup =>
-      'Select a lineup. If none are listed, check your username, password and postal code.';
+  String get adminLiveTvSdSelectLineup => '选择频道阵容。如果列表为空，请检查用户名、密码和邮政编码。';
 
   @override
-  String get adminLiveTvGuideDays => 'Number of days of guide data to download';
+  String get adminLiveTvGuideDays => '要下载的节目指南数据天数';
 
   @override
   String get adminLiveTvGuideDaysHelp =>
-      'More days let you schedule further ahead and see more listings, but the download takes longer. Automatic picks a value from the number of channels.';
+      '天数越多，可安排的日程越靠后、可查看的节目越多，但下载耗时更长。自动选项会根据频道数量选择一个值。';
 
   @override
-  String get adminLiveTvRecordingPath => 'Default recording path';
+  String get adminLiveTvRecordingPath => '默认录制路径';
 
   @override
-  String get adminLiveTvRecordingPathHelp =>
-      'Where recordings are saved. If empty, the server\'s program data folder is used.';
+  String get adminLiveTvRecordingPathHelp => '录制内容的保存位置。留空则使用服务器的程序数据文件夹。';
 
   @override
-  String get adminLiveTvStartWhenPossible => 'Start when possible';
+  String get adminLiveTvStartWhenPossible => '尽可能提前开始';
 
   @override
-  String get adminLiveTvStopWhenPossible => 'Stop when possible';
+  String get adminLiveTvStopWhenPossible => '尽可能延后结束';
 
   @override
-  String get adminLiveTvMinutesBefore => 'minutes before';
+  String get adminLiveTvMinutesBefore => '提前（分钟）';
 
   @override
-  String get adminLiveTvMinutesAfter => 'minutes after';
+  String get adminLiveTvMinutesAfter => '延后（分钟）';
 
   @override
-  String get adminLiveTvSectionGuide => 'Guide data';
+  String get adminLiveTvSectionGuide => '节目指南数据';
 
   @override
-  String get adminLiveTvSectionDefaultRecording => 'Default recording settings';
+  String get adminLiveTvSectionDefaultRecording => '默认录制设置';
 
   @override
-  String get adminLiveTvSectionMetadata => 'Recording metadata';
+  String get adminLiveTvSectionMetadata => '录制元数据';
 
   @override
   String adminUserLastActivity(String time) {
-    return 'Last activity $time';
+    return '上次活动：$time';
   }
 
   @override
-  String get adminCurrentPassword => 'Current password';
+  String get adminCurrentPassword => '当前密码';
 
   @override
-  String get adminChannelAccess => 'Channel access';
+  String get adminChannelAccess => '频道访问';
 
   @override
-  String get adminDeviceAccess => 'Device access';
+  String get adminDeviceAccess => '设备访问';
 
   @override
-  String get adminDeleteFromAllLibraries => 'All libraries';
+  String get adminDeleteFromAllLibraries => '所有媒体库';
 
   @override
-  String get adminUserDisabledBanner =>
-      'This user is disabled. Turn off Disabled under Permissions to let them sign in again.';
+  String get adminUserDisabledBanner => '此用户已禁用。请在“权限”下关闭“禁用”，让其再次登录。';
 
   @override
-  String get adminNewPasswordEmpty => 'New password cannot be empty';
+  String get adminNewPasswordEmpty => '新密码不能为空';
 
   @override
-  String get adminScheduleStartBeforeEnd =>
-      'The start time must be before the end time';
+  String get adminScheduleStartBeforeEnd => '开始时间必须早于结束时间';
 
   @override
-  String get adminDashboardAlerts => 'Alerts';
+  String get adminDashboardAlerts => '警报';
 
   @override
-  String get adminSessionGoHome => 'Go to home screen';
+  String get adminSessionGoHome => '转到首页';
 
   @override
-  String get adminPlayMethodRemux => 'Remuxing';
+  String get adminPlayMethodRemux => '重新封装';
 
   @override
-  String get adminPlayMethodDirectStream => 'Direct streaming';
+  String get adminPlayMethodDirectStream => '直接串流';
 
   @override
-  String get adminPlayMethodDirectPlay => 'Direct playing';
+  String get adminPlayMethodDirectPlay => '直接播放';
 
   @override
-  String get adminLogLevelTrace => 'Trace';
+  String get adminLogLevelTrace => '跟踪';
 
   @override
-  String get adminLogLevelDebug => 'Debug';
+  String get adminLogLevelDebug => '调试';
 
   @override
-  String get adminLogLevelInformation => 'Information';
+  String get adminLogLevelInformation => '信息';
 
   @override
-  String get adminLogLevelWarning => 'Warning';
+  String get adminLogLevelWarning => '警告';
 
   @override
-  String get adminLogLevelError => 'Error';
+  String get adminLogLevelError => '错误';
 
   @override
-  String get adminLogLevelCritical => 'Critical';
+  String get adminLogLevelCritical => '严重';
 
   @override
-  String get adminLogLevelNone => 'None';
+  String get adminLogLevelNone => '无';
 
   @override
-  String get adminActivityAllUsers => 'All users';
+  String get adminActivityAllUsers => '所有用户';
 
   @override
   String adminTaskLastRan(String time, String duration) {
-    return 'Last ran $time, taking $duration.';
+    return '上次运行于 $time，耗时 $duration。';
   }
 
   @override
-  String get adminTaskResultFailed => 'Failed';
+  String get adminTaskResultFailed => '请求失败';
 
   @override
-  String get adminTaskResultCancelled => 'Cancelled';
+  String get adminTaskResultCancelled => '已取消';
 
   @override
-  String get adminTaskResultAborted => 'Aborted by server shutdown';
+  String get adminTaskResultAborted => '因服务器关闭而中止';
 
   @override
   String adminDurationSecondsShort(String seconds) {
-    return '${seconds}s';
+    return '$seconds秒';
   }
 
   @override
-  String get adminDeleteTaskTrigger => 'Delete task trigger';
+  String get adminDeleteTaskTrigger => '删除任务触发器';
 
   @override
-  String get adminDeleteTaskTriggerConfirm =>
-      'Are you sure you want to delete this task trigger?';
+  String get adminDeleteTaskTriggerConfirm => '确定要删除此任务触发器吗？';
 
   @override
   String adminTaskTriggerEveryMinutes(String minutes) {
-    return 'Every $minutes minutes';
+    return '每 $minutes 分钟';
   }
 
   @override
   String adminTaskTriggerEveryHours(String hours) {
-    return 'Every $hours hours';
+    return '每 $hours 小时';
   }
 
   @override
   String adminTaskMinutesValue(String minutes) {
-    return '$minutes minutes';
+    return '$minutes 分钟';
   }
 
   @override
   String adminTaskHoursValue(String hours) {
-    return '$hours hours';
+    return '$hours 小时';
   }
 
   @override
-  String get adminTimeLimitHours => 'Time limit (hours)';
+  String get adminTimeLimitHours => '时间限制（小时）';
 
   @override
-  String get adminTranscodingDecodingFor => 'Enable hardware decoding for';
+  String get adminTranscodingDecodingFor => '为以下项启用硬件解码';
 
   @override
   String get adminTranscodingThreadCountHelp =>
-      'The most threads a transcode can use. Fewer threads lower CPU use but may be too slow for smooth playback.';
+      '转码可使用的最大线程数。线程越少，CPU 占用越低，但可能过慢，无法流畅播放。';
 
   @override
-  String get adminTranscodingThreadMax => 'Max';
+  String get adminTranscodingThreadMax => '最大';
 
   @override
-  String get adminTranscodingFfmpegPath => 'FFmpeg path';
+  String get adminTranscodingFfmpegPath => 'FFmpeg 路径';
 
   @override
-  String get adminTranscodingFfmpegPathHelp =>
-      'The FFmpeg the server runs. It is set on the server, not here.';
+  String get adminTranscodingFfmpegPathHelp => '服务器运行的 FFmpeg。此项在服务器上设置，而非此处。';
 
   @override
-  String get adminTranscodingAudioSeek => 'Audio seek strategy';
+  String get adminTranscodingAudioSeek => '音频跳转策略';
 
   @override
-  String get adminTranscodingAudioSeekHelp =>
-      'How the server handles audio when you seek in an HLS stream.';
+  String get adminTranscodingAudioSeekHelp => '在 HLS 串流中跳转时，服务器处理音频的方式。';
 
   @override
-  String get adminTranscodingTrimCopiedAudio => 'Trim copied audio';
+  String get adminTranscodingTrimCopiedAudio => '裁剪复制的音频';
 
   @override
-  String get adminTranscodingTranscodeAudio => 'Transcode audio';
+  String get adminTranscodingTranscodeAudio => '转码音频';
 
   @override
-  String get adminResumeMinAudiobookMinutes =>
-      'Minimum audiobook resume (minutes)';
+  String get adminResumeMinAudiobookMinutes => '有声书最短续播时间（分钟）';
 
   @override
-  String get adminResumeMinAudiobookHelp =>
-      'Audiobooks stopped before this time count as unplayed.';
+  String get adminResumeMinAudiobookHelp => '在此时间之前停止的有声书视为未播放。';
 
   @override
-  String get adminResumeAudiobookRemaining =>
-      'Audiobook remaining minutes to resume';
+  String get adminResumeAudiobookRemaining => '有声书续播的剩余分钟数';
 
   @override
-  String get adminResumeAudiobookRemainingHelp =>
-      'Audiobooks stopped with less than this many minutes left count as played.';
+  String get adminResumeAudiobookRemainingHelp => '剩余时长少于此分钟数时停止的有声书视为已播放。';
 
   @override
-  String get adminBrandingSplashSection => 'Splash screen';
+  String get adminBrandingSplashSection => '启动画面';
 
   @override
-  String get adminBrandingSectionWebClient => 'Web client';
+  String get adminBrandingSectionWebClient => 'Web 客户端';
 
   @override
   String get adminBrandingSplashSizeHint =>
-      'Custom images should be in a 16x9 aspect ratio at a minimum size of 1920x1080.';
+      '自定义图片应采用 16x9 宽高比，最小尺寸为 1920x1080。';
 
   @override
-  String get adminNetworkingSectionServerAddress => 'Server address settings';
+  String get adminNetworkingSectionServerAddress => '服务器地址设置';
 
   @override
-  String get adminNetworkingSectionHttps => 'HTTPS settings';
+  String get adminNetworkingSectionHttps => 'HTTPS 设置';
 
   @override
-  String get adminNetworkingSectionRemoteAccess => 'Remote access settings';
+  String get adminNetworkingSectionRemoteAccess => '远程访问设置';
 
   @override
-  String get adminNetworkingSectionIpProtocols => 'IP protocols';
+  String get adminNetworkingSectionIpProtocols => 'IP 协议';
 
   @override
-  String get adminNetworkingSectionDiscovery => 'Network discovery';
+  String get adminNetworkingSectionDiscovery => '网络发现';
 
   @override
-  String get adminNetworkingSectionFirewall => 'Firewall and proxy settings';
+  String get adminNetworkingSectionFirewall => '防火墙和代理设置';
 
   @override
-  String get adminNetworkingLocalHttpPort => 'Local HTTP port number';
+  String get adminNetworkingLocalHttpPort => '本地 HTTP 端口号';
 
   @override
-  String get adminNetworkingLocalHttpPortHelp =>
-      'The TCP port number for the HTTP server.';
+  String get adminNetworkingLocalHttpPortHelp => 'HTTP 服务器的 TCP 端口号。';
 
   @override
-  String get adminNetworkingEnableHttpsHelp =>
-      'Listen on the HTTPS port. A valid certificate must also be set for this to take effect.';
+  String get adminNetworkingEnableHttpsHelp => '监听 HTTPS 端口。还需设置有效证书才能生效。';
 
   @override
-  String get adminNetworkingLocalHttpsPort => 'Local HTTPS port number';
+  String get adminNetworkingLocalHttpsPort => '本地 HTTPS 端口号';
 
   @override
-  String get adminNetworkingLocalHttpsPortHelp =>
-      'The TCP port number for the HTTPS server.';
+  String get adminNetworkingLocalHttpsPortHelp => 'HTTPS 服务器的 TCP 端口号。';
 
   @override
   String get adminNetworkingBaseUrlHelp =>
-      'Adds a subdirectory to the server URL, for example https://example.com/jellyfin.';
+      '在服务器 URL 后添加子目录，例如 https://example.com/jellyfin。';
 
   @override
-  String get adminNetworkingBindAddress => 'Bind to local network address';
+  String get adminNetworkingBindAddress => '绑定到本地网络地址';
 
   @override
   String get adminNetworkingBindAddressHelp =>
-      'Overrides the local IP address of the HTTP server. Leave it empty to bind to all addresses. A change needs a restart.';
+      '覆盖 HTTP 服务器的本地 IP 地址。留空则绑定到所有地址。更改后需重启。';
 
   @override
   String get adminNetworkingLanNetworksHelp =>
-      'IP addresses or IP/netmask entries of networks treated as local for bandwidth and remote access limits. Leave it empty to treat all RFC1918 addresses as local.';
+      '视为本地网络的 IP 地址或 IP/网络掩码条目，用于带宽和远程访问限制。留空则将所有 RFC1918 地址视为本地地址。';
 
   @override
   String get adminNetworkingKnownProxiesHelp =>
-      'IP addresses or host names of the proxies in front of this server. Needed to read X-Forwarded-For headers. A change needs a restart.';
+      '位于此服务器前端的代理的 IP 地址或主机名。用于读取 X-Forwarded-For 标头。更改后需重启。';
 
   @override
-  String get adminNetworkingCustomCertPath => 'Custom SSL certificate path';
+  String get adminNetworkingCustomCertPath => '自定义 SSL 证书路径';
 
   @override
   String get adminNetworkingCertPathHelp =>
-      'Path to a PKCS #12 file with a certificate and private key, for TLS on a custom domain.';
+      '包含证书和私钥的 PKCS #12 文件路径，用于自定义域名的 TLS。';
 
   @override
-  String get adminNetworkingCertPasswordHelp =>
-      'Enter the password if your certificate needs one.';
+  String get adminNetworkingCertPasswordHelp => '如果证书需要密码，请输入密码。';
 
   @override
-  String get adminNetworkingAllowRemote =>
-      'Allow remote connections to this server';
+  String get adminNetworkingAllowRemote => '允许远程连接到此服务器';
 
   @override
-  String get adminNetworkingAllowRemoteHelp =>
-      'When off, all remote connections are blocked.';
+  String get adminNetworkingAllowRemoteHelp => '关闭后，将阻止所有远程连接。';
 
   @override
   String get adminNetworkingRemoteIpFilterHelp =>
-      'IP addresses or IP/netmask entries of remote networks. Leave it empty to allow every remote address.';
+      '远程网络的 IP 地址或 IP/网络掩码条目。留空则允许所有远程地址。';
 
   @override
-  String get adminNetworkingRemoteIpFilterMode =>
-      'Remote IP address filter mode';
+  String get adminNetworkingRemoteIpFilterMode => '远程 IP 地址过滤模式';
 
   @override
-  String get adminNetworkingPublicHttpPortHelp =>
-      'The public port mapped to the local HTTP port.';
+  String get adminNetworkingPublicHttpPortHelp => '映射到本地 HTTP 端口的公网端口。';
 
   @override
-  String get adminNetworkingPublicHttpsPortHelp =>
-      'The public port mapped to the local HTTPS port.';
+  String get adminNetworkingPublicHttpsPortHelp => '映射到本地 HTTPS 端口的公网端口。';
 
   @override
-  String get adminNetworkingAutoDiscoveryLabel => 'Enable auto discovery';
+  String get adminNetworkingAutoDiscoveryLabel => '启用自动发现';
 
   @override
-  String get adminNetworkingAutoDiscoveryHelp =>
-      'Lets apps find this server on UDP port 7359.';
+  String get adminNetworkingAutoDiscoveryHelp => '让应用通过 UDP 端口 7359 发现此服务器。';
 
   @override
-  String get adminNetworkingSamePublishedUri =>
-      'Use the same published server URI for internal and external access';
+  String get adminNetworkingSamePublishedUri => '内部和外部访问使用相同的已发布服务器 URI';
 
   @override
-  String get adminNetworkingPublishedUri => 'Published server URI';
+  String get adminNetworkingPublishedUri => '已发布的服务器 URI';
 
   @override
-  String get adminNetworkingPublishedUriHelp =>
-      'Overrides the URI the server gives out, based on the interface or the client IP address.';
+  String get adminNetworkingPublishedUriHelp => '根据接口或客户端 IP 地址覆盖服务器对外提供的 URI。';
 
   @override
-  String get adminNetworkingInternalUri => 'Internal URI';
+  String get adminNetworkingInternalUri => '内部 URI';
 
   @override
-  String get adminNetworkingInternalUriHelp =>
-      'Published server URI for internal access.';
+  String get adminNetworkingInternalUriHelp => '用于内部访问的已发布服务器 URI。';
 
   @override
-  String get adminNetworkingExternalUri => 'External URI';
+  String get adminNetworkingExternalUri => '外部 URI';
 
   @override
-  String get adminNetworkingExternalUriHelp =>
-      'Published server URI for external access.';
+  String get adminNetworkingExternalUriHelp => '用于外部访问的已发布服务器 URI。';
 
   @override
-  String get adminNetworkingOtherPublishedUris => 'Other published URIs';
+  String get adminNetworkingOtherPublishedUris => '其他已发布的 URI';
 
   @override
   String get adminNetworkingOtherPublishedUrisHelp =>
-      'URIs for one subnet or interface, written as subnet=URI.';
+      '针对某个子网或接口的 URI，格式为 subnet=URI。';
 
   @override
-  String get adminBackupsHelp =>
-      'Create and restore snapshots of your server. They can include the database, metadata, subtitles and trickplay images.';
+  String get adminBackupsHelp => '创建并还原服务器快照。快照可包含数据库、元数据、字幕和 Trickplay 图片。';
 
   @override
-  String get adminBackupDisclaimer =>
-      'Depending on the size of your library, the backup can take a while.';
+  String get adminBackupDisclaimer => '根据媒体库的大小，备份可能需要一段时间。';
 
   @override
-  String get adminBackupTasksWarningTitle => 'Scheduled tasks are running';
+  String get adminBackupTasksWarningTitle => '计划任务正在运行';
 
   @override
-  String get adminBackupTasksWarning =>
-      'Stop these tasks or wait for them to finish before you create a backup.';
+  String get adminBackupTasksWarning => '创建备份前，请先停止这些任务或等待其完成。';
 
   @override
-  String get adminBackupArchiveNotFound =>
-      'The server could not find this backup archive.';
+  String get adminBackupArchiveNotFound => '服务器找不到此备份存档。';
 
   @override
-  String get adminRestoreInProgress => 'Restore in progress';
+  String get adminRestoreInProgress => '正在还原';
 
   @override
-  String get adminRestoreWaitingForServer =>
-      'Waiting for the server to come back.';
+  String get adminRestoreWaitingForServer => '正在等待服务器恢复。';
 
   @override
-  String get adminRestoreSucceeded => 'Restore completed';
+  String get adminRestoreSucceeded => '还原完成';
 
   @override
-  String get adminLogWatch => 'Watch';
+  String get adminLogWatch => '观看';
 
   @override
-  String get adminLogStopWatching => 'Stop watching';
+  String get adminLogStopWatching => '停止观看';
 
   @override
-  String get adminPluginInstallConfirmTitle => 'Confirm plugin installation';
+  String get adminPluginInstallConfirmTitle => '确认安装插件';
 
   @override
   String get adminPluginInstallDisclaimer =>
-      'Installing a third party plugin carries risks. It may contain unstable or malicious code, and it can change at any time. Only install plugins from authors you trust, and know what they can do, such as query outside services, slow down library scans or add background work.';
+      '安装第三方插件存在风险。插件可能包含不稳定或恶意代码，且随时可能发生变化。请仅安装来自你信任的作者的插件，并了解其功能，例如查询外部服务、拖慢媒体库扫描或添加后台任务。';
 
   @override
-  String get adminGroupOverview => 'Overview';
+  String get adminGroupOverview => '简介';
 
   @override
-  String get adminGroupLibrary => 'Library';
+  String get adminGroupLibrary => '媒体库';
 
   @override
-  String get adminGroupPlayback => 'Playback';
+  String get adminGroupPlayback => '播放';
 
   @override
-  String get adminGroupPeople => 'People';
+  String get adminGroupPeople => '人物';
 
   @override
-  String get adminGroupSystem => 'System';
+  String get adminGroupSystem => '系统';
 
   @override
-  String get adminAreasLabel => 'Admin areas';
+  String get adminAreasLabel => '管理区域';
 
   @override
-  String get adminPagesLabel => 'Pages';
+  String get adminPagesLabel => '页面';
 
   @override
-  String get adminPageDescDashboard =>
-      'Server health, sessions and recent activity';
+  String get adminPageDescDashboard => '服务器状态、会话和最近活动';
 
   @override
-  String get adminPageDescAnalytics => 'Library sizes, codecs and formats';
+  String get adminPageDescAnalytics => '媒体库大小、编解码器和格式';
 
   @override
-  String get adminPageDescActivity => 'Everything that happened on the server';
+  String get adminPageDescActivity => '服务器上发生的所有活动';
 
   @override
-  String get adminPageDescTasks => 'Scans, cleanups and their triggers';
+  String get adminPageDescTasks => '扫描、清理及其触发器';
 
   @override
-  String get adminPageDescLibraries =>
-      'Folders, scanners and metadata fetchers';
+  String get adminPageDescLibraries => '文件夹、扫描器和元数据获取器';
 
   @override
-  String get adminPageDescDisplay => 'How libraries show to users';
+  String get adminPageDescDisplay => '媒体库向用户展示的方式';
 
   @override
-  String get adminPageDescMetadata => 'Default language, country and images';
+  String get adminPageDescMetadata => '默认语言、国家和图片';
 
   @override
-  String get adminPageDescNfo => 'Kodi NFO reading and saving';
+  String get adminPageDescNfo => 'Kodi NFO 的读取和保存';
 
   @override
-  String get adminPageDescLiveTv => 'Tuners, guide data and recordings';
+  String get adminPageDescLiveTv => '调谐器、节目指南数据和录制内容';
 
   @override
-  String get adminPageDescTranscoding =>
-      'Hardware acceleration, encoders, tone mapping';
+  String get adminPageDescTranscoding => '硬件加速、编码器和色调映射';
 
   @override
-  String get adminPageDescResume => 'When items count as started or played';
+  String get adminPageDescResume => '媒体项何时视为已开始或已播放';
 
   @override
-  String get adminPageDescStreaming => 'Remote bitrate limit';
+  String get adminPageDescStreaming => '远程码率限制';
 
   @override
-  String get adminPageDescTrickplay => 'Seek preview thumbnails';
+  String get adminPageDescTrickplay => '拖动进度时的预览缩略图';
 
   @override
-  String get adminPageDescUsers => 'Accounts, access and parental control';
+  String get adminPageDescUsers => '账户、访问和家长控制';
 
   @override
-  String get adminPageDescDevices => 'Signed in devices and their names';
+  String get adminPageDescDevices => '已登录的设备及其名称';
 
   @override
-  String get adminPageDescApiKeys => 'Keys for apps and scripts';
+  String get adminPageDescApiKeys => '供应用和脚本使用的密钥';
 
   @override
-  String get adminPageDescSettings =>
-      'Server name, language, paths, performance';
+  String get adminPageDescSettings => '服务器名称、语言、路径和性能';
 
   @override
-  String get adminPageDescBranding =>
-      'Login message, custom CSS, splash screen';
+  String get adminPageDescBranding => '登录消息、自定义 CSS 和启动画面';
 
   @override
-  String get adminPageDescNetworking => 'Ports, HTTPS, LAN and remote access';
+  String get adminPageDescNetworking => '端口、HTTPS、局域网和远程访问';
 
   @override
-  String get adminPageDescPlugins => 'Installed plugins and the catalog';
+  String get adminPageDescPlugins => '已安装的插件和插件目录';
 
   @override
-  String get adminPageDescRepositories => 'Where plugins come from';
+  String get adminPageDescRepositories => '插件来源';
 
   @override
-  String get adminPageDescBackups => 'Create and restore server backups';
+  String get adminPageDescBackups => '创建和还原服务器备份';
 
   @override
-  String get adminPageDescLogs => 'Server log files';
+  String get adminPageDescLogs => '服务器日志文件';
 
   @override
   String adminSearchSettingsHint(int count) {
-    return 'Search $count settings';
+    return '搜索 $count 项设置';
   }
 
   @override
-  String get adminSearchNoResults => 'No settings match';
+  String get adminSearchNoResults => '没有匹配的设置';
 
   @override
-  String get adminSearchClear => 'Clear search';
+  String get adminSearchClear => '清除搜索';
 
   @override
-  String get adminUnsavedChanges => 'Unsaved changes';
+  String get adminUnsavedChanges => '未保存的更改';
 
   @override
-  String get adminDiscard => 'Discard';
+  String get adminDiscard => '放弃更改';
 
   @override
-  String get adminLeaveTitle => 'Discard unsaved changes?';
+  String get adminLeaveTitle => '放弃未保存的更改？';
 
   @override
-  String get adminLeaveMessage =>
-      'The changes on this page haven\'t been saved yet.';
+  String get adminLeaveMessage => '此页面上的更改尚未保存。';
 
   @override
-  String get adminKeepEditing => 'Keep editing';
+  String get adminKeepEditing => '继续编辑';
 
   @override
   String get adminDashboardLoadFailed => '无法加载仪表板';
@@ -6885,7 +7951,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String adminRemoveDeviceConfirm(String name) {
-    return '移除设备 \'$name\'？该用户需要在此设备上重新登录。';
+    return '移除设备 \"$name\"？该用户需要在此设备上重新登录。';
   }
 
   @override
@@ -7024,12 +8090,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String adminLibMetadataDownloadersFor(String type) {
-    return '元数据下载器: $type';
+    return '元数据下载器：$type';
   }
 
   @override
   String adminLibImageFetchersFor(String type) {
-    return '图片获取器: $type';
+    return '图片获取器：$type';
   }
 
   @override
@@ -9633,13 +10699,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncPlayRepeat => '重复';
 
   @override
+  String get syncPlayRepeatSubtitle => '重播单个媒体项或整个队列';
+
+  @override
   String get syncPlayRepeatOne => '单个循环';
+
+  @override
+  String get syncPlayShuffleSubtitle => '按顺序或随机播放队列';
 
   @override
   String get syncPlayShuffleModeShuffled => '随机';
 
   @override
   String get syncPlayShuffleModeSorted => '顺序播放';
+
+  @override
+  String get syncPlayParticipantYou => '你';
+
+  @override
+  String syncPlayGroupSubtitle(String participants, String detail) {
+    return '$participants · $detail';
+  }
+
+  @override
+  String get syncPlayNothingQueued => '队列中暂无内容';
+
+  @override
+  String get syncPlayOthersCanJoinHint => '此播放组存在期间，其他人可从各自的 SyncPlay 页面加入。';
 
   @override
   String get syncPlaySyncCurrentQueue => '同步当前播放队列';
@@ -9665,6 +10751,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncPlayCreateNewGroup => '创建新播放组';
 
   @override
+  String get syncPlayCreateGroupSubtitle => '与所有加入的人一起观看';
+
+  @override
   String get syncPlayGroupName => '播放组名称';
 
   @override
@@ -9677,13 +10766,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncPlayAvailableGroups => '可用播放组';
 
   @override
+  String syncPlayAvailableGroupsCount(int count) {
+    return '可用播放组 · $count';
+  }
+
+  @override
   String get syncPlayNoGroupsAvailable => '暂无可用播放组';
+
+  @override
+  String get syncPlayNoGroupsAvailableHint => '其他人在此服务器上创建的播放组将显示在这里。';
 
   @override
   String get syncPlayJoinGroupQuestion => '加入 SyncPlay 播放组？';
 
   @override
   String get syncPlayJoinGroupWarning => '加入 SyncPlay 播放组可能会替换当前播放队列。继续吗？';
+
+  @override
+  String get syncPlayJoinReplacesQueueNote => '加入播放组可能会替换你当前的播放队列。';
 
   @override
   String get syncPlayJoin => '加入';
@@ -9869,24 +10969,28 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get kidsMode => 'Kids Mode';
+  String get kidsMode => '儿童模式';
 
   @override
-  String get kidsModeSubtitle =>
-      'Simplify the app and lock the way out with a PIN';
+  String get kidsModeSubtitle => '简化应用界面，并通过 PIN 码锁定退出';
 
   @override
-  String get kidsModeExit => 'Exit Kids Mode';
+  String get kidsModeExit => '退出儿童模式';
 
   @override
-  String get kidsModeExitSubtitle => 'Enter your PIN to restore the full app';
+  String get kidsModeExitSubtitle => '输入 PIN 码以恢复完整应用';
+
+  @override
+  String kidsModePinToSwitchUser(String name) {
+    return '输入儿童模式 PIN 码以切换到 $name';
+  }
 
   @override
   String get pinIncorrect => 'PIN 码不正确';
 
   @override
   String pinTryAgainIn(String wait) {
-    return 'Too many attempts. Try again in $wait.';
+    return '尝试次数过多。请在 $wait 后重试。';
   }
 
   @override
@@ -9978,7 +11082,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trackActionPlayNext => '接下来播放';
 
   @override
-  String get trackActionViewDetails => 'View Details';
+  String get trackActionViewDetails => '查看详情';
 
   @override
   String get trackActionAddToQueue => '添加到队列';
@@ -10079,6 +11183,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addToPlaylist => '添加到播放列表';
 
   @override
+  String get removeFromPlaylist => '从播放列表移除';
+
+  @override
+  String removeFromPlaylistConfirm(String item, String playlist) {
+    return '要从 $playlist 中移除 $item 吗？';
+  }
+
+  @override
+  String get removeFromPlaylistFailed => '从播放列表移除失败';
+
+  @override
   String get lyricsNotAvailable => '暂无可用歌词';
 
   @override
@@ -10145,6 +11260,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playerTooltipExitFloatOnTop => '取消置顶悬浮';
 
   @override
+  String get playerTooltipPictureInPicture => '画中画';
+
+  @override
+  String get playerTooltipExitPictureInPicture => '退出画中画';
+
+  @override
+  String get playerPlayingInPictureInPicture => '正在画中画播放';
+
+  @override
   String get playerTooltipLockLandscape => '锁定横屏';
 
   @override
@@ -10160,10 +11284,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playerTooltipSeekForward => '快进';
 
   @override
-  String get playerTooltipMinimize => 'Minimize player';
+  String get playerTooltipMinimize => '最小化播放器';
 
   @override
-  String get miniPlayerOpenPlayer => 'Open player';
+  String get miniPlayerOpenPlayer => '打开播放器';
 
   @override
   String get contextMenuMarkWatched => '标记为已观看';
@@ -10190,15 +11314,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contextMenuAddToCollection => '添加至影片合集';
 
   @override
-  String get contextMenuRemoveFromCollection => 'Remove from Collection';
+  String get contextMenuRemoveFromCollection => '从合集移除';
 
   @override
   String removeFromCollectionConfirm(String item, String collection) {
-    return 'Remove $item from $collection? The item stays in your library.';
+    return '要从 $collection 中移除 $item 吗？该媒体项仍会保留在你的媒体库中。';
   }
 
   @override
-  String get removeFromCollectionFailed => 'Failed to remove from collection';
+  String get removeFromCollectionFailed => '从合集移除失败';
 
   @override
   String get settingsAdministrationSubtitle => '访问服务器管理面板';
@@ -10230,100 +11354,92 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get untrustedServerCertificate =>
-      'This server\'s certificate isn\'t trusted. If it\'s your own server and uses a self-signed or private certificate, you can allow it here.';
+      '此服务器的证书不受信任。如果这是你自己的服务器，且使用自签名或私有证书，你可以在此处允许它。';
 
   @override
-  String get clientCertTitle => 'Client certificate';
+  String get clientCertTitle => '客户端证书';
 
   @override
   String clientCertHost(String host) {
-    return 'Certificate for $host';
+    return '$host 的证书';
   }
 
   @override
-  String get clientCertChooseFile => 'Choose file';
+  String get clientCertChooseFile => '选择文件';
 
   @override
-  String get clientCertPassword => 'Certificate password';
+  String get clientCertPassword => '证书密码';
 
   @override
-  String get clientCertStartUpload => 'Send from phone';
+  String get clientCertStartUpload => '从手机发送';
 
   @override
-  String get clientCertUploadHint =>
-      'Scan this code with your phone, or open the address in its browser, then pick the file and enter its password.';
+  String get clientCertUploadHint => '用手机扫描此二维码，或在手机浏览器中打开该地址，然后选择文件并输入密码。';
 
   @override
-  String get clientCertStopUpload => 'Stop waiting';
+  String get clientCertStopUpload => '停止等待';
 
   @override
-  String get clientCertNoFileData => 'Couldn\'t read the file. Try again.';
+  String get clientCertNoFileData => '无法读取文件。请重试。';
 
   @override
-  String get clientCertPickFailed => 'Couldn\'t open the file picker.';
+  String get clientCertPickFailed => '无法打开文件选择器。';
 
   @override
-  String get clientCertUploadFailed =>
-      'Couldn\'t start the upload page. Try again.';
+  String get clientCertUploadFailed => '无法打开上传页面。请重试。';
 
   @override
   String get clientCertNoSecureStorage =>
-      'This device has no secure storage, so the certificate can\'t be saved. On Linux, install libsecret and try again.';
+      '此设备没有安全存储，因此无法保存证书。在 Linux 上，请安装 libsecret 后重试。';
 
   @override
-  String get clientCertDecodeFailed =>
-      'Couldn\'t read that file as a certificate. Make sure it\'s a .p12 or .pfx.';
+  String get clientCertDecodeFailed => '无法将该文件读取为证书。请确保它是 .p12 或 .pfx 文件。';
 
   @override
-  String get clientCertWrongPassword =>
-      'That password doesn\'t unlock this certificate.';
+  String get clientCertWrongPassword => '该密码无法解锁此证书。';
 
   @override
-  String get clientCertRequired =>
-      'This server needs a client certificate (mTLS). Add one for this host to continue.';
+  String get clientCertRequired => '此服务器需要客户端证书（mTLS）。请为此主机添加证书以继续。';
 
   @override
   String clientCertExpired(String date) {
-    return 'The certificate for this server expired on $date. Replace it to continue.';
+    return '此服务器的证书已于 $date 过期。请更换证书以继续。';
   }
 
   @override
-  String get clientCertAddButton => 'Add client certificate';
+  String get clientCertAddButton => '添加客户端证书';
 
   @override
-  String get settingsClientCertificates => 'Client certificates';
+  String get settingsClientCertificates => '客户端证书';
 
   @override
-  String get settingsClientCertificatesSubtitle =>
-      'Certificates this app presents to servers that require one (mTLS)';
+  String get settingsClientCertificatesSubtitle => '此应用向需要证书的服务器（mTLS）提供的证书';
 
   @override
-  String get clientCertSubject => 'Subject';
+  String get clientCertSubject => '主题';
 
   @override
   String clientCertExpires(String date) {
-    return 'Expires $date';
+    return '有效期至 $date';
   }
 
   @override
-  String get clientCertReplace => 'Replace';
+  String get clientCertReplace => '替换';
 
   @override
-  String get clientCertAdd => 'Add certificate';
+  String get clientCertAdd => '添加证书';
 
   @override
-  String get clientCertAddHostPrompt =>
-      'Which server host needs a certificate?';
+  String get clientCertAddHostPrompt => '哪个服务器主机需要证书？';
 
   @override
-  String get itemBlockedByParentalControls => 'This isn\'t available';
+  String get itemBlockedByParentalControls => '此内容不可用';
 
   @override
-  String get blockedRatingsCeilingHint =>
-      'Blocking a rating also blocks everything stronger than it.';
+  String get blockedRatingsCeilingHint => '屏蔽某个分级也会屏蔽比它更高的所有分级。';
 
   @override
-  String get blockedRatingsUnrankedSection => 'Only blocks itself';
+  String get blockedRatingsUnrankedSection => '仅屏蔽自身';
 
   @override
   String get settingsHomePage => '主页';
@@ -10333,6 +11449,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsTwentyFourHourClockSubtitle => '显示时钟时使用 24 小时制';
+
+  @override
+  String get settingsDateFormat => '日期格式';
+
+  @override
+  String get settingsDateFormatDescription =>
+      '在“月-日”“日-月”或区域设置默认格式之间选择，用于日历日期和发行日期';
+
+  @override
+  String get dateFormatSystem => '区域设置默认';
+
+  @override
+  String get dateFormatMonthDay => '月 / 日（11 / 10）';
+
+  @override
+  String get dateFormatDayMonth => '日 / 月（10 / 11）';
 
   @override
   String get settingsShowShuffleButtonInNavigation => '在导航栏中显示随机播放按钮';
@@ -10345,7 +11477,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsShowLiveTvButtonInNavigation =>
-      'Show the Live TV button in the navigation bar when the server has a Live TV library';
+      '当服务器有直播电视媒体库时，在导航栏显示“直播电视”按钮';
 
   @override
   String get settingsShowLibrariesButtonInNavigation => '在导航栏中显示媒体库按钮';
@@ -10653,6 +11785,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSkipForwardLengthDescription => '按快进按钮后快进多少秒。';
 
   @override
+  String get settingsHideControlsAfter => '控制栏隐藏延迟';
+
+  @override
+  String get settingsHideControlsAfterDescription =>
+      '在你最后一次按键、轻触或移动鼠标后，播放器控制栏在屏幕上停留的时长。';
+
+  @override
+  String get settingsHdrControlsDimming => '在 HDR 中调暗控制栏';
+
+  @override
+  String get settingsHdrControlsDimmingDescription =>
+      '白色在 HDR 视频旁显得更亮，因此播放时控制栏会按此幅度调暗。';
+
+  @override
   String get settingsBitstreamAc3ToExternalDecoder => '将 AC3 以比特流发送到外部解码器';
 
   @override
@@ -10815,6 +11961,14 @@ class AppLocalizationsZh extends AppLocalizations {
       '跳过 Profile 8 转换，并将 Dolby Vision Profile 7 流转换为 HDR10 兼容的 HEVC 格式。如果转换后的流看起来有问题，请使用此方法。';
 
   @override
+  String get stripDolbyVisionHdr10PlusTitle =>
+      '将同时含 HDR10+ 的 Dolby Vision 视频按 HDR10+ 播放';
+
+  @override
+  String get stripDolbyVisionHdr10PlusSubtitle =>
+      '从同时含 HDR10+ 的视频中移除 Dolby Vision 图层。如果这些视频播放时有声音但黑屏，请开启此项。';
+
+  @override
   String get subtitlesUseEmbeddedStyles => '使用内嵌字幕样式';
 
   @override
@@ -10835,10 +11989,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showMediaDetailsOnLibraryPageDescription => '在媒体库页面顶部显示所选媒体项的详情。';
 
   @override
-  String get hideBackdropsInLibraries => '浏览库时隐藏背景海报？';
+  String get libraryCardTitles => '海报下方显示标题';
 
   @override
-  String get useDetailedSubHeadings => '使用详细的副标题';
+  String get libraryCardTitlesDescription => '在媒体库网格中，于每个媒体项的图片下方显示标题和详情。';
+
+  @override
+  String get useDetailedSubHeadings => '使用详细的子行';
 
   @override
   String get useDetailedSubHeadingsDescription => '在媒体库页面显示详细或简洁的子行。';
@@ -10933,6 +12090,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeRowsStyleModern => '现代';
 
   @override
+  String get homeRowsStyleCarousel => '轮播';
+
+  @override
   String get homeRowsSection => '首页行';
 
   @override
@@ -10942,11 +12102,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rowsTypeDescription => '经典模式保留每行的图片类型和信息浮层。现代模式使用竖版图到背景图的行布局。';
 
   @override
-  String get modernCardsOnMyMediaRow => 'Modern cards on My Media row';
+  String get modernCardsOnMyMediaRow => '“我的媒体”行使用现代卡片';
 
   @override
   String get modernCardsOnMyMediaRowDescription =>
-      'Display customizable posters that expand on focus. Disable to always show landscape thumbnail.';
+      '显示可自定义的海报，获得焦点时展开。关闭后始终显示横向缩略图。';
 
   @override
   String get sortOrder => '排序顺序';
@@ -11019,6 +12179,71 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get displayStudiosRowsSubtitle => '在首页分区显示制作公司行。';
+
+  @override
+  String get sinceYouWatched => '观看之后';
+
+  @override
+  String get sinceYouWatchedRowTitle => '观看之后';
+
+  @override
+  String sinceYouWatchedItemRowTitle(String title) {
+    return '观看“$title”之后';
+  }
+
+  @override
+  String sinceYouWatchedRowNumber(int number) {
+    return '“观看之后”第 $number 行';
+  }
+
+  @override
+  String get displaySinceYouWatchedRows => '显示“观看之后”行';
+
+  @override
+  String get displaySinceYouWatchedRowsSubtitle => '在首页栏目中显示并自定义“观看之后”行。';
+
+  @override
+  String get sinceYouWatchedSource => '推荐来源';
+
+  @override
+  String get sinceYouWatchedSourceDescription =>
+      '选择推荐来源（Moonfin Recommends 为本地媒体库算法，Server Recommends 来自媒体服务器，TMDb 使用在线相似度指标。注意：在线推荐需要集成 Seerr）。';
+
+  @override
+  String get sinceYouWatchedSourceLocal => 'Moonfin 智能推荐';
+
+  @override
+  String get sinceYouWatchedSourceServer => '服务器推荐';
+
+  @override
+  String get sinceYouWatchedSourceOnline => 'TMDb 相似影片推荐';
+
+  @override
+  String get sinceYouWatchedSourceType => '来源类型';
+
+  @override
+  String get sinceYouWatchedSourceTypeDescription => '选择要推荐的媒体项类型';
+
+  @override
+  String get sinceYouWatchedSourceItem => '来源媒体项';
+
+  @override
+  String get sinceYouWatchedSourceItemDescription => '选择作为推荐依据的来源媒体项';
+
+  @override
+  String get sinceYouWatchedRecentlyWatched => '最近观看';
+
+  @override
+  String get sinceYouWatchedNumRows => '添加的行数';
+
+  @override
+  String get sinceYouWatchedNumRowsDescription => '选择要显示的“观看之后”行数（1-5）';
+
+  @override
+  String get sinceYouWatchedIncludeWatched => '包含已观看内容';
+
+  @override
+  String get sinceYouWatchedIncludeWatchedSubtitle => '在推荐中包含已观看的媒体项';
 
   @override
   String get studiosRowSorting => '制作公司行排序';
@@ -11096,6 +12321,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get audioRowsSortOrderDescription => '对音频行执行升序或降序排序。';
 
   @override
+  String get sorting => '排序';
+
+  @override
+  String get imdbRowsSorting => 'IMDb 行排序';
+
+  @override
+  String get imdbRowsSortingDescription => '按名称、发布日期、评分等方式排序 IMDb 行。';
+
+  @override
+  String get imdbRowsSortOrderDescription => '对 IMDb 行执行升序或降序排序。';
+
+  @override
+  String get tmdbRowsSorting => 'TMDB 行排序';
+
+  @override
+  String get tmdbRowsSortingDescription => '按名称、发布日期、评分等方式排序 TMDB 行。';
+
+  @override
+  String get tmdbRowsSortOrderDescription => '对 TMDB 行执行升序或降序排序。';
+
+  @override
+  String get seerrRowsSorting => 'Seerr 行排序';
+
+  @override
+  String get seerrRowsSortingDescription => '按名称、发布日期、评分等方式排序 Seerr 行。';
+
+  @override
+  String get seerrRowsSortOrderDescription => '对 Seerr 行执行升序或降序排序。';
+
+  @override
+  String get externalRowSortDefault => '默认（列表顺序）';
+
+  @override
+  String get externalRowSortName => '名字';
+
+  @override
+  String get externalRowSortReleaseDate => '上映日期';
+
+  @override
+  String get externalRowSortRating => '评分';
+
+  @override
+  String get externalRowSortPopularity => '热度';
+
+  @override
+  String get externalRowSortShuffle => '随机播放';
+
+  @override
   String get audioPlaylists => '音频播放列表';
 
   @override
@@ -11138,10 +12411,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connection => '连接';
 
   @override
-  String get locallyDecodedCodecs => 'Locally Decoded Codecs';
+  String get locallyDecodedCodecs => '本地解码的编解码器';
 
   @override
-  String get transcodeTargetCodecs => 'Transcode Target Codecs';
+  String get transcodeTargetCodecs => '转码目标编解码器';
 
   @override
   String get passthrough => '直通';
@@ -11179,10 +12452,48 @@ class AppLocalizationsZh extends AppLocalizations {
       '优先使用 FFmpeg（音频）和 libgav1 (AV1)，再尝试硬件解码器。如果 HDMI 音频直通异常，请关闭此项。';
 
   @override
+  String get hevcSoftwareDirectPlay => '直接播放 HEVC（软件解码）';
+
+  @override
+  String get hevcSoftwareDirectPlaySubtitle =>
+      '直接播放原始文件中的 HEVC 视频（最高 1080p），而不要求服务器转码。此 Apple TV 使用软件解码，因此高负载的 10 位或高码率文件可能卡顿。';
+
+  @override
+  String get av1SoftwareUhdDirectPlay => '直接播放 4K AV1（软件解码）';
+
+  @override
+  String get av1SoftwareUhdDirectPlaySubtitle =>
+      '直接播放原始文件中高于 1080p 的 AV1 视频（包括 HDR10），而不要求服务器转码。此设备使用软件解码 AV1，因此高负载的 4K 或高码率文件可能卡顿。';
+
+  @override
+  String get cadenceSlowdown => '在 60 Hz 电视上流畅播放 24 fps';
+
+  @override
+  String get cadenceSlowdownSubtitle =>
+      '当“匹配帧率”关闭时，将 24 fps 视频放慢 0.1%，使其适配电视且不丢帧。当音频直通到功放时不使用此项。';
+
+  @override
+  String get cadenceTipTitle => '开启“匹配帧率”';
+
+  @override
+  String get cadenceTipMessage =>
+      '此视频无法在你电视当前的刷新率下流畅播放。请在 Apple TV 上打开“设置”>“视频和音频”>“匹配内容”，然后开启“匹配帧率”。';
+
+  @override
+  String get cadenceTipSlowdownHint =>
+      '或在 Moonfin 的“播放”>“画质与解码”下开启“在 60 Hz 电视上流畅播放 24 fps”。';
+
+  @override
   String get useExternalPlayer => '始终使用外部播放器';
 
   @override
   String get useExternalPlayerSubtitle => '在 Android TV 上用你选择的外部应用打开视频播放。';
+
+  @override
+  String get externalPlayerLiveTvOnly => '仅限直播电视';
+
+  @override
+  String get externalPlayerLiveTvOnlySubtitle => '使用外部播放器播放直播电视，其余内容仍使用内置播放器。';
 
   @override
   String get automaticQueuing => '自动入队';
@@ -11194,18 +12505,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get preferSdhSubtitlesSubtitle => '自动选择时优先选择 SDH/CC 字幕轨道。';
 
   @override
-  String get preferTextSubtitles => 'Prefer Text Subtitles';
+  String get preferTextSubtitles => '优先使用文本字幕';
 
   @override
   String get preferTextSubtitlesSubtitle =>
-      'Prioritize text-based subtitles (SRT, VTT) over image-based formats (PGS, VobSub).';
+      '优先使用文本字幕（SRT、VTT），而非图片字幕格式（PGS、VobSub）。';
 
   @override
-  String get preferExternalSubtitles => 'Prefer External Subtitles';
+  String get preferExternalSubtitles => '优先使用外部字幕';
 
   @override
-  String get preferExternalSubtitlesSubtitle =>
-      'Prioritize external subtitle files over embedded tracks.';
+  String get preferExternalSubtitlesSubtitle => '优先使用外部字幕文件，而非内嵌字幕轨道。';
 
   @override
   String get webDiagnostics => 'Web 诊断';
@@ -11386,7 +12696,456 @@ class AppLocalizationsZh extends AppLocalizations {
   String get crewContributionsSeerr => '演职人员作品（Seerr）';
 
   @override
+  String get personWebsite => '官方网站';
+
+  @override
   String get watchWithGroup => '与播放组一起观看';
+
+  @override
+  String get watchPartyGroupSubtitles => '所有人共用字幕';
+
+  @override
+  String get watchPartyOwnSubtitles => '各自选择';
+
+  @override
+  String get watchPartyLobby => '在大厅中';
+
+  @override
+  String get watchPartyUpNextLabel => '接下来播放';
+
+  @override
+  String get watchPartyRoomSettings => '房间设置';
+
+  @override
+  String get watchPartyCodeOrLink => '房间码或邀请链接';
+
+  @override
+  String get watchPartyCopyInvite => '复制邀请链接';
+
+  @override
+  String get watchPartyInviteCopied => '邀请链接已复制';
+
+  @override
+  String get watchPartyLetEveryoneVote => '让大家一起投票选电影';
+
+  @override
+  String get watchPartyVoteHelp => '添加电影供大家投票，然后播放选中的那部。';
+
+  @override
+  String get watchPartyGuestVoteHelp => '为你想看的内容投票。房主会播放其中一部。';
+
+  @override
+  String get watchPartySearchMovies => '搜索电影';
+
+  @override
+  String get watchPartyNoSuggestions => '暂无可供投票的电影。';
+
+  @override
+  String get watchPartySuggested => '已加入观影派对投票';
+
+  @override
+  String watchPartyVoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 票',
+      one: '$count 票',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get watchParty => '观影派对';
+
+  @override
+  String get watchPartyUnavailable => '此服务器不支持观影派对。';
+
+  @override
+  String get watchPartyRoomCode => '房间码';
+
+  @override
+  String get watchPartyStart => '发起观影派对';
+
+  @override
+  String get watchPartyPickTitle => '打开一个媒体项并选择“与群组一起观看”，即可选择大家共同观看的内容。';
+
+  @override
+  String get watchPartyWaitingForHost => '正在等待房主选择内容。';
+
+  @override
+  String get watchPartyShareCode => '其他人可在观影派对界面输入此房间码加入。';
+
+  @override
+  String get watchPartyReconnecting => '正在重新连接…';
+
+  @override
+  String get watchPartyOffline => '离线';
+
+  @override
+  String get watchPartyStartForEveryone => '为所有人开始';
+
+  @override
+  String watchPartyResumeAt(String time) {
+    return '从$time继续播放';
+  }
+
+  @override
+  String get watchPartyStartFromBeginning => '从头开始';
+
+  @override
+  String watchPartyResumeWhere(String name) {
+    return '从$name上次停止的位置开始，即此处所有人中最早到达的进度。';
+  }
+
+  @override
+  String get watchPartyResumeEarliest => '此处所有人中最早到达的进度。';
+
+  @override
+  String get watchPartyResumeYours => '从你上次停止的位置开始。所有人都从此处开始。';
+
+  @override
+  String watchPartyResumeNotStarted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '还有 $count 人尚未开始。',
+      one: '还有 $count 人尚未开始。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get watchPartyBackToLobby => '返回大厅';
+
+  @override
+  String get watchPartyGuestsCanPause => '访客可播放和暂停';
+
+  @override
+  String get watchPartyEnd => '为所有人结束';
+
+  @override
+  String get watchPartyEnded => '观影派对已结束。';
+
+  @override
+  String get watchPartyStaged => '已选入观影派对';
+
+  @override
+  String watchPartyUpNext(String title) {
+    return '接下来播放：$title';
+  }
+
+  @override
+  String get watchParties => '观影派对';
+
+  @override
+  String get watchPartyStartWith => '发起派对的方式';
+
+  @override
+  String get watchPartyServiceMoonbaseHint => '聊天、表情回应和投票。基于 Moonbase 运行。';
+
+  @override
+  String get watchPartyServiceSyncPlayHint =>
+      'Jellyfin 自带。其他 Jellyfin 应用上的好友也可加入。';
+
+  @override
+  String get watchPartyServiceNote => '两种房间都可以加入。此处仅选择你发起的类型。';
+
+  @override
+  String get watchPartyDuringParty => '派对期间';
+
+  @override
+  String get watchPartyChatOverlay => '在视频上显示聊天';
+
+  @override
+  String get watchPartyChatOverlaySubtitle => '新消息会显示几秒钟';
+
+  @override
+  String get watchPartyAlerts => '派对提醒';
+
+  @override
+  String get watchPartyAlertsSubtitle => '当此服务器上有人发起派对时通知我';
+
+  @override
+  String get watchPartyJoinWithCode => '使用房间码加入';
+
+  @override
+  String get watchPartyOnThisServer => '在此服务器上';
+
+  @override
+  String watchPartyCountOnServer(int count) {
+    return '此服务器上有 $count 个';
+  }
+
+  @override
+  String get watchPartyRoomsHint => '你需要拥有该媒体项的访问权限才能加入。当最后一人离开时，房间会关闭。';
+
+  @override
+  String get watchPartyRoomsEmpty => '你可以观看的派对会显示在这里。拿到了别人的房间码？选择“使用房间码加入”。';
+
+  @override
+  String get watchPartyPasteHint =>
+      '也可以在此粘贴邀请链接。在手机上，该链接会直接在 Moonfin 中打开并进入派对。';
+
+  @override
+  String watchPartyWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人正在观看',
+      one: '$count 人正在观看',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String watchPartyHostsParty(String name) {
+    return '$name 的派对';
+  }
+
+  @override
+  String get watchPartyEveryoneControlsShort => '所有人可控制';
+
+  @override
+  String get watchPartyVotingNow => '正在投票选择观看内容';
+
+  @override
+  String get watchPartyNeedsMoonbase => '观影派对需要此服务器安装 Moonbase';
+
+  @override
+  String get watchPartyNeedsMoonbaseHint =>
+      '请联系服务器管理员安装 Moonbase 插件。在 Jellyfin 上，没有它 SyncPlay 仍可使用。';
+
+  @override
+  String get watchPartyWrongPin => 'PIN 码不正确。请重试。';
+
+  @override
+  String get watchPartyTooManyTries => '尝试次数过多。请稍后再试。';
+
+  @override
+  String get watchPartyFull => '该派对已满。';
+
+  @override
+  String get watchPartyNoSuchCode => '没有使用该房间码的房间。';
+
+  @override
+  String get watchPartyNoAccess => '你没有权限观看他们正在播放的内容。';
+
+  @override
+  String get watchPartyRemoved => '房主已将你移出派对。';
+
+  @override
+  String get watchPartyYours => '你的观影派对';
+
+  @override
+  String get watchPartyInviteHint =>
+      '将其粘贴到任意聊天中即可。它会打开此服务器上的一个页面，其中带有“在 Moonfin 中打开”按钮。';
+
+  @override
+  String get watchPartySendInvite => '发送邀请';
+
+  @override
+  String get watchPartyScanInvite => '用手机扫描以获取邀请链接，然后从手机发送。或直接分享房间码。';
+
+  @override
+  String get watchPartyStartsTogether => '播放会等待所有人的播放器，最多 10 秒，然后倒数 3、2、1。';
+
+  @override
+  String get watchPartyStatusInSync => '已同步';
+
+  @override
+  String get watchPartyStatusCatchingUp => '正在追赶';
+
+  @override
+  String get watchPartyStatusBuffering => '正在缓冲';
+
+  @override
+  String get watchPartyStatusNotWatching => '未观看';
+
+  @override
+  String get watchPartyStatusReady => '已就绪';
+
+  @override
+  String get watchPartyStatusJoining => '正在加入';
+
+  @override
+  String get watchPartyHost => '房主';
+
+  @override
+  String watchPartyWaitingFor(String name) {
+    return '正在等待 $name 的播放器';
+  }
+
+  @override
+  String watchPartyWaitingForCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '正在等待 $count 个播放器',
+      one: '正在等待 $count 个播放器',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String watchPartyStartingAnyway(int seconds) {
+    return '$seconds 秒后仍将开始';
+  }
+
+  @override
+  String get watchPartyStartingTogether => '正在同时开始';
+
+  @override
+  String watchPartyToastPaused(String name) {
+    return '$name 已暂停';
+  }
+
+  @override
+  String watchPartyToastResumed(String name) {
+    return '$name 已恢复播放';
+  }
+
+  @override
+  String watchPartyToastSkipped(String name, String time) {
+    return '$name 跳至 $time';
+  }
+
+  @override
+  String watchPartyToastJoined(String name) {
+    return '$name 已加入';
+  }
+
+  @override
+  String watchPartyToastLeft(String name) {
+    return '$name 已离开';
+  }
+
+  @override
+  String watchPartyToastSwitched(String name, String title) {
+    return '$name 已切换至 $title';
+  }
+
+  @override
+  String get watchPartyToastYouAreHost => '你现在是房主';
+
+  @override
+  String watchPartyToastNewHost(String name) {
+    return '$name 现在是房主';
+  }
+
+  @override
+  String get watchPartyToastEveryoneControls => '现在所有人都可以控制播放';
+
+  @override
+  String get watchPartyToastHostControls => '现在只有房主可以控制播放';
+
+  @override
+  String get watchPartyOnlyHostControls => '只有房主可以控制播放。';
+
+  @override
+  String get watchPartyToastReconnecting => '正在重新连接到派对…';
+
+  @override
+  String get watchPartyToastReconnected => '已返回派对';
+
+  @override
+  String watchPartyToastEnded(String name) {
+    return '$name 结束了派对';
+  }
+
+  @override
+  String get watchPartyChat => '聊天';
+
+  @override
+  String get watchPartySendToParty => '发送到派对';
+
+  @override
+  String get watchPartyBackToClose => '返回以关闭';
+
+  @override
+  String get watchPartyType => '类型';
+
+  @override
+  String get watchPartyReplyHaha => '哈哈';
+
+  @override
+  String get watchPartyReplyNoWay => '不会吧';
+
+  @override
+  String get watchPartyReplyPausePlease => '请暂停';
+
+  @override
+  String get watchPartyReplyBrb => '马上回来';
+
+  @override
+  String get watchPartyReplyAgain => '再来一次！';
+
+  @override
+  String get watchPartyReactionLove => '喜欢';
+
+  @override
+  String get watchPartyReactionHaha => '哈哈';
+
+  @override
+  String get watchPartyReactionWow => '哇';
+
+  @override
+  String get watchPartyReactionSad => '难过';
+
+  @override
+  String get watchPartyReactionFire => '火';
+
+  @override
+  String get watchPartyReactionPopcorn => '爆米花';
+
+  @override
+  String get watchPartyMakeHost => '设为房主';
+
+  @override
+  String get watchPartyEveryoneControls => '所有人都可以控制播放';
+
+  @override
+  String get watchPartyEveryoneControlsHint => '任何人都可以播放、暂停和跳过';
+
+  @override
+  String get watchPartyRoomPin => '房间 PIN 码';
+
+  @override
+  String get watchPartyRoomPinHint => '在任何人加入前要求输入 PIN 码';
+
+  @override
+  String get watchPartyPinDigits => '4 到 8 位数字';
+
+  @override
+  String get watchPartyLeave => '离开';
+
+  @override
+  String watchPartyLeaveHandsOver(String name) {
+    return '离开 · $name 接管房主';
+  }
+
+  @override
+  String watchPartyStartedBy(String name) {
+    return '$name 发起了一场观影派对';
+  }
+
+  @override
+  String watchPartyInLobbyCount(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$title · 大厅中有 $count 人',
+      one: '$title · 大厅中有 $count 人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get watchPartyFirstOnHome => '它在首页的观影派对中排在第一位';
+
+  @override
+  String watchPartyAddServerQuestion(String address) {
+    return '此邀请来自你尚未添加的服务器 $address。请添加并登录该服务器后加入。';
+  }
 
   @override
   String get disk => '磁盘';
@@ -11395,131 +13154,128 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openInBrowser => '在浏览器中打开';
 
   @override
-  String get achievementBadges => 'Achievement Badges';
+  String get achievementBadges => '成就徽章';
 
   @override
-  String get achievementBadgesSubtitle =>
-      'Badges, ranks and quests earned from what you watch';
+  String get achievementBadgesSubtitle => '通过观看内容获得的徽章、等级和任务';
 
   @override
-  String get achievementsBadges => 'Badges';
+  String get achievementsBadges => '徽章';
 
   @override
   String achievementsBadgeCount(int unlocked, int total) {
-    return '$unlocked of $total badges';
+    return '$unlocked / $total 个徽章';
   }
 
   @override
-  String get achievementsUnlockToasts => 'Unlock Notifications';
+  String get achievementsUnlockToasts => '解锁通知';
 
   @override
-  String get achievementsUnlockToastsSubtitle =>
-      'Show a notification when you unlock a badge';
+  String get achievementsUnlockToastsSubtitle => '解锁徽章时显示通知';
 
   @override
-  String get achievementsUnlockedNotification => 'Achievement unlocked';
+  String get achievementsUnlockedNotification => '成就已解锁';
 
   @override
   String achievementsUnlockedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count achievements unlocked',
-      one: '$count achievement unlocked',
+      other: '已解锁 $count 个成就',
+      one: '已解锁 $count 个成就',
     );
     return '$_temp0';
   }
 
   @override
   String achievementsUnlockedMore(int count) {
-    return '+$count more';
+    return '+$count 个';
   }
 
   @override
-  String get achievementsQuests => 'Quests';
+  String get achievementsQuests => '任务';
 
   @override
   String achievementsQuestCount(int count) {
-    return '$count completed';
+    return '已完成 $count 个';
   }
 
   @override
-  String get achievementsLeaderboard => 'Leaderboard';
+  String get achievementsLeaderboard => '排行榜';
 
   @override
-  String get achievementsLeaderboardSubtitle =>
-      'How you compare with other users on this server';
+  String get achievementsLeaderboardSubtitle => '你与此服务器上其他用户的对比';
 
   @override
-  String get achievementsRecap => 'Recap';
+  String get achievementsRecap => '回顾';
 
   @override
-  String get achievementsRecapSubtitle => 'What you watched recently';
+  String get achievementsRecapSubtitle => '你最近观看的内容';
 
   @override
-  String get achievementsLibraryCompletion => 'Library completion';
+  String get achievementsLibraryCompletion => '媒体库完成度';
 
   @override
   String achievementsLibraryCount(int count) {
-    return '$count libraries';
+    return '$count 个媒体库';
   }
 
   @override
   String achievementsScore(int score) {
-    return '$score points';
+    return '$score 分';
   }
 
   @override
-  String get achievementsScoreLabel => 'Score';
+  String get achievementsScoreLabel => '积分';
 
   @override
-  String get achievementsTopRank => 'Top rank reached';
+  String get achievementsTopRank => '达到的最高等级';
 
   @override
   String achievementsPointsToNextRank(int points, String tier) {
-    return '$points points to $tier';
+    return '距离 $tier 还需 $points 分';
   }
 
   @override
   String achievementsCurrentStreak(int days) {
-    return '$days day streak';
+    return '连续 $days 天';
   }
 
   @override
   String achievementsBestStreak(int days) {
-    return 'Best: $days days';
+    return '最佳：$days 天';
   }
 
   @override
-  String get achievementsShowcase => 'Showcase';
+  String get achievementsShowcase => '展示柜';
 
   @override
-  String get achievementsUnlocked => 'Unlocked';
+  String get achievementsUnlocked => '已解锁';
 
   @override
-  String get achievementsLocked => 'Locked';
+  String get achievementsLocked => '未解锁';
 
   @override
-  String get achievementsNothingHere => 'Nothing here yet.';
+  String get achievementsNothingHere => '这里还没有内容。';
 
   @override
-  String get achievementsHiddenBadge => 'Hidden achievement';
+  String get achievementsHiddenBadge => '隐藏成就';
 
   @override
   String achievementsUnlockedOn(String date) {
-    return 'Unlocked $date';
+    return '于 $date 解锁';
   }
 
   @override
   String achievementsPoints(int points) {
-    return '$points pts';
+    return '$points 分';
   }
 
   @override
-  String get achievementsDailyQuests => 'Daily';
+  String get achievementsDailyQuests => '每天';
 
   @override
-  String get achievementsWeeklyQuests => 'Weekly';
+  String get achievementsWeeklyQuests => '每周';
 
   @override
   String achievementsQuestReward(int points) {
@@ -11527,200 +13283,191 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get achievementsRerollDaily => 'Reroll daily quests';
+  String get achievementsRerollDaily => '重掷每日任务';
 
   @override
-  String get achievementsRerollWeekly => 'Reroll weekly quests';
+  String get achievementsRerollWeekly => '重掷每周任务';
 
   @override
-  String get achievementsRerollOffer => 'Swap this set for a different one';
+  String get achievementsRerollOffer => '将这组任务换成另一组';
 
   @override
-  String get achievementsRerollSpentDaily =>
-      'Used today, comes back at midnight UTC';
+  String get achievementsRerollSpentDaily => '今日已使用，将在 UTC 时间午夜恢复';
 
   @override
-  String get achievementsRerollSpentWeekly =>
-      'Used this week, comes back Monday UTC';
+  String get achievementsRerollSpentWeekly => '本周已使用，将在 UTC 时间周一恢复';
 
   @override
-  String get achievementsRerollConfirm => 'Reroll these quests?';
+  String get achievementsRerollConfirm => '重掷这些任务？';
 
   @override
-  String get achievementsRerollConfirmBody =>
-      'You get one daily and one weekly reroll, and this spends it.';
+  String get achievementsRerollConfirmBody => '你每天和每周各有一次重掷机会，本次将消耗其中一次。';
 
   @override
-  String get achievementsRerollFailed => 'Could not reroll those quests.';
+  String get achievementsRerollFailed => '无法重掷这些任务。';
 
   @override
-  String get achievementsSuggested => 'Suggested items to watch';
+  String get achievementsSuggested => '推荐观看的媒体项';
 
   @override
-  String get achievementsNoSuggestions => 'Nothing to suggest for this badge.';
+  String get achievementsNoSuggestions => '此徽章暂无推荐内容。';
 
   @override
-  String get achievementsProgressLabel => 'Progress';
+  String get achievementsProgressLabel => '进度';
 
   @override
-  String get achievementsLoadout => 'Loadout';
+  String get achievementsLoadout => '装备';
 
   @override
-  String get achievementsLoadoutSubtitle =>
-      'Score to spend and the boosts you hold';
+  String get achievementsLoadoutSubtitle => '可用积分与持有的增益';
 
   @override
-  String get achievementsAppearance => 'Appearance';
+  String get achievementsAppearance => '外观';
 
   @override
-  String get achievementsAppearanceSubtitle =>
-      'The avatar and title on your profile';
+  String get achievementsAppearanceSubtitle => '个人资料上的头像和称号';
 
   @override
-  String get achievementsAvatars => 'Avatars';
+  String get achievementsAvatars => '头像';
 
   @override
-  String get achievementsTitles => 'Titles';
+  String get achievementsTitles => '作品';
 
   @override
-  String get achievementsEquipped => 'Equipped';
+  String get achievementsEquipped => '已装备';
 
   @override
-  String get achievementsOwned => 'Owned';
+  String get achievementsOwned => '已拥有';
 
   @override
   String achievementsEarnedAt(int score) {
-    return 'Earned at $score lifetime score';
+    return '累计积分达到 $score 时获得';
   }
 
   @override
-  String get achievementsAppearanceEmpty =>
-      'This server has no avatars or titles to wear.';
+  String get achievementsAppearanceEmpty => '此服务器上没有可使用的头像或称号。';
 
   @override
-  String get achievementsAppearanceFailed =>
-      'Could not change how the profile looks.';
+  String get achievementsAppearanceFailed => '无法更改个人资料的外观。';
 
   @override
-  String get achievementsPowerUps => 'Power-ups';
+  String get achievementsPowerUps => '增益道具';
 
   @override
-  String get achievementsStats => 'Stats';
+  String get achievementsStats => '统计';
 
   @override
-  String get achievementsStatsSubtitle =>
-      'Your records and how the server is doing';
+  String get achievementsStatsSubtitle => '你的纪录和服务器的整体情况';
 
   @override
-  String get achievementsStatsWatched => 'Watched';
+  String get achievementsStatsWatched => '已观看';
 
   @override
-  String get achievementsStatsBests => 'Bests';
+  String get achievementsStatsBests => '最佳纪录';
 
   @override
-  String get achievementsStatsHabits => 'Habits';
+  String get achievementsStatsHabits => '观看习惯';
 
   @override
-  String get achievementsStatsVariety => 'Variety';
+  String get achievementsStatsVariety => '多样性';
 
   @override
-  String get achievementsStatsServer => 'This server';
+  String get achievementsStatsServer => '此服务器';
 
   @override
-  String get achievementsStatsClock => 'When you watch';
+  String get achievementsStatsClock => '观看时间';
 
   @override
-  String get achievementsStatItems => 'Items watched';
+  String get achievementsStatItems => '已观看媒体项';
 
   @override
-  String get achievementsStatMovies => 'Films watched';
+  String get achievementsStatMovies => '已观看电影';
 
   @override
-  String get achievementsStatSeries => 'Series finished';
+  String get achievementsStatSeries => '已看完剧集';
 
   @override
-  String get achievementsStatHours => 'Hours watched';
+  String get achievementsStatHours => '观看小时数';
 
   @override
-  String get achievementsStatDays => 'Days watched';
+  String get achievementsStatDays => '观看天数';
 
   @override
-  String get achievementsStatRewatches => 'Rewatches';
+  String get achievementsStatRewatches => '重看次数';
 
   @override
-  String get achievementsStatBestWatchStreak => 'Best watch streak';
+  String get achievementsStatBestWatchStreak => '最长连续观看天数';
 
   @override
-  String get achievementsStatBestLoginStreak => 'Best login streak';
+  String get achievementsStatBestLoginStreak => '最长连续登录天数';
 
   @override
-  String get achievementsStatMostEpisodes => 'Most episodes in a day';
+  String get achievementsStatMostEpisodes => '单日最多观看集数';
 
   @override
-  String get achievementsStatMostMovies => 'Most films in a day';
+  String get achievementsStatMostMovies => '单日最多观看电影数';
 
   @override
-  String get achievementsStatLongestItem => 'Longest single item';
+  String get achievementsStatLongestItem => '时长最长的媒体项';
 
   @override
-  String get achievementsStatBestCombo => 'Best combo';
+  String get achievementsStatBestCombo => '最佳连击';
 
   @override
-  String get achievementsStatLateNight => 'Late night sessions';
+  String get achievementsStatLateNight => '深夜场次';
 
   @override
-  String get achievementsStatEarlyMorning => 'Early morning sessions';
+  String get achievementsStatEarlyMorning => '清晨场次';
 
   @override
-  String get achievementsStatWeekend => 'Weekend sessions';
+  String get achievementsStatWeekend => '周末场次';
 
   @override
-  String get achievementsStatDaysSignedIn => 'Days signed in';
+  String get achievementsStatDaysSignedIn => '登录天数';
 
   @override
-  String get achievementsStatLibraries => 'Libraries visited';
+  String get achievementsStatLibraries => '访问过的媒体库';
 
   @override
-  String get achievementsStatGenres => 'Genres watched';
+  String get achievementsStatGenres => '观看过的类型';
 
   @override
-  String get achievementsStatDecades => 'Decades watched';
+  String get achievementsStatDecades => '观看过的年代';
 
   @override
-  String get achievementsStatCountries => 'Countries watched';
+  String get achievementsStatCountries => '观看过的国家';
 
   @override
-  String get achievementsStatLanguages => 'Languages watched';
+  String get achievementsStatLanguages => '观看过的语言';
 
   @override
-  String get achievementsStatUsers => 'Users';
+  String get achievementsStatUsers => '用户';
 
   @override
-  String get achievementsStatBadgesUnlocked => 'Badges unlocked';
+  String get achievementsStatBadgesUnlocked => '已解锁徽章';
 
   @override
-  String get achievementsStatScoreEarned => 'Score earned';
+  String get achievementsStatScoreEarned => '已获得积分';
 
   @override
-  String get achievementsStatCommonBadge => 'Most common badge';
+  String get achievementsStatCommonBadge => '最常见的徽章';
 
   @override
-  String get achievementsActivity => 'Activity';
+  String get achievementsActivity => '活动';
 
   @override
-  String get achievementsActivitySubtitle =>
-      'What the server has unlocked lately';
+  String get achievementsActivitySubtitle => '服务器上最近解锁的内容';
 
   @override
   String achievementsActivityUnlocked(String user, String badge) {
-    return '$user unlocked $badge';
+    return '$user 解锁了 $badge';
   }
 
   @override
-  String get achievementsShop => 'Shop';
+  String get achievementsShop => '商店';
 
   @override
-  String get achievementsShopSubtitle => 'Spend score on more boosts';
+  String get achievementsShopSubtitle => '用积分兑换更多增益道具';
 
   @override
   String achievementsShopPack(String name, int count) {
@@ -11728,440 +13475,423 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get achievementsShopEmpty => 'Nothing for sale right now.';
+  String get achievementsShopEmpty => '当前暂无商品出售。';
 
   @override
-  String get achievementsBuyConfirm => 'Buy this?';
+  String get achievementsBuyConfirm => '购买此商品？';
 
   @override
-  String get achievementsBuyConfirmBody =>
-      'It comes straight out of your score bank.';
+  String get achievementsBuyConfirmBody => '费用将直接从你的积分账户中扣除。';
 
   @override
-  String get achievementsBuyFailed => 'Could not buy that.';
+  String get achievementsBuyFailed => '无法购买该商品。';
 
   @override
-  String get achievementsScoreBank => 'Score bank';
+  String get achievementsScoreBank => '积分账户';
 
   @override
-  String get achievementsBoost => 'XP Boost';
+  String get achievementsBoost => '经验加成';
 
   @override
-  String get achievementsBoostBody =>
-      'Doubles score for an hour. Using it again restarts the hour.';
+  String get achievementsBoostBody => '积分翻倍，持续一小时。再次使用会重新计算这一小时。';
 
   @override
-  String get achievementsDoubleCredit => 'Double Credit';
+  String get achievementsDoubleCredit => '双倍积分';
 
   @override
-  String get achievementsDoubleCreditBody =>
-      'The next thing you finish counts twice towards badges.';
+  String get achievementsDoubleCreditBody => '你下一次完成的内容将按两倍计入徽章进度。';
 
   @override
-  String get achievementsStreakFreeze => 'Streak Freeze';
+  String get achievementsStreakFreeze => '连续天数冻结';
 
   @override
-  String get achievementsStreakFreezeBody =>
-      'Covers one missed day. Only one can be banked.';
+  String get achievementsStreakFreezeBody => '可抵消一天未观看。最多储备一个。';
 
   @override
   String achievementsPowerUpHeld(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count held',
-      one: '1 held',
-      zero: 'None held',
+      other: '持有 $count 个',
+      one: '持有 1 个',
+      zero: '未持有',
     );
     return '$_temp0';
   }
 
   @override
-  String get achievementsPowerUpActive => 'Running now';
+  String get achievementsPowerUpActive => '生效中';
 
   @override
-  String get achievementsUsePowerUp => 'Use this power-up?';
+  String get achievementsUsePowerUp => '使用此增益道具？';
 
   @override
-  String get achievementsUsePowerUpBody =>
-      'It\'s spent as soon as you confirm.';
+  String get achievementsUsePowerUpBody => '确认后将立即消耗。';
 
   @override
-  String get achievementsPowerUpFailed => 'Could not use that power-up.';
+  String get achievementsPowerUpFailed => '无法使用该增益道具。';
 
   @override
-  String get achievementsHours => 'Hours';
+  String get achievementsHours => '小时';
 
   @override
-  String get achievementsStreak => 'Streak';
+  String get achievementsStreak => '连续天数';
 
   @override
-  String get achievementsPeriodWeek => 'Week';
+  String get achievementsPeriodWeek => '周';
 
   @override
-  String get achievementsPeriodMonth => 'Month';
+  String get achievementsPeriodMonth => '月';
 
   @override
-  String get achievementsPeriodYear => 'Year';
+  String get achievementsPeriodYear => '年份';
 
   @override
   String achievementsDaysWatched(int count) {
-    return '$count days watched';
+    return '已观看 $count 天';
   }
 
   @override
   String achievementsBadgesEarned(int count) {
-    return '$count badges earned';
+    return '已获得 $count 个徽章';
   }
 
   @override
-  String get achievementsTopDirectors => 'Top directors';
+  String get achievementsTopDirectors => '最常观看的导演';
 
   @override
-  String get achievementsTopActors => 'Top actors';
+  String get achievementsTopActors => '最常观看的演员';
 
   @override
-  String get achievementsLoadFailed => 'Could not load your achievements.';
+  String get achievementsLoadFailed => '无法加载你的成就。';
 
   @override
-  String get friends => 'Friends';
+  String get friends => '好友';
 
   @override
-  String get friendsSubtitle =>
-      'See who\'s online and chat with people on this server';
+  String get friendsSubtitle => '查看谁在线，并与此服务器上的用户聊天';
 
   @override
-  String get friendsShowButton => 'Show Friends Button';
+  String get friendsShowButton => '显示好友按钮';
 
   @override
-  String get friendsShowButtonSubtitle =>
-      'Friends and chat from the Achievement Badges plugin';
+  String get friendsShowButtonSubtitle => '来自 Achievement Badges 插件的好友与聊天功能';
 
   @override
-  String get friendsMessages => 'Messages';
+  String get friendsMessages => '服务器消息';
 
   @override
   String friendsUnreadCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count unread messages',
-      one: '1 unread message',
-      zero: 'No unread messages',
+      other: '$count 条未读消息',
+      one: '1 条未读消息',
+      zero: '暂无未读消息',
     );
     return '$_temp0';
   }
 
   @override
-  String get friendsRequests => 'Friend requests';
+  String get friendsRequests => '好友请求';
 
   @override
   String friendsRequestCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count waiting for you',
-      one: '1 waiting for you',
-      zero: 'Nothing waiting',
+      other: '$count 条待处理请求',
+      one: '1 条待处理请求',
+      zero: '暂无待处理请求',
     );
     return '$_temp0';
   }
 
   @override
-  String get friendsAdd => 'Add friends';
+  String get friendsAdd => '添加好友';
 
   @override
-  String get friendsAddSubtitle => 'Find people on this server';
+  String get friendsAddSubtitle => '在此服务器上查找用户';
 
   @override
-  String get friendsPrivacy => 'Privacy';
+  String get friendsPrivacy => '隐私';
 
   @override
-  String get friendsPrivacySubtitle => 'What your friends can see';
+  String get friendsPrivacySubtitle => '你的好友可以看到的内容';
 
   @override
-  String get friendsOnline => 'Online';
+  String get friendsOnline => '在线';
 
   @override
-  String get friendsOffline => 'Offline';
+  String get friendsOffline => '离线';
 
   @override
-  String get friendsNone =>
-      'No friends yet. Add people from this server to see them here.';
+  String get friendsNone => '还没有好友。添加此服务器上的用户后，他们会显示在这里。';
 
   @override
   String friendsWatching(String title) {
-    return 'Watching $title';
+    return '正在观看 $title';
   }
 
   @override
   String friendsLastWatched(String title) {
-    return 'Last watched $title';
+    return '最近观看 $title';
   }
 
   @override
   String friendsLastSeen(String time) {
-    return 'Last seen $time';
+    return '上次在线 $time';
   }
 
   @override
-  String get friendsLoadFailed =>
-      'Could not load this. Check your connection and try again.';
+  String get friendsLoadFailed => '无法加载。请检查网络连接后重试。';
 
   @override
-  String get friendsActionFailed => 'That didn\'t work. Try again in a moment.';
+  String get friendsActionFailed => '操作失败。请稍后重试。';
 
   @override
-  String get friendsIncoming => 'Waiting for you';
+  String get friendsIncoming => '等待你处理';
 
   @override
-  String get friendsOutgoing => 'Sent by you';
+  String get friendsOutgoing => '由你发出';
 
   @override
-  String get friendsNoRequests => 'No friend requests.';
+  String get friendsNoRequests => '暂无好友请求。';
 
   @override
-  String get friendsAccept => 'Accept';
+  String get friendsAccept => '接受';
 
   @override
-  String get friendsDecline => 'Decline';
+  String get friendsDecline => '拒绝';
 
   @override
-  String get friendsCancelRequest => 'Cancel request';
+  String get friendsCancelRequest => '取消请求';
 
   @override
   String friendsRequestFrom(String name) {
-    return '$name wants to be friends';
+    return '$name 想添加你为好友';
   }
 
   @override
   String friendsCancelRequestBody(String name) {
-    return 'Take back the request you sent to $name?';
+    return '要撤回你发送给 $name 的请求吗？';
   }
 
   @override
-  String get friendsSearchHint => 'Search people';
+  String get friendsSearchHint => '搜索用户';
 
   @override
-  String get friendsNoMatches => 'No one matches that name.';
+  String get friendsNoMatches => '没有找到与该名称匹配的用户。';
 
   @override
   String friendsRequestSent(String name) {
-    return 'Request sent to $name';
+    return '已向 $name 发送请求';
   }
 
   @override
-  String get friendsSendRequest => 'Add as friend';
+  String get friendsSendRequest => '添加为好友';
 
   @override
-  String get friendsSendMessage => 'Send message';
+  String get friendsSendMessage => '发送消息';
 
   @override
   String friendsOpenItem(String title) {
-    return 'Open $title';
+    return '打开 $title';
   }
 
   @override
-  String get friendsRemove => 'Remove friend';
+  String get friendsRemove => '移除好友';
 
   @override
   String friendsRemoveBody(String name) {
-    return 'Remove $name from your friends? You can add them again later.';
+    return '要将 $name 从好友中移除吗？之后可以重新添加。';
   }
 
   @override
-  String get friendsBlock => 'Block';
+  String get friendsBlock => '屏蔽';
 
   @override
-  String get friendsUnblock => 'Unblock';
+  String get friendsUnblock => '取消屏蔽';
 
   @override
   String friendsBlockBody(String name) {
-    return 'Block $name? Neither of you will be able to message the other directly. Group chats you share stay open.';
+    return '要屏蔽 $name 吗？你们将无法再直接互发消息，但共同的群聊仍会保留。';
   }
 
   @override
   String friendsUnblockBody(String name) {
-    return 'Unblock $name?';
+    return '要取消屏蔽 $name 吗？';
   }
 
   @override
-  String get friendsBlocked => 'Blocked users';
+  String get friendsBlocked => '已屏蔽用户';
 
   @override
   String friendsProfileHidden(String name) {
-    return '$name keeps their profile private.';
+    return '$name 的个人资料设为私密。';
   }
 
   @override
-  String get friendsAppearOffline => 'Appear Offline';
+  String get friendsAppearOffline => '显示为离线';
 
   @override
-  String get friendsAppearOfflineSubtitle =>
-      'Friends always see you as offline';
+  String get friendsAppearOfflineSubtitle => '好友始终看到你处于离线状态';
 
   @override
-  String get friendsHideNowPlaying => 'Hide What I\'m Watching';
+  String get friendsHideNowPlaying => '隐藏正在观看的内容';
 
   @override
-  String get friendsHideNowPlayingSubtitle =>
-      'Friends still see you online, but not what\'s playing';
+  String get friendsHideNowPlayingSubtitle => '好友仍能看到你在线，但看不到你正在播放的内容';
 
   @override
-  String get friendsHideLastWatched => 'Hide My Last Watched';
+  String get friendsHideLastWatched => '隐藏最近观看记录';
 
   @override
-  String get friendsHideLastWatchedSubtitle =>
-      'Friends won\'t see what you watched last while you\'re offline';
+  String get friendsHideLastWatchedSubtitle => '离线时，好友看不到你最近观看的内容';
 
   @override
-  String get friendsMessageNotifications => 'Message Notifications';
+  String get friendsMessageNotifications => '消息通知';
 
   @override
-  String get friendsMessageNotificationsSubtitle =>
-      'Show a banner when a friend messages you';
+  String get friendsMessageNotificationsSubtitle => '好友发来消息时显示横幅通知';
 
   @override
-  String get friendsMuteDuringPlayback => 'Mute During Playback';
+  String get friendsMuteDuringPlayback => '播放时静音';
 
   @override
-  String get friendsMuteDuringPlaybackSubtitle =>
-      'No message banners while a video or game is playing';
+  String get friendsMuteDuringPlaybackSubtitle => '播放视频或游戏时不显示消息横幅';
 
   @override
-  String get friendsSaveFailed => 'Could not save your settings.';
+  String get friendsSaveFailed => '无法保存设置。';
 
   @override
-  String get chatNew => 'New message';
+  String get chatNew => '新消息';
 
   @override
-  String get chatNewSubtitle => 'Start a chat with a friend';
+  String get chatNewSubtitle => '与好友开始聊天';
 
   @override
-  String get chatNewGroup => 'New group';
+  String get chatNewGroup => '新建群组';
 
   @override
-  String get chatNewGroupSubtitle => 'Chat with several friends at once';
+  String get chatNewGroupSubtitle => '与多位好友同时聊天';
 
   @override
-  String get chatNone => 'No messages yet.';
+  String get chatNone => '暂无消息。';
 
   @override
-  String get chatYou => 'You';
+  String get chatYou => '你';
 
   @override
   String chatYouSaid(String text) {
-    return 'You: $text';
+    return '你：$text';
   }
 
   @override
-  String get chatPhoto => 'Photo';
+  String get chatPhoto => '图片';
 
   @override
-  String get chatEmoji => 'Emoji';
+  String get chatEmoji => '表情符号';
 
   @override
-  String get chatEmojiSearch => 'Search emoji';
+  String get chatEmojiSearch => '搜索表情符号';
 
   @override
-  String get chatNoRecentEmoji => 'No recent emoji';
+  String get chatNoRecentEmoji => '暂无最近使用的表情符号';
 
   @override
-  String get chatViewPhoto => 'View photo';
+  String get chatViewPhoto => '查看图片';
 
   @override
-  String get chatHint => 'Write a message';
+  String get chatHint => '输入消息';
 
   @override
-  String get chatAttach => 'Send a photo';
+  String get chatAttach => '发送图片';
 
   @override
-  String get chatEdited => 'edited';
+  String get chatEdited => '已编辑';
 
   @override
-  String get chatSeen => 'Seen';
+  String get chatSeen => '已读';
 
   @override
-  String get chatSent => 'Sent';
+  String get chatSent => '已发送';
 
   @override
-  String get chatEditing => 'Editing message';
+  String get chatEditing => '正在编辑消息';
 
   @override
-  String get chatMessageOptions => 'Message options';
+  String get chatMessageOptions => '消息选项';
 
   @override
-  String get chatDeleteBody => 'Delete this message for everyone?';
+  String get chatDeleteBody => '要对所有人删除这条消息吗？';
 
   @override
-  String get chatClear => 'Clear conversation';
+  String get chatClear => '清空对话';
 
   @override
-  String get chatClearBody =>
-      'Delete every message in this chat for everyone in it?';
+  String get chatClearBody => '要对群内所有人删除此聊天中的全部消息吗？';
 
   @override
-  String get chatGroupInfo => 'Group info';
+  String get chatGroupInfo => '群组信息';
 
   @override
-  String get chatGroupName => 'Group name';
+  String get chatGroupName => '播放组名称';
 
   @override
   String chatMemberCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count members',
-      one: '1 member',
+      other: '$count 位成员',
+      one: '1 位成员',
     );
     return '$_temp0';
   }
 
   @override
-  String get chatOwner => 'Owner';
+  String get chatOwner => '群主';
 
   @override
-  String get chatAdmin => 'Admin';
+  String get chatAdmin => '管理员';
 
   @override
-  String get chatMakeAdmin => 'Make admin';
+  String get chatMakeAdmin => '设为管理员';
 
   @override
-  String get chatRemoveAdmin => 'Remove admin';
+  String get chatRemoveAdmin => '撤销管理员';
 
   @override
-  String get chatRemoveMember => 'Remove from group';
+  String get chatRemoveMember => '移出群组';
 
   @override
-  String get chatAddMember => 'Add people';
+  String get chatAddMember => '添加成员';
 
   @override
-  String get chatNobodyToAdd => 'No one left to add.';
+  String get chatNobodyToAdd => '没有可添加的用户了。';
 
   @override
-  String get chatLeave => 'Leave group';
+  String get chatLeave => '离开播放组';
 
   @override
-  String get chatLeaveBody =>
-      'Leave this group? Someone will have to add you back to rejoin.';
+  String get chatLeaveBody => '要退出此群组吗？之后需要有人重新添加你才能再次加入。';
 
   @override
-  String get chatCreate => 'Create group';
+  String get chatCreate => '创建播放组';
 
   @override
-  String get chatPickMembers => 'Pick at least two friends';
+  String get chatPickMembers => '至少选择两位好友';
 
   @override
   String chatNewMessageFrom(String name) {
-    return 'New message from $name';
+    return '收到 $name 的新消息';
   }
 
   @override
-  String get chatImageTooLarge => 'That image is over 8 MB.';
+  String get chatImageTooLarge => '该图片超过 8 MB。';
 
   @override
-  String get chatImageUnsupported =>
-      'Only PNG, JPEG, GIF and WebP images can be sent.';
+  String get chatImageUnsupported => '只能发送 PNG、JPEG、GIF 和 WebP 格式的图片。';
 
   @override
   String get embeddedBrowserNotAvailable => '嵌入式浏览器在此平台上不可用。';
@@ -12236,6 +13966,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get analyticsNoLibrariesAvailable => '没有可用的媒体库。';
+
+  @override
+  String get analyticsLibraryShare => '各媒体库的媒体项占比';
+
+  @override
+  String get analyticsTopRating => '最常见的分级';
+
+  @override
+  String get analyticsTypicalRuntime => '常见时长';
+
+  @override
+  String analyticsShareOfItems(String percent) {
+    return '$percent% 的媒体项';
+  }
 
   @override
   String get adminServerAdministrationTitle => '服务器管理';
@@ -12340,9 +14084,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cb7ExtractionPluginUnavailable => 'CB7 提取插件在此平台上不可用。';
-
-  @override
-  String get closeGenrePanel => '关闭类型面板';
 
   @override
   String get loadingShuffle => '正在加载随机内容...';
@@ -12526,7 +14267,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get audiobookFocusedTimeline => '聚焦时间轴';
 
   @override
-  String get audiobookFullTimeline => 'Full Timeline';
+  String get audiobookFullTimeline => '完整时间线';
 
   @override
   String get audiobookExportBookmarks => '导出书签';
@@ -12544,7 +14285,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String audiobookExportFailed(String error) {
-    return '导出失败: $error';
+    return '导出失败：$error';
   }
 
   @override
@@ -12705,7 +14446,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String fileSizeFormat(Object size, Object format) {
-    return '大小: $size  •  格式: $format';
+    return '大小：$size  •  格式：$format';
   }
 
   @override
@@ -12727,7 +14468,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checkingDirectPlay => '正在检查直接播放能力...';
 
   @override
-  String get directPlayCapabilityLabel => '直接播放能力: ';
+  String get directPlayCapabilityLabel => '直接播放能力： ';
 
   @override
   String get forced => '强制';
@@ -12763,55 +14504,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcodeVideoFramerateNotSupported => '视频帧率不受支持。';
 
   @override
-  String get transcodeContainerBitrateExceedsLimit => '文件比特率超过播放器流式传输限制。';
+  String get transcodeContainerBitrateExceedsLimit => '文件码率超过播放器串流限制。';
 
   @override
-  String get transcodeVideoBitrateExceedsLimit => '视频比特率超过流式传输限制。';
+  String get transcodeVideoBitrateExceedsLimit => '视频码率超过串流限制。';
 
   @override
-  String get transcodeAudioBitrateExceedsLimit => '音频比特率超过流式传输限制。';
+  String get transcodeAudioBitrateExceedsLimit => '音频码率超过串流限制。';
 
   @override
   String get transcodeAudioChannelsNotSupported => '音频声道数不受支持。';
 
   @override
   String transcodeAudioCodecWithCodec(String codec) {
-    return 'Audio codec ($codec) is not supported directly.';
+    return '音频编解码器（$codec）不受直接支持。';
   }
 
   @override
   String transcodeAudioCodecHintPassthrough(String codec) {
-    return 'Tip: If your audio receiver or soundbar supports $codec, enable Audio Passthrough in Audio settings.';
+    return '提示：如果你的音频接收器或回音壁支持 $codec，请在音频设置中启用“音频直通”。';
   }
 
   @override
   String transcodeAudioChannelsExceeded(int channels) {
-    return 'Audio channel count (${channels}ch) exceeds the player limit.';
+    return '音频声道数（$channels 声道）超过播放器上限。';
   }
 
   @override
-  String get transcodeAudioChannelsHint =>
-      'Tip: Adjust \'Max Audio Channels\' or multichannel downmixing in Audio settings.';
+  String get transcodeAudioChannelsHint => '提示：请在音频设置中调整“最大音频声道数”或多声道缩混。';
 
   @override
-  String get transcodeSubtitleBurnInAssDisabled =>
-      'ASS/SSA subtitles require transcoding because direct play is turned off.';
+  String get transcodeSubtitleBurnInAssDisabled => '由于已关闭直接播放，ASS/SSA 字幕需要转码。';
 
   @override
   String get transcodeSubtitleBurnInAssHint =>
-      'Tip: Enable \'ASS/SSA Direct Play\' in Playback settings to play directly without transcoding.';
+      '提示：请在播放设置中启用“ASS/SSA 直接播放”，即可无需转码直接播放。';
 
   @override
-  String get transcodeSubtitleBurnInPgsDisabled =>
-      'PGS subtitles require transcoding because direct play is turned off.';
+  String get transcodeSubtitleBurnInPgsDisabled => '由于已关闭直接播放，PGS 字幕需要转码。';
 
   @override
   String get transcodeSubtitleBurnInPgsHint =>
-      'Tip: Enable \'PGS Direct Play\' in Playback settings to play directly without transcoding.';
+      '提示：请在播放设置中启用“PGS 直接播放”，即可无需转码直接播放。';
 
   @override
   String transcodeSubtitleNotSupportedWithCodec(String codec) {
-    return 'Subtitle format ($codec) is not supported directly and must be burned in.';
+    return '不直接支持字幕格式（$codec），必须将其压制到画面中。';
   }
 
   @override
@@ -12819,72 +14557,65 @@ class AppLocalizationsZh extends AppLocalizations {
     String fileBitrate,
     String maxBitrate,
   ) {
-    return 'File bitrate ($fileBitrate) exceeds the configured streaming limit ($maxBitrate).';
+    return '文件码率（$fileBitrate）超过配置的串流上限（$maxBitrate）。';
   }
 
   @override
-  String get transcodeBitrateHint =>
-      'Tip: Increase \'Maximum Bitrate\' in Playback settings to allow direct streaming.';
+  String get transcodeBitrateHint => '提示：请在播放设置中提高“最大串流码率”，以允许直接串流。';
 
   @override
-  String get transcodeResolutionHint =>
-      'Tip: Increase \'Maximum Resolution\' in Playback settings to allow direct streaming.';
+  String get transcodeResolutionHint => '提示：请在播放设置中提高“最大分辨率”，以允许直接串流。';
 
   @override
   String get transcodeVideoRangeNotSupported =>
-      'Video dynamic range (e.g. Dolby Vision / HDR) is not supported by this display.';
+      '此显示屏不支持视频动态范围（如 Dolby Vision / HDR）。';
 
   @override
   String get transcodeDolbyVisionProfile7ElDisabled =>
-      'Dolby Vision Profile 7 enhancement layer direct play is disabled.';
+      '已禁用 Dolby Vision Profile 7 增强层直接播放。';
 
   @override
   String get transcodeDolbyVisionProfile7ElHint =>
-      'Tip: Enable \'Dolby Vision Profile 7 Direct Play\' in Playback settings if your display supports it.';
+      '提示：如果你的显示屏支持，请在播放设置中启用“Dolby Vision Profile 7 直接播放”。';
 
   @override
   String get transcodeDolbyVisionFallbackPreferenceTranscode =>
-      'Transcoding is preferred for Dolby Vision fallback per user settings.';
+      '根据用户设置，Dolby Vision 回退时优先使用转码。';
 
   @override
   String get transcodeDolbyVisionFallbackHint =>
-      'Tip: Set \'Dolby Vision Fallback\' to \'Play as HDR10\' in Playback settings to avoid transcoding.';
+      '提示：请在播放设置中将“Dolby Vision 回退”设为“按 HDR10 播放”，以避免转码。';
 
   @override
-  String get transcodeDisplayReportsNoHdr =>
-      'Connected display does not report support for HDR or Dolby Vision.';
+  String get transcodeDisplayReportsNoHdr => '连接的显示屏未报告支持 HDR 或 Dolby Vision。';
 
   @override
   String get transcodeDisplayLacksHdr10ForFallback =>
-      'Connected display lacks HDR10 support needed for Dolby Vision fallback.';
+      '连接的显示屏不支持 Dolby Vision 回退所需的 HDR10。';
 
   @override
-  String get transcodeAudioSampleRateNotSupported =>
-      'Audio sample rate is not supported.';
+  String get transcodeAudioSampleRateNotSupported => '不支持音频采样率。';
 
   @override
-  String get transcodeAudioBitDepthNotSupported =>
-      'Audio bit depth is not supported.';
+  String get transcodeAudioBitDepthNotSupported => '不支持音频位深。';
 
   @override
-  String get transcodeRefFramesNotSupported =>
-      'Video reference frames exceed player limits.';
+  String get transcodeRefFramesNotSupported => '视频参考帧数超过播放器上限。';
 
   @override
-  String get transcodeAnamorphicVideoNotSupported =>
-      'Anamorphic video is not supported.';
+  String get transcodeAnamorphicVideoNotSupported => '不支持变形宽银幕视频。';
 
   @override
-  String get transcodeInterlacedVideoNotSupported =>
-      'Interlaced video is not supported.';
+  String get transcodeInterlacedVideoNotSupported => '不支持隔行扫描视频。';
 
   @override
-  String get transcodeSecondaryAudioNotSupported =>
-      'Secondary audio stream requires transcoding.';
+  String get transcodeSecondaryAudioNotSupported => '次要音频流需要转码。';
 
   @override
-  String get transcodeDirectPlayError =>
-      'Direct play is not supported for this media format.';
+  String get transcodeDirectPlayError => '此媒体格式不支持直接播放。';
+
+  @override
+  String get sortServerOrder => '服务器顺序';
 
   @override
   String get sortAlphabetical => '字母顺序';
@@ -12897,6 +14628,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sortCustomDragDrop => '自定义（拖放）';
+
+  @override
+  String sortCurrent(String option) {
+    return '排序：$option';
+  }
 
   @override
   String get playlistSortOptions => '播放列表排序选项';
@@ -13025,7 +14761,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playlistTypeVideo => '视频';
 
   @override
-  String get playlistTypeMusicVideo => 'Music Video';
+  String get playlistTypeMusicVideo => '音乐视频';
 
   @override
   String get playlistTypeAudio => '音频（音乐）';
@@ -13046,7 +14782,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get videoPlaylistsSection => '视频播放列表';
 
   @override
-  String get musicVideoPlaylistsSection => 'Music Video Playlists';
+  String get musicVideoPlaylistsSection => '音乐视频播放列表';
 
   @override
   String get audioPlaylistsSection => '音频播放列表';
@@ -13128,6 +14864,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get showAlphabeticalFilters => '显示字母表';
+
+  @override
+  String get libraryFolderView => '文件夹视图';
 
   @override
   String get personalRatingStyle => '个人评分样式';
@@ -13236,6 +14975,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subtitleHdrSeparateSubtitle => '白色在 HDR 中比 SDR 亮得多，此处使用较暗的样式可避免刺眼';
 
   @override
+  String get subtitleBold => '粗体文本';
+
+  @override
+  String get subtitleStrokeWidth => '文字描边宽度';
+
+  @override
+  String get subtitleFont => '字体';
+
+  @override
+  String get subtitleFontDescription => '首次选择字体时，将从 Google Fonts 下载该字体';
+
+  @override
+  String subtitleFontDownloadFailed(String font) {
+    return '无法下载 $font';
+  }
+
+  @override
+  String get subtitleShadow => '文字阴影';
+
+  @override
+  String get subtitleShadowIntensity => '阴影强度';
+
+  @override
+  String get subtitleShadowOffset => '阴影偏移';
+
+  @override
+  String get subtitleShadowBlur => '阴影模糊';
+
+  @override
   String get scrollSensitivity => '滚动灵敏度';
 
   @override
@@ -13263,10 +15031,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get detailUseSeriesThumbnailsSubtitle => '将经典详情页上的所有缩略图替换为剧集缩略图';
 
   @override
-  String get hideHomeMediaDescription => '在主屏幕隐藏媒体描述';
+  String get hideHomeMediaDescription => '在详情页隐藏媒体描述';
 
   @override
   String get hideHomeMediaDescriptionSubtitle => '隐藏电影或剧集的描述文字。';
+
+  @override
+  String get hideHomeWatchProgress => '隐藏观看进度';
+
+  @override
+  String get hideHomeWatchProgressSubtitle => '隐藏已开始观看内容的海报上的进度条。';
+
+  @override
+  String get hideHomeUnwatchedCount => '隐藏未观看数量';
+
+  @override
+  String get hideHomeUnwatchedCountSubtitle => '隐藏显示剩余待看集数的角标。';
 
   @override
   String get continueWatchingAndNextUpHeader => '继续观看与下个播放';
@@ -13290,10 +15070,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get setupTourQuestion => '设置完成。这里还有更多功能。';
 
   @override
-  String get setupPlaybackLanguages => 'Playback languages';
+  String get setupPlaybackLanguages => '播放语言';
 
   @override
-  String get setupOptional => 'Optional';
+  String get setupOptional => '可选';
 
   @override
   String get setupStyleClassic => '经典';
@@ -13308,46 +15088,67 @@ class AppLocalizationsZh extends AppLocalizations {
   String get setupRowsModernHint => '更大的卡片，标题在下方。';
 
   @override
+  String get setupRowsCarouselHint => '海报下方带有大型详情面板。';
+
+  @override
   String get setupDetailClassicHint => '所有内容居中堆叠。';
 
   @override
   String get setupDetailModernHint => '电影感，带有演职人员和花絮标签页。';
 
   @override
-  String get setupStyleSpotlight => 'Spotlight';
+  String get setupStyleSpotlight => '聚光灯';
 
   @override
-  String get setupDetailSpotlightHint =>
-      'Hero-first, with pop-up cards for cast and extras.';
+  String get setupDetailSpotlightHint => '以主视觉区优先，演员和花絮以弹出式卡片呈现。';
 
   @override
-  String get setupStyleNouveau => 'Nouveau';
+  String get setupStyleNouveau => '新潮';
 
   @override
-  String get setupDetailNouveauHint =>
-      'Full-screen, with sections stacked instead of tabs.';
+  String get setupDetailNouveauHint => '全屏布局，各版块自上而下堆叠，不使用标签页。';
 
   @override
-  String get setupStyleMinimalist => 'Minimalist';
+  String get setupStyleMinimalist => '极简';
 
   @override
-  String get setupDetailMinimalistHint =>
-      'Artwork, one play button and the episodes.';
+  String get setupDetailMinimalistHint => '图片、一个播放按钮和各集列表。';
 
   @override
-  String get setupNavbarStyleQuestion => 'How should the bottom bar look?';
+  String get setupStyleStage => '舞台';
 
   @override
-  String get setupNavbarStyleDockHint =>
-      'A floating pill with labels under every tab.';
+  String get setupDetailStageHint => '海报在前，播放按钮在其下方，详情在旁边。';
 
   @override
-  String get setupNavbarStyleSplitHint =>
-      'Search gets its own button, and the bar shrinks while you scroll.';
+  String get setupStylePremiere => '首映';
 
   @override
-  String get setupNavbarStyleStripHint =>
-      'A full-width bar along the bottom edge.';
+  String get setupDetailPremiereHint => '片名居中显示在全屏背景图上，其余内容沿页面向下排列。';
+
+  @override
+  String get setupStyleQuickLook => '速览';
+
+  @override
+  String get setupDetailQuickLookHint => '在当前画面上弹出抽屉，包含播放和基本信息，再按一下即可打开完整页面。';
+
+  @override
+  String get setupStyleFrost => '磨砂';
+
+  @override
+  String get setupDetailFrostHint => '片名显示在模糊图片之上的玻璃窗口中，标签页位于按钮下方。';
+
+  @override
+  String get setupNavbarStyleQuestion => '底部导航栏要呈现什么样式？';
+
+  @override
+  String get setupNavbarStyleDockHint => '悬浮的胶囊样式，每个标签下方都有文字。';
+
+  @override
+  String get setupNavbarStyleSplitHint => '搜索拥有独立按钮，滚动时导航栏会收缩。';
+
+  @override
+  String get setupNavbarStyleStripHint => '沿屏幕底边的通栏样式。';
 
   @override
   String get setupPickALook => '选择外观';
@@ -13371,6 +15172,98 @@ class AppLocalizationsZh extends AppLocalizations {
   String get setupTourBulletMore => '以及更多';
 
   @override
+  String setupStepOf(int current, int total) {
+    return '第 $current 步，共 $total 步';
+  }
+
+  @override
+  String get setupCurrent => '当前';
+
+  @override
+  String get setupMoonbaseTitle => '将 Moonbase 添加到你的服务器';
+
+  @override
+  String get setupMoonbaseHint => '一个免费的服务器插件，可解锁 Moonfin 的更多功能';
+
+  @override
+  String get setupMoonbaseIntro => 'Moonbase 免费且运行在你的服务器上。安装后，Moonfin 将获得：';
+
+  @override
+  String get setupMoonbaseAskAdmin => '只有服务器管理员才能安装。请将此链接发送给他们。';
+
+  @override
+  String get setupMoonbaseManualSteps => '安装需要在服务器上完成几个步骤，全部步骤请见此链接。';
+
+  @override
+  String get setupMoonbaseInstalling => '正在安装 Moonbase…';
+
+  @override
+  String get setupMoonbaseInstalled =>
+      'Moonbase 已安装。它将在服务器重启后启用，这会中断当前正在播放的内容。';
+
+  @override
+  String get setupMoonbaseRestarting => '服务器正在重启。恢复后 Moonbase 将启用。';
+
+  @override
+  String get moonbaseFeatureSync => '设置在你所有设备间同步';
+
+  @override
+  String get moonbaseFeatureRatings => '更多评分和 TMDB 评论';
+
+  @override
+  String get moonbaseFeatureRows => '根据你喜爱的列表自定义栏目';
+
+  @override
+  String get moonbaseFeatureGames => '复古游戏，存档同步';
+
+  @override
+  String get moonbaseFeatureCalendar => '即将推出内容的日历';
+
+  @override
+  String get moonbaseFeatureCollections => '为每个合集自定义排序';
+
+  @override
+  String get moonbaseFeatureMessages => '来自服务器管理员的消息';
+
+  @override
+  String setupMoonbaseInstallFailed(String error) {
+    return '无法安装 Moonbase。$error';
+  }
+
+  @override
+  String get setupTvHint => '上下键预览 · 确定键选择 · 连按两次返回键跳过';
+
+  @override
+  String get setupNavbarTopHint => '标签位于屏幕顶部。';
+
+  @override
+  String get setupNavbarLeftHint => '左侧一条细长的图标栏。';
+
+  @override
+  String get setupNavbarBottomHint => '标签位于屏幕底边，方便拇指触及。';
+
+  @override
+  String get setupMediaBarMoonfinHint => '大尺寸图片，片名、详情和简介叠加显示其上。';
+
+  @override
+  String get setupMediaBarMakdHint => '大尺寸图片，以醒目的片名标识为主。';
+
+  @override
+  String get setupMediaBarBookshelfHint => '片名以书脊形式排列在书架上，精选内容正面朝外展示。';
+
+  @override
+  String get setupMediaBarGalleryHint => '精选内容展开显示，接下来几部在其旁边依次排列。';
+
+  @override
+  String get setupMediaBarBannerHint => '栏目上方显示较短的横幅，让屏幕上能容纳更多栏目。';
+
+  @override
+  String get setupMediaBarAyaHint => '图片置于带边框的面板中，栏目紧随其下。';
+
+  @override
+  String get setupMediaBarOffHint => '不显示精选区域。首页打开后直接显示各栏目。';
+
+  @override
   String get runSetupAgain => '重新运行设置';
 
   @override
@@ -13389,11 +15282,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverMessagesShowButtonSubtitle => '在菜单添加按钮，用于查看服务器管理员推送消息';
 
   @override
-  String get showBookDiscoverTab => 'Show Book Library Discovery';
+  String get showBookDiscoverTab => '显示图书媒体库发现';
 
   @override
   String get showBookDiscoverTabDescription =>
-      'Browse titles from Open Library and LibriVox in your book and audiobook libraries';
+      '在图书和有声书媒体库中浏览来自 Open Library 和 LibriVox 的作品';
+
+  @override
+  String get bookFoldersAsSeries => '将图书文件夹视为剧集';
+
+  @override
+  String get bookFoldersAsSeriesDescription => '将包含图书的文件夹视为剧集，而非依赖每本书各自的元数据';
 
   @override
   String get autoDownloadNewEpisodes => '自动下载新剧集';
@@ -13443,32 +15342,31 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get smartDownloadsSection => 'Smart downloads';
+  String get smartDownloadsSection => '智能下载';
 
   @override
-  String get smartDownloadsEnable => 'Download Next Episodes';
+  String get smartDownloadsEnable => '下载下一集';
 
   @override
-  String get smartDownloadsEnableSubtitle =>
-      'When you finish an episode on any device, OB Max downloads the next ones. Downloaded episodes are deleted once watched.';
+  String get smartDownloadsEnableDescription =>
+      '当你在任意设备上观看完一集后，Moonfin 会自动下载后续剧集。已下载的剧集在观看后会被删除。';
 
   @override
-  String get smartDownloadsKeepReady => 'Episodes to Keep Downloaded';
+  String get smartDownloadsKeepReady => '保持下载的集数';
 
   @override
   String smartDownloadsKeepReadySubtitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Keeps the next $count episodes downloaded',
-      one: 'Keeps the next episode downloaded',
+      other: '保持下载后续 $count 集',
+      one: '保持下载下一集',
     );
     return '$_temp0';
   }
 
   @override
-  String get smartDownloadsKeepReadyLowered =>
-      'Episodes already downloaded stay on your device. The new number applies to future downloads.';
+  String get smartDownloadsKeepReadyLowered => '已下载的剧集会保留在你的设备上。新数量仅对之后的下载生效。';
 
   @override
   String get autoDownloadSection => '自动下载';
@@ -13489,7 +15387,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoDownloadDelete => '删除已下载剧集';
 
   @override
-  String get autoDownloadDeleteSubtitle => '观看后何时自动删除已下载剧集';
+  String get autoDownloadDeleteFollowedSubtitle => '观看后何时删除为已关注剧集下载的剧集';
+
+  @override
+  String get removeWatchedDownloads => '删除已观看的下载内容';
+
+  @override
+  String get removeWatchedDownloadsSubtitle => '何时删除你自己下载的剧集和电影。仅删除开启此选项后观看的内容';
+
+  @override
+  String get removeWatchedAsk => '询问我';
+
+  @override
+  String get deleteFinishedDownloadTitle => '删除此下载内容？';
+
+  @override
+  String deleteFinishedDownloadMessage(String title) {
+    return '你已看完 $title。删除其下载内容可释放空间，或保留并不再提示。';
+  }
+
+  @override
+  String get notNow => '暂不';
+
+  @override
+  String get keepDownloaded => '保留下载内容';
+
+  @override
+  String get keepDownloadedSubtitle => '观看后永不自动删除此内容';
 
   @override
   String get autoDownloadDeleteNever => '永不删除';
@@ -13661,337 +15585,1250 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get pageTransitions => 'Page Transitions';
+  String get pageTransitions => '页面切换';
 
   @override
-  String get pageTransitionsSubtitle =>
-      'Adjusts fade time when navigating between pages';
+  String get pageTransitionsSubtitle => '调整页面之间切换时的淡入淡出时长';
 
   @override
-  String get navigationSpeed => 'Navigation Speed';
+  String get navigationSpeed => '导航速度';
 
   @override
-  String get navigationSpeedSubtitle =>
-      'Adjusts how quickly the focus indicator moves between items and rows';
+  String get navigationSpeedSubtitle => '调整焦点指示器在媒体项和栏目之间移动的速度';
 
   @override
-  String get modernCardsTransitionSpeed => 'Modern Cards Transition Speed';
+  String get modernCardsTransitionSpeed => '现代卡片动画速度';
 
   @override
-  String get modernCardsTransitionSpeedSubtitle =>
-      'Adjusts animation speed when expanding focused modern cards';
+  String get modernCardsTransitionSpeedSubtitle => '调整展开获得焦点的现代卡片时的动画速度';
 
   @override
-  String get delayCardExpansionOnRapidScroll =>
-      'Delay Card Expansion on Rapid Scroll';
+  String get delayCardExpansionOnRapidScroll => '快速滚动时延迟展开卡片';
 
   @override
-  String get delayCardExpansionOnRapidScrollSubtitle =>
-      'Waits for focus movement to pause before expanding modern cards';
+  String get delayCardExpansionOnRapidScrollSubtitle => '等待焦点移动停止后再展开现代卡片';
 
   @override
-  String get animationSpeedExtraSlow => 'Extra Slow';
+  String get animationSpeedExtraSlow => '特慢';
 
   @override
-  String get animationSpeedSlow => 'Slow';
+  String get animationSpeedSlow => '慢';
 
   @override
-  String get animationSpeedMedium => 'Medium';
+  String get animationSpeedMedium => '中';
 
   @override
-  String get animationSpeedFast => 'Fast';
+  String get animationSpeedFast => '快';
 
   @override
-  String get animationSpeedOff => 'Off';
+  String get animationSpeedOff => '关';
 
   @override
-  String get pageTransitionFadeNone => 'No Fade';
+  String get pageTransitionFadeNone => '无淡入淡出';
 
   @override
-  String get pageTransitionFadeShort => 'Short Fade';
+  String get pageTransitionFadeShort => '短淡入淡出';
 
   @override
-  String get pageTransitionFadeMedium => 'Medium Fade';
+  String get pageTransitionFadeMedium => '中等淡入淡出';
 
   @override
-  String get pageTransitionFadeLong => 'Long Fade';
+  String get pageTransitionFadeLong => '长淡入淡出';
 
   @override
-  String get siriRemoteSwipeSensitivity => 'Touchpad Swipe Sensitivity';
+  String get siriRemoteSwipeSensitivity => '触控板滑动灵敏度';
 
   @override
   String get siriRemoteSwipeSensitivityDescription =>
-      'How far focus moves for each swipe on the Siri Remote touchpad';
+      '在 Siri Remote 触控板上每次滑动时焦点移动的距离';
 
   @override
-  String get appleTvHomeScreen => 'Apple TV home screen';
+  String get appleTvHomeScreen => 'Apple TV 主屏幕';
 
   @override
-  String get topShelf => 'Top Shelf';
+  String get topShelf => '顶部推荐栏';
 
   @override
   String get topShelfDescription =>
-      'What the Apple TV home screen shows above the OB Max icon when it is selected. This setting stays on this device.';
+      '选中 Moonfin 图标时，Apple TV 主屏幕上方显示的内容。此设置仅在本设备上生效。';
 
   @override
-  String get topShelfLatestMedia => 'Latest media';
+  String get topShelfLatestMedia => '最近媒体';
 
   @override
-  String get topShelfAppBanner => 'OB Max banner';
+  String get topShelfAppBanner => 'Moonfin 横幅';
 
   @override
-  String get keepVideoClearOfDynamicIsland =>
-      'Keep Video Clear of the Dynamic Island';
+  String get keepVideoClearOfDynamicIsland => '视频避开灵动岛';
 
   @override
   String get keepVideoClearOfDynamicIslandDescription =>
-      'In landscape the camera housing covers one edge of the screen. This holds the picture back from it, which only changes anything for video wide enough to reach that far.';
+      '横屏时，摄像头区域会遮挡屏幕一侧。此选项会让画面避开该区域，仅对宽度足以延伸到该处的视频产生影响。';
 
   @override
-  String get bottomNavbarStyle => 'Bottom Bar Style';
+  String get bottomNavbarStyle => '底部栏样式';
 
   @override
-  String get bottomNavbarStyleDock => 'Dock';
+  String get bottomNavbarStyleDock => '停靠';
 
   @override
-  String get bottomNavbarStyleSplit => 'Split';
+  String get bottomNavbarStyleSplit => '分栏';
 
   @override
-  String get bottomNavbarStyleStrip => 'Strip';
+  String get bottomNavbarStyleStrip => '条形';
 
   @override
-  String get bottomNavbarTabs => 'Bottom Bar Tabs';
+  String get bottomNavbarTabs => '底部栏标签';
 
   @override
   String get bottomNavbarTabsDescription =>
-      'Pin up to 3 tabs between Home and You. Everything else is in the bottom navbar hub.';
+      '在“首页”和“你”之间最多可固定 3 个标签。其余标签都在底部栏的中心页面。';
 
   @override
-  String get bottomNavbarTabsAutomatic => 'Automatic';
+  String get bottomNavbarTabsAutomatic => '自动模式';
 
   @override
-  String get bottomNavbarTabsPinned => 'Pinned';
+  String get bottomNavbarTabsPinned => '已固定';
 
   @override
-  String get bottomNavbarTabsAvailable => 'Available';
+  String get bottomNavbarTabsAvailable => '可用';
 
   @override
-  String get bottomNavbarTabsReset => 'Reset to Automatic';
+  String get bottomNavbarTabsReset => '重置为自动';
 
   @override
-  String get bottomNavbarTabsLimit =>
-      'You can pin up to 3 tabs. Remove one to pin another.';
+  String get bottomNavbarTabsLimit => '最多可固定 3 个标签。移除一个后才能固定其他标签。';
 
   @override
-  String get bottomNavbarTabTurnedOff => 'Turned off under Buttons';
+  String get bottomNavbarTabTurnedOff => '已在“按钮”中关闭';
 
   @override
-  String get bottomNavbarSplitSearchNote =>
-      'In the Split style, Search always has its own button.';
+  String get bottomNavbarSplitSearchNote => '在“分栏”样式中，“搜索”始终拥有独立按钮。';
 
   @override
   String get bottomNavbarButtonsNote =>
-      'These decide what shows in the bottom navbar hub and which tabs you can pin to the bottom bar. Tabs already on the bar aren\'t listed here.';
+      '这些选项决定底部栏中心页显示的内容，以及哪些标签可以固定到底部栏。已在底部栏上的标签不会在此列出。';
 
   @override
-  String get navYou => 'You';
+  String get navYou => '你';
 
   @override
-  String get detailsPage => 'Details Page';
+  String get cinemaSkipPrerolls => '影院模式跳过按钮';
 
   @override
-  String get storageAndDownloads => 'Storage & Downloads';
+  String get cinemaSkipPrerollsDescription =>
+      '在影院模式的预告片、广告和其他片前内容播放期间显示“跳过”按钮。';
+
+  @override
+  String get detailsPage => '详情页面';
+
+  @override
+  String get storageAndDownloads => '存储与下载';
 
   @override
   String get integrations => '集成';
 
   @override
-  String get settingsSync => 'Settings Sync';
+  String get settingsSync => '设置同步';
 
   @override
-  String get settingsSyncSubtitle =>
-      'Moonbase plugin sync and customization profiles';
+  String get settingsSyncSubtitle => 'Moonbase 插件同步和自定义配置方案';
 
   @override
-  String get navigationBar => 'Navigation Bar';
+  String get navigationBar => '导航栏';
 
   @override
-  String get homeRows => 'Rows';
+  String get homeRows => '栏目';
 
   @override
-  String get homeRowsSubtitle => 'Turn rows on or off and change their order';
+  String get homeRowsSubtitle => '开启或关闭栏目并调整其顺序';
 
   @override
-  String get rowOptions => 'Row Options';
+  String get rowOptions => '栏目选项';
 
   @override
-  String get rowOptionsSubtitle => 'Sorting and content for each row';
+  String get rowOptionsSubtitle => '每个栏目的排序和内容';
 
   @override
-  String get imageTypePerRow => 'Image Type per Row';
+  String get imageTypePerRow => '每个栏目的图片类型';
 
   @override
-  String get externalSources => 'External Sources';
+  String get externalSources => '外部来源';
 
   @override
-  String get qualityAndDecoding => 'Quality & Decoding';
+  String get qualityAndDecoding => '画质与解码';
 
   @override
-  String get qualityAndDecodingSubtitle =>
-      'Bitrate, resolution, decoding, HDR, and Dolby Vision';
+  String get qualityAndDecodingSubtitle => '码率、分辨率、解码、HDR 和 Dolby Vision';
 
   @override
-  String get skippingAndAutoplay => 'Skipping & Autoplay';
+  String get skippingAndAutoplay => '跳过与自动播放';
 
   @override
-  String get advancedPlayback => 'Advanced Playback';
+  String get advancedPlayback => '高级播放';
 
   @override
-  String get advancedPlaybackSubtitle =>
-      'Player routing, external players, and mpv';
+  String get advancedPlaybackSubtitle => '播放器路由、外部播放器和 mpv';
 
   @override
-  String get settingsAccountSubtitle =>
-      'Sign-in, PIN code, Kids Mode, parental controls, and settings sync';
+  String get settingsAccountSubtitle => '登录、PIN 码、儿童模式、家长控制和设置同步';
 
   @override
-  String get settingsGeneralSubtitle =>
-      'Language, clock, input, and performance';
+  String get settingsGeneralSubtitle => '语言、时钟、输入和性能';
 
   @override
-  String get settingsAppearanceSubtitle =>
-      'Navigation, home screen, libraries, details page, and themes';
+  String get settingsAppearanceSubtitle => '导航、主屏幕、媒体库、详情页面和主题';
 
   @override
-  String get settingsHomeScreenSubtitle =>
-      'Rows, media bar, looks, and external sources';
+  String get settingsHomeScreenSubtitle => '栏目、媒体栏、外观和外部来源';
 
   @override
-  String get settingsLibrariesEntrySubtitle =>
-      'Library visibility, order, and library pages';
+  String get settingsLibrariesEntrySubtitle => '媒体库的可见性、顺序和媒体库页面';
 
   @override
-  String get settingsDetailsPageSubtitle =>
-      'Layout, buttons, sections, ratings, and theme music';
+  String get settingsDetailsPageSubtitle => '布局、按钮、分区、评分和主题音乐';
 
   @override
-  String get settingsPlaybackSubtitle =>
-      'Player, quality, audio, subtitles, skipping, and SyncPlay';
+  String get settingsPlaybackSubtitle => '播放器、画质、音频、字幕、跳过和观影派对';
 
   @override
-  String get settingsStorageSubtitle =>
-      'Downloads, storage location, and the image cache';
+  String get settingsStorageSubtitle => '下载、存储位置和图片缓存';
 
   @override
-  String get settingsServicesSubtitle => 'Seerr and Achievement Badges';
+  String get settingsServicesSubtitle => 'Seerr 和成就徽章';
 
   @override
-  String get settingsSignInSection => 'Sign-in';
+  String get settingsSignInSection => '登录';
 
   @override
-  String get settingsFamilySection => 'Family';
+  String get settingsFamilySection => '家庭';
 
   @override
-  String get settingsServersSection => 'Servers';
+  String get settingsServersSection => '服务器';
 
   @override
-  String get settingsLanguageSection => 'Language';
+  String get settingsLanguageSection => '语言';
 
   @override
-  String get settingsInputSection => 'Input';
+  String get settingsInputSection => '输入';
 
   @override
-  String get settingsMotionSection => 'Motion';
+  String get settingsMotionSection => '动效';
 
   @override
-  String get settingsContentsSection => 'Contents';
+  String get settingsContentsSection => '内容';
 
   @override
-  String get settingsLooksSection => 'Looks';
+  String get settingsLooksSection => '外观';
 
   @override
-  String get settingsAudioAndSubtitlesSection => 'Audio & Subtitles';
+  String get settingsAudioAndSubtitlesSection => '音频与字幕';
 
   @override
-  String get settingsSkippingAndQueueSection => 'Skipping & Queue';
+  String get settingsSkippingAndQueueSection => '跳过与队列';
 
   @override
-  String get settingsWatchTogetherSection => 'Watch Together';
+  String get settingsWatchTogetherSection => '观影派对';
 
   @override
-  String get settingsAdvancedSection => 'Advanced';
+  String get settingsAdvancedSection => '高级';
 
   @override
-  String get playerSettingsSubtitle =>
-      'Controls, seeking, player buttons, and trick play';
+  String get settingsDecodingAndRenderingSection => '解码与渲染';
 
   @override
-  String get playlistSortReleaseDate => 'Release Date';
+  String get settingsAudioStreamSection => '音频流';
 
   @override
-  String get playlistSortCriticRating => 'Critic Rating';
+  String get settingsAudioOutputSection => '音频输出';
 
   @override
-  String get playlistSortRuntime => 'Runtime';
+  String get settingsPassthroughSettingsSection => '直通设置';
 
   @override
-  String get playlistSortLastPlayed => 'Last Played';
+  String get settingsSeerrHomePageRowsSection => 'Seerr 首页栏目';
 
   @override
-  String get playlistSortPlayCount => 'Play Count';
+  String get settingsSavedCustomHomeRowsSection => '已保存的自定义首页栏目';
 
   @override
-  String get playlistSortRandom => 'Random';
+  String get settingsRewatchSection => '重看';
+
+  @override
+  String get favoritesSwitchViewSection => '切换视图';
+
+  @override
+  String get playerSettingsSubtitle => '控制、跳转、播放器按钮和 trickplay';
+
+  @override
+  String get siloPasswordChangeTitle => '设置新密码';
+
+  @override
+  String get siloPasswordChangeMessage => '此账户使用临时密码。请设置一个新密码以完成登录。';
+
+  @override
+  String get siloPasswordChangeNew => '新密码';
+
+  @override
+  String get siloPasswordChangeConfirm => '确认新密码';
+
+  @override
+  String get siloPasswordChangeSubmit => '更改密码';
+
+  @override
+  String siloPasswordChangeTooShort(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '至少使用 $count 个字符',
+      one: '至少使用 1 个字符',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get siloPasswordChangeTooLong => '该密码过长';
+
+  @override
+  String get siloPasswordChangeMismatch => '两次输入的密码不一致';
+
+  @override
+  String get siloPasswordChangeSameAsTemporary => '请设置一个与临时密码不同的密码';
+
+  @override
+  String get siloPasswordChangeFailed => '无法更改密码。请重试。';
+
+  @override
+  String get siloPasswordChangeUnavailable =>
+      '此账户使用临时密码，但此服务器不允许在此处更改。请在 Silo 的网页应用中更改，然后重新登录。';
+
+  @override
+  String get siloPasswordChangedSignInAgain => '密码已更改。请使用新密码登录。';
+
+  @override
+  String get siloServerRowSubtitle => '来自你的服务器';
+
+  @override
+  String get playlistSortReleaseDate => '上映日期';
+
+  @override
+  String get playlistSortCriticRating => '影评人评分';
+
+  @override
+  String get playlistSortRuntime => '片长';
+
+  @override
+  String get playlistSortLastPlayed => '上次播放';
+
+  @override
+  String get playlistSortPlayCount => '播放次数';
+
+  @override
+  String get playlistSortRandom => '随机';
 
   @override
   String playlistFilterActiveCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count active',
-      one: '1 active',
+      other: '$count 项启用',
+      one: '1 项启用',
     );
     return '$_temp0';
   }
 
   @override
-  String get playlistNoMatchingTracks => 'No tracks match the active filters';
+  String get playlistNoMatchingTracks => '没有符合当前筛选条件的曲目';
 
   @override
-  String get librarySortPlaylistOrder => 'Playlist Order';
+  String get librarySortPlaylistOrder => '播放列表顺序';
 
   @override
-  String get librarySortDateAdded => 'Date Added';
+  String get librarySortDateAdded => '添加日期';
 
   @override
-  String get librarySortDateEpisodeAdded => 'Date Episode Added';
+  String get librarySortDateEpisodeAdded => '剧集添加日期';
 
   @override
-  String get librarySortParentalRating => 'Parental Rating';
+  String get librarySortParentalRating => '家长评级';
 
   @override
-  String get librarySortMyRating => 'My Rating';
+  String get librarySortMyRating => '我的评分';
 
   @override
-  String get librarySortAlbumArtist => 'Album Artist';
+  String get librarySortAlbumArtist => '专辑艺术家';
 
   @override
-  String get librarySortAlbum => 'Album';
+  String get librarySortAlbum => '专辑';
 
   @override
-  String get librarySortArtist => 'Artist';
+  String get librarySortArtist => '艺术家';
 
   @override
-  String get librarySortTrackNumber => 'Track Number';
+  String get librarySortTrackNumber => '曲目编号';
 
   @override
-  String get librarySortGenre => 'Genre';
+  String get librarySortGenre => '类型';
 
   @override
-  String get librarySortFoldersFirst => 'Folders First';
+  String get librarySortFoldersFirst => '文件夹优先';
 
   @override
-  String get librarySortLength => 'Length';
+  String get librarySortLength => '时长';
+
+  @override
+  String get homeScreenBackdrop => '主屏幕背景图';
+
+  @override
+  String get homeScreenBackdropFullScreen => '全屏';
+
+  @override
+  String get homeScreenBackdropCorner => '角落';
+
+  @override
+  String get homeScreenBackdropTop => '顶部';
+
+  @override
+  String get detailsScreenBackdrop => '详情页面背景图';
+
+  @override
+  String get detailsBackdropSize => '背景图尺寸';
+
+  @override
+  String get detailsBackdropFullScreen => '全屏';
+
+  @override
+  String get detailsBackdropFit => '适应';
+
+  @override
+  String get libraryBackdrops => '媒体库背景图';
+
+  @override
+  String get playbackInfoChannel => '频道';
+
+  @override
+  String get playbackInfoProgram => '节目';
+
+  @override
+  String get playbackInfoWhy => '原因';
+
+  @override
+  String get playbackInfoServerCompatibilityCheck => '服务器兼容性检查';
+
+  @override
+  String get playbackInfoBitrateUnavailable => '码率不可用';
+
+  @override
+  String get playbackInfoQualityLimit => '画质限制';
+
+  @override
+  String get playbackInfoFrameRate => '帧率';
+
+  @override
+  String get playbackInfoDelivery => '传输方式';
+
+  @override
+  String get playbackInfoFile => '文件';
+
+  @override
+  String get playbackInfoTechnical => '技术信息';
+
+  @override
+  String get playbackInfoDevice => '设备';
+
+  @override
+  String get playbackInfoAudioRoute => '音频路由';
+
+  @override
+  String get playbackInfoSurround51 => '5.1 环绕声';
+
+  @override
+  String get playbackInfoSurround71 => '7.1 环绕声';
+
+  @override
+  String playbackInfoChannelCount(int count) {
+    return '$count 个声道';
+  }
+
+  @override
+  String get playbackInfoBurnedIn => '由服务器压制';
+
+  @override
+  String playbackInfoOriginal(String value, String original) {
+    return '$value（原始 $original）';
+  }
+
+  @override
+  String playbackInfoConvertedFrom(String value, String source) {
+    return '$value（由 $source 转换而来）';
+  }
+
+  @override
+  String playbackInfoResolutionConverted(
+    String name,
+    String size,
+    String source,
+  ) {
+    return '$name（$size，由 $source 转换而来）';
+  }
+
+  @override
+  String get playbackInfoNoteDirectPlay => '正在按原样播放原始文件。';
+
+  @override
+  String get playbackInfoNoteDirectStream => '服务器正在重新封装文件，但不进行转码。';
+
+  @override
+  String get playbackInfoNoteLiveRelay => '服务器正在转发该频道，但不进行转码。';
+
+  @override
+  String playbackInfoFrameRateFrom(String rate, String source) {
+    return '$rate fps（$source）';
+  }
+
+  @override
+  String get playbackInfoRateSourceHeader => '流标头';
+
+  @override
+  String get playbackInfoRateSourceMeasured => '实测';
+
+  @override
+  String get playbackInfoRateSourceServer => '服务器';
+
+  @override
+  String get playbackInfoServerFrameRate => '服务器帧率';
+
+  @override
+  String get playbackInfoScan => '扫描方式';
+
+  @override
+  String get playbackInfoProgressive => '逐行';
+
+  @override
+  String get playbackInfoInterlaced => '隔行';
+
+  @override
+  String get playbackInfoRepeatedFields => '胶转磁（重复场）';
+
+  @override
+  String get playbackInfoHdmiOutput => 'HDMI 输出';
+
+  @override
+  String playbackInfoDisplayMode(String width, String height, String rate) {
+    return '$width×$height @ $rate Hz';
+  }
+
+  @override
+  String get playbackInfoRateCorrections => '帧率校正';
+
+  @override
+  String get playbackInfoAudioOutput => '输出';
+
+  @override
+  String playbackInfoPassthroughOf(String codec) {
+    return '直通（$codec）';
+  }
+
+  @override
+  String playbackInfoDecodedTo(String channels) {
+    return '解码（$channels）';
+  }
+
+  @override
+  String get playbackInfoNoteTranscodeVideo => '服务器正在转换视频，以便此设备播放。';
+
+  @override
+  String get playbackInfoNoteTranscodeAudio => '服务器正在转换音频，以便此设备播放。';
+
+  @override
+  String get playbackInfoNoteTranscodeBoth => '服务器正在转换视频和音频，以便此设备播放。';
+
+  @override
+  String get playbackInfoNoteTranscodeUnknown => '服务器正在转换此文件，以便此设备播放。';
+
+  @override
+  String get playbackInfoNoteOffline => '正在播放已下载的副本。';
+
+  @override
+  String get playbackInfoWhyForced => '设置中已强制转码';
+
+  @override
+  String get playbackInfoWhyBitrate => '码率超过串流限制';
+
+  @override
+  String get playbackInfoWhyContainer => '此设备无法播放此文件类型';
+
+  @override
+  String get playbackInfoWhyVideo => '此设备无法播放此视频格式';
+
+  @override
+  String get playbackInfoWhyHdr => '此设备无法显示此 HDR 格式';
+
+  @override
+  String get playbackInfoWhyAudio => '此设备无法播放此音频格式';
+
+  @override
+  String get playbackInfoWhySubtitles => '字幕正被压制到视频中';
+
+  @override
+  String get playbackInfoWhyOther => '无法直接播放此文件';
+
+  @override
+  String playbackInfoWhyBitrateLimit(String bitrate, String limit) {
+    return '$bitrate 超过 $limit 的串流限制';
+  }
+
+  @override
+  String playbackInfoWhyContainerName(String container) {
+    return '此设备无法打开 $container 文件';
+  }
+
+  @override
+  String playbackInfoWhyVideoCodec(String codec) {
+    return '此设备无法播放 $codec 视频';
+  }
+
+  @override
+  String playbackInfoWhyVideoProfileUnknown(String codec) {
+    return '服务器无法验证此视频流的 $codec 档次。';
+  }
+
+  @override
+  String playbackInfoWhyVideoProfile(String codec, String profile) {
+    return '此设备无法播放 $codec $profile 视频';
+  }
+
+  @override
+  String playbackInfoWhyVideoLevel(String codec, String level) {
+    return '此设备无法播放 $codec $level 级别视频';
+  }
+
+  @override
+  String playbackInfoWhyVideoBitDepth(int bits) {
+    return '此设备无法播放 $bits 位视频';
+  }
+
+  @override
+  String playbackInfoWhyVideoResolution(String resolution) {
+    return '此设备无法播放 $resolution 视频';
+  }
+
+  @override
+  String playbackInfoWhyVideoFrameRate(String fps) {
+    return '此设备无法播放 $fps fps 视频';
+  }
+
+  @override
+  String get playbackInfoWhyInterlaced => '此设备无法播放隔行视频';
+
+  @override
+  String get playbackInfoWhyAnamorphic => '此设备无法播放变形视频';
+
+  @override
+  String playbackInfoWhyHdrName(String range) {
+    return '此设备无法显示 $range';
+  }
+
+  @override
+  String playbackInfoWhyAudioCodec(String format) {
+    return '此设备无法播放 $format 音频';
+  }
+
+  @override
+  String playbackInfoWhyAudioProfile(String fullFormat) {
+    return '此设备无法播放 $fullFormat';
+  }
+
+  @override
+  String playbackInfoWhyAudioChannels(String channels) {
+    return '此设备无法播放 $channels 音频';
+  }
+
+  @override
+  String playbackInfoWhyAudioSampleRate(String rate) {
+    return '此设备无法播放 $rate kHz 音频';
+  }
+
+  @override
+  String playbackInfoWhyAudioBitDepth(int bits) {
+    return '此设备无法播放 $bits 位音频';
+  }
+
+  @override
+  String get playbackInfoWhyAudioExternal => '音轨位于单独的文件中';
+
+  @override
+  String get playbackInfoWhySecondaryAudio => '此设备只能播放第一条音轨';
+
+  @override
+  String playbackInfoWhySubtitleFormat(String format) {
+    return '$format 字幕正被压制到视频中';
+  }
+
+  @override
+  String get playbackInfoDroppedFrames => '丢帧';
+
+  @override
+  String get playFromServer => '从服务器播放';
+
+  @override
+  String get settingsApplePlayerUi => '视频播放器';
+
+  @override
+  String get settingsApplePlayerUiDescription =>
+      '原生 Apple 风格播放器没有投屏、音频延迟或画中画按钮，其旋转锁定仅在直播电视中可用';
+
+  @override
+  String get settingsApplePlayerUiStandard => '标准';
+
+  @override
+  String get settingsApplePlayerUiNative => '原生 Apple 风格';
+
+  @override
+  String get playerTransportPosition => '播放按钮';
+
+  @override
+  String get playerTransportPositionDescription =>
+      '将播放、跳过和跳转按钮显示在视频中央，或停靠在底部栏中';
+
+  @override
+  String get playerTransportOnScreen => '在屏幕上';
+
+  @override
+  String get playerTransportDocked => '停靠';
+
+  @override
+  String get incompleteRecording => '不完整';
+
+  @override
+  String incompleteRecordingMinutes(int recorded, int expected) {
+    return '已录制 $recorded / $expected 分钟';
+  }
+
+  @override
+  String completeShowingScheduled(String dateTime) {
+    return '完整场次定于 $dateTime';
+  }
+
+  @override
+  String completeCopyRecorded(String dateTime) {
+    return '完整副本录制于 $dateTime';
+  }
+
+  @override
+  String get noCompleteShowingFound => '未找到完整场次';
+
+  @override
+  String get keepAsComplete => '保留为完整';
+
+  @override
+  String get keptAsComplete => '已标记为完整';
+
+  @override
+  String get unableToKeepAsComplete => '无法标记为完整';
+
+  @override
+  String recordPromptTitle(String name) {
+    return '录制 $name';
+  }
+
+  @override
+  String recordPromptStarted(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '本场于 $minutes 分钟前开始，因此录制将错过开头。',
+      one: '本场于 1 分钟前开始，因此录制将错过开头。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordPromptAlsoRecordLater => '是否也录制后续场次，以获得完整录制？';
+
+  @override
+  String get recordPromptSearchLater => '是否在找到后续场次后自动录制，以获得完整录制？';
+
+  @override
+  String get recordPromptNow => '现在';
+
+  @override
+  String get recordPromptLater => '后续场次';
+
+  @override
+  String recordPromptAired(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '已播出 $minutes 分钟',
+      one: '已播出 1 分钟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordPromptUncertainMatch => '仅通过标题和简介匹配。请确认是否为同一节目。';
+
+  @override
+  String get recordPromptDescriptionsDiffer => '简介不同，因此可能是不同的节目。';
+
+  @override
+  String recordPromptSameEpisode(int season, int episode) {
+    return '同一集（S${season}E$episode）';
+  }
+
+  @override
+  String get recordPromptAlreadyScheduled => '已设置为录制';
+
+  @override
+  String get recordPromptTomorrow => '明天';
+
+  @override
+  String get recordNowOnly => '仅立即录制';
+
+  @override
+  String recordNowAnd(String when) {
+    return '立即录制，并录制$when';
+  }
+
+  @override
+  String get recordNowAndLater => '立即录制并录制后续场次';
+
+  @override
+  String recordOnlyLater(String when) {
+    return '仅录制$when';
+  }
+
+  @override
+  String get recordLaterShowingOnly => '仅录制后续场次';
+
+  @override
+  String get laterShowingOnlyRequested => '将录制后续场次。';
+
+  @override
+  String get unableToRequestLaterShowingOnly => '无法请求录制后续场次，因此不会进行录制。';
+
+  @override
+  String get laterShowingRequested => '录制已开始。后续场次也将被录制。';
+
+  @override
+  String get unableToRequestLaterShowing => '录制已开始，但无法请求录制后续场次。';
+
+  @override
+  String get siloCodeSignIn => '使用代码登录';
+
+  @override
+  String siloCodeSignInInstruction(String address) {
+    return '使用手机扫描二维码，或在任意已登录的设备上访问 $address 并输入此代码：';
+  }
+
+  @override
+  String get siloCodeSignInInstructionNoLink => '在已登录的设备上，于 Silo 中输入此代码：';
+
+  @override
+  String get siloCodeSignInOpened => '已找到代码。请在另一台设备上批准此登录。';
+
+  @override
+  String get siloCodeSignInDenied => '此登录已被拒绝。';
+
+  @override
+  String get siloCodeSignInNewCode => '获取新代码';
+
+  @override
+  String get siloCodeSignInOff => '此服务器已关闭代码登录功能。';
+
+  @override
+  String get siloCodeSignInPasswordChangeRequired =>
+      '此账户使用临时密码。请先用该密码登录一次以进行更换。';
+
+  @override
+  String get siloApproveSignIn => '批准登录';
+
+  @override
+  String get siloApproveSignInHint => '另一台设备上显示的代码';
+
+  @override
+  String get siloApproveSignInApprove => '批准';
+
+  @override
+  String get siloApproveSignInDone => '已批准。另一台设备正在登录。';
+
+  @override
+  String get siloApproveSignInNoRequest =>
+      '没有使用该代码等待批准的登录。请检查代码，或在另一台设备上获取新代码。';
+
+  @override
+  String get siloNativeOfferTitle => '是否直接连接到 Silo？';
+
+  @override
+  String siloNativeOfferMessage(String serverName, String address) {
+    return '此地址是 $serverName 的 Jellyfin 兼容服务。Moonfin 可以直接通过 $address 连接到 Silo，并使用 Silo 自有功能。';
+  }
+
+  @override
+  String get siloNativeOfferUse => '使用 Silo';
+
+  @override
+  String get siloNativeOfferKeep => '保留 Jellyfin';
+
+  @override
+  String get siloAppUpdateRequired =>
+      '此 Silo 服务器需要更高版本的 Moonfin。请更新 Moonfin 后再使用。';
+
+  @override
+  String get siloServerUpdateRequired =>
+      '此 Silo 服务器版本过低，无法兼容当前版本的 Moonfin。请更新 Silo 后再使用。';
+
+  @override
+  String get siloTooManyAttempts => '尝试次数过多。请稍后重试。';
+
+  @override
+  String siloTooManyAttemptsWait(String wait) {
+    return '尝试次数过多。请在 $wait 后重试。';
+  }
+
+  @override
+  String get siloServerBusy => '服务器繁忙或仍在启动。请稍后重试。';
+
+  @override
+  String siloServerBusyWait(String wait) {
+    return '服务器繁忙或仍在启动。请在 $wait 后重试。';
+  }
+
+  @override
+  String siloWaitSeconds(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 秒',
+      one: '1 秒',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String siloWaitMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 分钟',
+      one: '1 分钟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get siloPlaybackUnavailable => '此 Silo 服务器不支持播放。';
+
+  @override
+  String get siloPlaybackUpdateRequired => '此 Silo 服务器需要更高版本的 Moonfin 才能播放。';
+
+  @override
+  String get siloPlaybackEndedOnServer => '播放已在 Silo 服务器上结束。';
+
+  @override
+  String siloPinTitle(String name) {
+    return '$name 的 PIN 码';
+  }
+
+  @override
+  String get siloPinHint => 'PIN';
+
+  @override
+  String get siloPinUnlock => '解锁';
+
+  @override
+  String get siloPinRemember => '在此设备上记住 PIN 码';
+
+  @override
+  String get siloPinWrong => 'PIN 码不正确。';
+
+  @override
+  String get siloPinLocked => 'PIN 码错误次数过多。请稍后重试。';
+
+  @override
+  String siloPinLockedWait(String wait) {
+    return 'PIN 码错误次数过多。请在 $wait 后重试。';
+  }
+
+  @override
+  String get siloPinFailed => '无法验证 PIN 码。请重试。';
+
+  @override
+  String trailerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 部预告片',
+      one: '1 部预告片',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trailerNumber(int number) {
+    return '预告片 $number';
+  }
+
+  @override
+  String get subtitled => '带字幕';
+
+  @override
+  String get rommAccount => 'RomM 账户';
+
+  @override
+  String get rommAccountIntro =>
+      '关联你的 RomM 账户，即可从自己的 RomM 媒体库游玩，并将存档保存在 RomM 中。';
+
+  @override
+  String get rommLinkAccount => '关联 RomM 账户';
+
+  @override
+  String get rommLinkInstructions => '登录 RomM 并输入此代码以关联你的账户。';
+
+  @override
+  String rommLinkScanOrVisit(String url) {
+    return '使用手机扫描二维码，或访问 $url';
+  }
+
+  @override
+  String get rommOpen => '打开 RomM';
+
+  @override
+  String get rommWaitingForApproval => '正在等待你在 RomM 中批准代码…';
+
+  @override
+  String rommLinkedAs(String username) {
+    return '已关联为 $username';
+  }
+
+  @override
+  String get rommLinked => '你的 RomM 账户已关联。';
+
+  @override
+  String get rommUnlinkNote =>
+      '解除关联后，Moonfin 将无法使用你的 RomM 密钥。该密钥会一直保留在 RomM 中，直到你在 RomM 的 API 令牌里将其移除。';
+
+  @override
+  String get rommUnlink => '解除关联';
+
+  @override
+  String get rommLinkExpired => '代码在批准前已过期。请重新关联以获取新代码。';
+
+  @override
+  String get rommLinkDenied => '关联请求在 RomM 中被拒绝。';
+
+  @override
+  String get rommUnreachable => 'Moonfin 无法连接到 RomM。请稍后重试。';
+
+  @override
+  String get rommNotAvailable => '此服务器没有 RomM 媒体库。';
+
+  @override
+  String get rommAccountLoadFailed => '无法加载你的 RomM 账户。';
+
+  @override
+  String get reviews => '评论';
+
+  @override
+  String get detailSectionReviews => '评论';
+
+  @override
+  String spotlightReviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条评论',
+      one: '1 条评论',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get readOnTmdb => '在 TMDB 上阅读';
+
+  @override
+  String get addServerButtonSubtitle => '通过地址，或使用 Plex 或 Emby Connect 账户';
+
+  @override
+  String get addServerChooseHow => '请选择连接方式。';
+
+  @override
+  String get addServerAddressChoice => '局域网或在线的 Jellyfin、Emby 或 Silo';
+
+  @override
+  String get addServerPlexChoice => '使用你的 Plex 账户查找其服务器';
+
+  @override
+  String get addServerAddressHelp => '在浏览器中打开的同一地址，包括端口。';
+
+  @override
+  String get addServerDetectNote =>
+      '适用于 Jellyfin、Emby 和 Silo。Plex 地址将打开 Plex 登录界面。';
+
+  @override
+  String addServerChecking(String address) {
+    return '正在检查 $address';
+  }
+
+  @override
+  String get addServerUnreachableDetail => '请检查地址和端口，并确认服务器正在运行。';
+
+  @override
+  String get addServerFound => '已找到服务器';
+
+  @override
+  String get addServerFoundNote => '继续选择要登录的用户。';
+
+  @override
+  String get addServerUseDifferentAddress => '使用其他地址';
+
+  @override
+  String musicArtistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 位艺人',
+      one: '1 位艺人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String musicSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 首歌曲',
+      one: '1 首歌曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String musicPlaylistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个播放列表',
+      one: '1 个播放列表',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String musicPlayCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 次播放',
+      one: '1 次播放',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get allArtists => '所有艺人';
+
+  @override
+  String get libraryZToA => 'Z 到 A';
+
+  @override
+  String get musicSortYear => '年份';
+
+  @override
+  String get musicFilter => '筛选';
+
+  @override
+  String get musicGenreFilterTitle => '按类型筛选';
+
+  @override
+  String get openAlbum => '打开专辑';
+
+  @override
+  String get openPlaylist => '打开播放列表';
+
+  @override
+  String get allSongsAToZ => '所有歌曲 A 到 Z';
+
+  @override
+  String get musicMix => '混合';
+
+  @override
+  String get musicMixEverything => '全部';
+
+  @override
+  String get musicMixEverythingSubtitle => '随机 300 首歌曲';
+
+  @override
+  String get mostPlayed => '最常播放';
+
+  @override
+  String get musicMixMostPlayedSubtitle => '你的前 100 首';
+
+  @override
+  String get musicMixFreshArrivals => '新上架';
+
+  @override
+  String get musicMixFreshArrivalsSubtitle => '最新的 100 首歌曲';
+
+  @override
+  String get musicMixRediscover => '重新发现';
+
+  @override
+  String get musicMixRediscoverSubtitle => '你最近未播放的收藏';
+
+  @override
+  String get musicSortMostAlbums => '专辑最多';
+
+  @override
+  String bookSeriesPosition(int index, int total) {
+    return '第 $index 本，共 $total 本';
+  }
+
+  @override
+  String bookFavoriteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个收藏',
+      one: '1 个收藏',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bookSortZToA => 'Z 到 A';
+
+  @override
+  String get bookSortMostTitles => '作品最多';
+
+  @override
+  String get bookSurpriseMe => '给我惊喜';
+
+  @override
+  String get bookShuffleAudiobooks => '随机播放有声读物';
+
+  @override
+  String get bookStartReading => '开始阅读';
+
+  @override
+  String get bookOtherBooks => '其他图书';
+
+  @override
+  String get bookDiscoverSearchBooks => '搜索 Open Library';
+
+  @override
+  String get bookDiscoverSearchAudiobooks => '搜索 LibriVox';
+
+  @override
+  String get bookDiscoverFeatured => '精选';
+
+  @override
+  String get bookReaderControlsAutoHide => '控件自动隐藏';
+
+  @override
+  String get bookReaderControlsStayVisible => '控件保持可见';
 
   @override
   String get obmaxSplashSoundSetting => 'Startup sound';
@@ -13999,6 +16836,688 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get obmaxSplashSoundSettingSubtitle =>
       'Play the OB Max jingle when the app starts';
+
+  @override
+  String get settingsLivePreview => '实时预览';
+
+  @override
+  String settingsPreviewShowsOn(String screen) {
+    return '在 $screen 预览中显示';
+  }
+
+  @override
+  String get settingsPreviewNotShown => '未在预览中显示';
+
+  @override
+  String settingsPreviewAudioRowsOffInHomeRows(String group, String disabled) {
+    return '专辑、艺人和音频播放列表均已关闭。要显示其中一项，请前往“栏目”，在 $disabled 下打开 $group，然后将其开启。';
+  }
+
+  @override
+  String settingsPreviewAudioRowsOffInHomeRowsSwitchOff(
+    String setting,
+    String group,
+    String disabled,
+  ) {
+    return '要在首页显示专辑、艺人或音频播放列表，请先开启 $setting。然后前往“栏目”，在 $disabled 下打开 $group，并开启其中一项。';
+  }
+
+  @override
+  String settingsPreviewCollectionsOffInHomeRows(
+    String group,
+    String disabled,
+  ) {
+    return '合集栏目已关闭。要显示它，请前往“栏目”，在 $disabled 下打开 $group，然后将其开启。';
+  }
+
+  @override
+  String settingsPreviewCollectionsOffInHomeRowsSwitchOff(
+    String setting,
+    String group,
+    String disabled,
+  ) {
+    return '要在首页显示合集栏目，请先开启 $setting。然后前往“栏目”，在 $disabled 下打开 $group，并将其开启。';
+  }
+
+  @override
+  String get settingsPreviewRowsOffInKidsMode => '儿童模式使这些栏目不显示在首页，因此这些设置不会改变它。';
+
+  @override
+  String settingsPreviewNeedsRowInRows(String disabled) {
+    return '在“栏目”的 $disabled 下开启一个栏目';
+  }
+
+  @override
+  String settingsPreviewNeedsSwitchAndRow(String setting) {
+    return '开启 $setting，然后在“栏目”中开启一个栏目';
+  }
+
+  @override
+  String get settingsPreviewKeptOffByKidsMode => '儿童模式使其不显示在首页';
+
+  @override
+  String get settingsPreviewAudioRowsEmpty => '没有可显示的音乐，因此首页会省略这些栏目。';
+
+  @override
+  String get settingsPreviewRowsEmpty => '这些栏目中没有可显示的内容，因此首页会省略它们。';
+
+  @override
+  String get settingsPreviewCollectionsEmpty => '没有可显示的合集，因此首页会省略此栏目。';
+
+  @override
+  String get settingsPreviewShowEpisodesNote =>
+      '这只会更改在“栏目”中为单个合集添加的栏目。“合集”栏目本身不变。';
+
+  @override
+  String get settingsPreviewSaved => '已保存';
+
+  @override
+  String get smartSearch => '智能搜索';
+
+  @override
+  String smartSearchOnSeerr(String seerr) {
+    return '$seerr 智能搜索';
+  }
+
+  @override
+  String get calendar => '日历';
+
+  @override
+  String get showCalendarButton => '显示日历按钮';
+
+  @override
+  String get showCalendarButtonSubtitle => '在导航栏中显示即将播出的剧集和电影的日历';
+
+  @override
+  String get calendarFullCalendar => '完整日历';
+
+  @override
+  String get calendarUpcoming => '即将播出';
+
+  @override
+  String get calendarRecentlyAired => '最近播出';
+
+  @override
+  String get calendarRemindMe => '提醒我';
+
+  @override
+  String get calendarReminderSet => '已设置提醒';
+
+  @override
+  String get calendarReminderFailed => '无法保存提醒';
+
+  @override
+  String get calendarReadyToWatch => '可观看';
+
+  @override
+  String get calendarComingUpThisWeek => '本周即将播出';
+
+  @override
+  String get calendarNothingUpcoming => '暂无即将播出的内容';
+
+  @override
+  String get calendarNothingRecent => '暂无最近播出的内容';
+
+  @override
+  String get calendarEmptyDay => '当日无内容';
+
+  @override
+  String get calendarStartsIn => '距开始';
+
+  @override
+  String get calendarUnitDays => '天';
+
+  @override
+  String get calendarUnitHours => '小时';
+
+  @override
+  String get calendarUnitMinutes => '分钟';
+
+  @override
+  String calendarDayAtTime(String day, String time) {
+    return '$day $time';
+  }
+
+  @override
+  String get calendarAllDay => '全天';
+
+  @override
+  String get calendarBadgeSeriesPremiere => '剧集首播';
+
+  @override
+  String get calendarBadgeSeasonPremiere => '新一季';
+
+  @override
+  String get calendarBadgeSeasonFinale => '大结局';
+
+  @override
+  String get calendarBadgeMidseasonFinale => '季中结局';
+
+  @override
+  String get calendarBadgeSeriesFinale => '剧集大结局';
+
+  @override
+  String get calendarBadgeNew => '新';
+
+  @override
+  String get calendarStatusInLibrary => '已在媒体库';
+
+  @override
+  String get calendarNotMonitored => '未监控';
+
+  @override
+  String get calendarMovieDetails => '电影详情';
+
+  @override
+  String get calendarProblemAdminsOnly => '此服务器上的日历仅限管理员使用。';
+
+  @override
+  String get calendarProblemNeedsSeerr => '需要先在 Moonfin 中登录 Seerr，日历才能加载。';
+
+  @override
+  String get calendarProblemNotConfigured => '尚未关联 Sonarr 或 Radarr 服务器。';
+
+  @override
+  String get calendarProblemFailed => '无法加载日历。';
+
+  @override
+  String get calendarSettingsSubtitle => '日历的样式、筛选和操作';
+
+  @override
+  String get calendarSettingsView => '观看次数';
+
+  @override
+  String get calendarSettingsStyle => '日历样式';
+
+  @override
+  String get calendarSettingsStyleDescription =>
+      '“日历”按钮打开的内容。两种样式下都只需再按一个按钮即可查看完整月份。';
+
+  @override
+  String get calendarSettingsStyleAgenda => '日程';
+
+  @override
+  String get calendarSettingsStyleCountdown => '倒计时';
+
+  @override
+  String get calendarSettingsWeekStart => '每周起始日';
+
+  @override
+  String get calendarSettingsWhatShows => '显示内容';
+
+  @override
+  String get calendarSettingsScope => '显示';
+
+  @override
+  String get calendarSettingsScopeDescription => '“我的剧集”仅保留你已收藏或已开始观看的剧集';
+
+  @override
+  String get calendarSettingsScopeEverything => '全部';
+
+  @override
+  String get calendarSettingsScopeMyShows => '我的剧集';
+
+  @override
+  String get calendarSettingsUnmonitored => '包含未监控内容';
+
+  @override
+  String get calendarSettingsUnmonitoredSubtitle =>
+      '同时列出 Sonarr 和 Radarr 未设置为下载的剧集和电影';
+
+  @override
+  String get calendarSettingsSpecials => '特别篇';
+
+  @override
+  String get calendarSettingsSpecialsSubtitle => '第 0 季剧集，如花絮和节日特辑';
+
+  @override
+  String get calendarSettingsBadges => '首播和大结局标签';
+
+  @override
+  String get calendarSettingsBadgesSubtitle => '标记首播、大结局和新一季';
+
+  @override
+  String get calendarSettingsColorBy => '着色依据';
+
+  @override
+  String get calendarSettingsColorByDescription =>
+      '“类型”可区分剧集和电影。“状态”可显示媒体库中已有的、即将播出的或缺失的内容。';
+
+  @override
+  String get calendarSettingsColorByType => '类型';
+
+  @override
+  String get calendarSettingsImageType => '卡片图片';
+
+  @override
+  String get calendarSettingsImageTypeDescription => '“倒计时”栏目中的图片';
+
+  @override
+  String get calendarSettingsSpoilerSafe => '剧透防护';
+
+  @override
+  String get calendarSettingsSpoilerSafeSubtitle => '对你尚未追上的剧集隐藏剧集标题和剧照';
+
+  @override
+  String get calendarSettingsActions => '操作';
+
+  @override
+  String get calendarSettingsSelectAction => '选择媒体项';
+
+  @override
+  String get calendarSettingsSelectActionDescription =>
+      '对媒体库中已有的内容按“确定”或轻触时执行的操作';
+
+  @override
+  String get calendarSettingsSelectDetails => '打开详情';
+
+  @override
+  String get calendarSettingsSelectPlay => '媒体库中可直接播放';
+
+  @override
+  String get calendarSettingsRequestButton => '请求按钮';
+
+  @override
+  String get calendarSettingsRequestButtonSubtitle => '在缺失的电影和季上显示 Seerr 请求按钮';
+
+  @override
+  String get calendarSettingsReminders => '提醒';
+
+  @override
+  String get calendarSettingsRemindersSubtitle => '显示“提醒我”，当某部作品加入媒体库时发送通知';
+
+  @override
+  String get calendarRowSeeAll => '“查看全部”卡片';
+
+  @override
+  String get calendarRowSeeAllSubtitle => '在“即将播出”栏目末尾添加一张可打开日历的卡片';
+
+  @override
+  String get showNextAirDate => '在末尾显示下次播出日期';
+
+  @override
+  String get showNextAirDateSubtitle => '当下一集尚未加入媒体库时，剧集末尾的卡片会显示其播出时间';
+
+  @override
+  String get afterHoursTitle => '深夜档';
+
+  @override
+  String get afterHoursUnlocked => '深夜档已解锁';
+
+  @override
+  String afterHoursPressesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '再按 $count 次',
+      one: '再按 1 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String afterHoursTapsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '再轻触 $count 次',
+      one: '再轻触 1 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get afterHoursPlay => '播放';
+
+  @override
+  String get afterHoursLeaderboards => '排行榜';
+
+  @override
+  String get afterHoursTop3 => '前三名';
+
+  @override
+  String afterHoursScoresFrom(String server) {
+    return '来自 $server 的分数';
+  }
+
+  @override
+  String get afterHoursScoresOnDevice => '此设备上的分数';
+
+  @override
+  String get afterHoursGameOver => '游戏结束';
+
+  @override
+  String afterHoursNewRank(int rank) {
+    return '榜单新晋第 $rank 名';
+  }
+
+  @override
+  String get afterHoursPlayAgain => '再玩一次';
+
+  @override
+  String get afterHoursBackToArcade => '返回街机';
+
+  @override
+  String get afterHoursArcade => '街机';
+
+  @override
+  String get afterHoursLandscapeNote => '游玩时会切换为横屏';
+
+  @override
+  String get afterHoursTouch => '轻触';
+
+  @override
+  String get afterHoursNewTag => '新';
+
+  @override
+  String get afterHoursNoScores => '暂无分数';
+
+  @override
+  String get afterHoursPerfect => '完美';
+
+  @override
+  String get afterHoursBoxSet => '套装';
+
+  @override
+  String get afterHoursBufferRun => '缓冲冲刺';
+
+  @override
+  String get afterHoursBufferRunGenre => '可翻转重力的无尽跑酷';
+
+  @override
+  String get afterHoursBufferRunPitch => '加载画面里的跑者终于有地方可去了。二段跳并翻转重力，让它跑到天花板上。';
+
+  @override
+  String get afterHoursBufferRunRemote =>
+      '按“确定”跳跃，空中再按一次翻转到另一侧。按“下”滑行。在天花板上时“上”和“下”互换。';
+
+  @override
+  String get afterHoursBufferRunTouch => '轻触跳跃，在空中再次轻触即可翻转。朝当前跑道方向滑动即可滑行。';
+
+  @override
+  String get afterHoursFastForward => '快进';
+
+  @override
+  String get afterHoursFastForwardGenre => '三跑道跑酷';
+
+  @override
+  String get afterHoursFastForwardPitch => '在三排影院过道中冲刺。跳过低矮障碍，记住爆米花车可不会为任何人让路。';
+
+  @override
+  String get afterHoursFastForwardRemote => '按“上”和“下”切换跑道，按“确定”跳跃。';
+
+  @override
+  String get afterHoursFastForwardTouch => '向上或向下滑动切换跑道，轻触跳跃。';
+
+  @override
+  String get afterHoursCableCrawl => '线缆爬行';
+
+  @override
+  String get afterHoursCableCrawlGenre => '网格爬行';
+
+  @override
+  String get afterHoursCableCrawlPitch => '引导一根 HDMI 线缆绕过电视柜背面，插上信号。';
+
+  @override
+  String get afterHoursCableCrawlRemote => '方向键转向。线缆永不停歇。';
+
+  @override
+  String get afterHoursCableCrawlTouch => '滑动转向。';
+
+  @override
+  String get afterHoursCaseStack => '光盘堆叠';
+
+  @override
+  String get afterHoursCaseStackGenre => '单键叠放游戏';
+
+  @override
+  String get afterHoursCaseStackPitch =>
+      '用 Blu-ray 光盘盒搭一座齐架高的塔，每个盒子都是你媒体库中的一部作品。超出边缘的部分会被削掉，所以要精准落位。';
+
+  @override
+  String get afterHoursCaseStackRemote => '按“确定”放下光盘盒。';
+
+  @override
+  String get afterHoursCaseStackTouch => '轻触任意位置放下。';
+
+  @override
+  String get afterHoursPixelPurge => '像素清除';
+
+  @override
+  String get afterHoursPixelPurgeGenre => '打砖块游戏';
+
+  @override
+  String get afterHoursPixelPurgePitch =>
+      '一次糟糕的编码让画面布满方块状伪影，而且它们每秒都会向下蔓延一点。用播放按钮在进度条上弹跳，在它们到达之前将其清除。';
+
+  @override
+  String get afterHoursPixelPurgeRemote => '按“左”和“右”移动进度条滑块。球会自动发射。';
+
+  @override
+  String get afterHoursPixelPurgeTouch => '拖动以移动进度条滑块。';
+
+  @override
+  String get afterHoursHowToPlay => '玩法说明';
+
+  @override
+  String get afterHoursStart => '开始';
+
+  @override
+  String get afterHoursBackToGame => '返回游戏';
+
+  @override
+  String get afterHoursEnemies => '敌人';
+
+  @override
+  String get afterHoursObstacles => '障碍物';
+
+  @override
+  String get afterHoursPowerups => '道具';
+
+  @override
+  String get afterHoursCastShieldLine => '可抵挡一次攻击的护盾。';
+
+  @override
+  String get afterHoursCastPointsLine => '每个 25 分。';
+
+  @override
+  String get afterHoursCastLagBat => '延迟球棒';
+
+  @override
+  String get afterHoursCastLagBatLine => '在头部高度俯冲而来。从下方滑行穿过。';
+
+  @override
+  String get afterHoursCastGremlin => '静电小精灵';
+
+  @override
+  String get afterHoursCastGremlinLine => '沿着地板或天花板向你跳来。跳起躲开。';
+
+  @override
+  String get afterHoursCastCable => '线缆线圈';
+
+  @override
+  String get afterHoursCastCableLine => '贴近地板或天花板。跳起躲开。';
+
+  @override
+  String get afterHoursCastBanner => '缓冲横幅';
+
+  @override
+  String get afterHoursCastBannerLine => '从标牌下滑过。它的立柱在另一侧相当于一堵墙。';
+
+  @override
+  String get afterHoursCastSkipIntro => '跳过片头';
+
+  @override
+  String get afterHoursCastSkipIntroLine => '三秒冲刺，可撞碎一切。';
+
+  @override
+  String get afterHoursCastPopcorn => '爆米花';
+
+  @override
+  String get afterHoursCastRollingReel => '松脱的胶片卷';
+
+  @override
+  String get afterHoursCastRollingReelLine => '沿你的跑道滚下，速度比你奔跑还快。跳起躲开。';
+
+  @override
+  String get afterHoursCastUsher => '引座员';
+
+  @override
+  String get afterHoursCastUsherLine => '向你走来，并会切换一次跑道。';
+
+  @override
+  String get afterHoursCastVelvetRope => '天鹅绒围栏';
+
+  @override
+  String get afterHoursCastVelvetRopeLine => '位置较低。跳起躲开或切换跑道。';
+
+  @override
+  String get afterHoursCastPopcornCart => '爆米花车';
+
+  @override
+  String get afterHoursCastPopcornCartLine => '太高，无法跳过。切换跑道。';
+
+  @override
+  String get afterHoursCastFrontRowPass => '前排通行证';
+
+  @override
+  String get afterHoursCastMagnet => '磁铁';
+
+  @override
+  String get afterHoursCastMagnetLine => '八秒内从每条跑道吸走电影票。';
+
+  @override
+  String get afterHoursCastTicket => '电影票';
+
+  @override
+  String get afterHoursCastBug => '干扰虫';
+
+  @override
+  String get afterHoursCastBugLine => '随机游荡。';
+
+  @override
+  String get afterHoursCastTangle => '缠结';
+
+  @override
+  String get afterHoursCastTangleLine => '缓慢追逐你的插头。';
+
+  @override
+  String get afterHoursCastStatic => '静止';
+
+  @override
+  String get afterHoursCastStaticLine => '一个失效单元。每隔三个信号出现一次。';
+
+  @override
+  String get afterHoursCastBrick => '电源适配器';
+
+  @override
+  String get afterHoursCastBrickLine => '每五个信号出现一个 2×2 方块。';
+
+  @override
+  String get afterHoursCastGhost => '幽灵';
+
+  @override
+  String get afterHoursCastGhostLine => '五秒内可穿过除边缘外的所有物体。';
+
+  @override
+  String get afterHoursCastSnip => '剪刀';
+
+  @override
+  String get afterHoursCastSnipLine => '将线缆剪成两半以获得奖励分数。';
+
+  @override
+  String get afterHoursCastSignal => '信号';
+
+  @override
+  String get afterHoursCastSignalLine => '得分，并增加两段线缆。';
+
+  @override
+  String get afterHoursCastShelfCat => '架子猫';
+
+  @override
+  String get afterHoursCastShelfCatLine => '在光盘盒落下时拍击它，使其下滑得更快。';
+
+  @override
+  String get afterHoursCastBluCase => 'Blu-ray 光盘盒';
+
+  @override
+  String get afterHoursCastBluCaseLine => '你媒体库中的一部作品。超出边缘的部分会被削掉。';
+
+  @override
+  String get afterHoursCastSteelbook => '铁盒装';
+
+  @override
+  String get afterHoursCastSteelbookLine => '每十个盒子出现一个。下滑速度快得多。';
+
+  @override
+  String get afterHoursCastPerfect => '完美落位';
+
+  @override
+  String get afterHoursCastPerfectLine => '精准落下可使塔身稍微变宽。';
+
+  @override
+  String get afterHoursCastBoxSet => '套装';
+
+  @override
+  String get afterHoursCastBoxSetLine => '连续三次完美落位可使其大幅变宽。';
+
+  @override
+  String get afterHoursCastDeadPixel => '坏点';
+
+  @override
+  String get afterHoursCastDeadPixelLine => '从清除的方块中掉落。接住它可缩小进度条滑块。';
+
+  @override
+  String get afterHoursCastMacroblock => '宏块';
+
+  @override
+  String get afterHoursCastMacroblockLine => '一次撞击即可清除。';
+
+  @override
+  String get afterHoursCastKeyframe => '关键帧';
+
+  @override
+  String get afterHoursCastKeyframeLine => '需要三次撞击，并掉落一个道具。';
+
+  @override
+  String get afterHoursCastHdrLine => '八秒内进度条滑块宽度翻倍。';
+
+  @override
+  String get afterHoursCastBufferNet => '缓冲';
+
+  @override
+  String get afterHoursCastBufferNetLine => '进度条滑块下方的网，可挽救一次失误。';
+
+  @override
+  String get afterHoursBufferRunCardTouch => '轻触跳跃，空中再次轻触翻转到另一侧。朝你所在的一侧滑动即可滑行。';
+
+  @override
+  String get afterHoursPixelPurgeCardRemote => '按“左”和“右”移动进度条滑块。';
+
+  @override
+  String get remoteMediaNotificationTitle => '远程播放通知';
+
+  @override
+  String get remoteMediaNotificationSubtitle => '在另一台设备上观看时显示系统媒体控件';
+
+  @override
+  String get remoteActivityWatching => '正在 Moonfin 上观看';
+
+  @override
+  String get remoteActivityListening => '正在 Moonfin 上收听';
+
+  @override
+  String get clickpadSeeking => '允许点击板定位进度';
+
+  @override
+  String get clickpadSeekingDescription =>
+      '允许按“左”“右”和在触摸板上滑动来定位进度。否则第一次操作会调出控件。';
+
+  @override
+  String get clickpadSeekingControlsVisible => '控件显示时';
+
+  @override
+  String get clickpadSeekingPausedOnly => '仅在暂停时';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -14007,6 +17526,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get appTitle => 'Moonfin';
+
+  @override
+  String get animeMarkerPending => '待辦的';
 
   @override
   String get interfaceLanguage => '介面語言';
@@ -14064,6 +17586,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get whosWatching => '誰在看？';
+
+  @override
+  String get accountActive => '積極的';
 
   @override
   String get addUser => '新增用戶';
@@ -14147,6 +17672,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get detailScreenStyleModern => '現代';
 
   @override
+  String get spotlightCollectionsCard => '合輯';
+
+  @override
+  String get detailScreenStylePremiere => '首播';
+
+  @override
   String get expandedTabs => '展開分頁';
 
   @override
@@ -14195,6 +17726,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get interfaceStyleMaterial => 'Material';
 
   @override
+  String get interfaceLayoutAutomatic => '自動';
+
+  @override
+  String get interfaceLayoutTv => '電視';
+
+  @override
+  String get interfaceLayoutDesktop => '桌面';
+
+  @override
   String get glassQuality => '玻璃效果品質';
 
   @override
@@ -14211,6 +17751,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get glassQualityReduced => '精簡';
 
   @override
+  String get performanceMode => '效能';
+
+  @override
+  String get performanceModeAuto => '自動';
+
+  @override
+  String get rendererModeAuto => '自動';
+
+  @override
   String get settingsAppearanceThemeSubtitle =>
       '在 Moonfin 和 Neon Pulse 之間切換，無需重新啟動應用程式';
 
@@ -14221,10 +17770,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get customThemeSubtitle => '自訂主題會改變整個 Moonfin 的視覺元素。請選擇一個符合您風格的選項。';
 
   @override
-  String get keyboardPreferSystemIme => '優先使用系統鍵盤';
+  String get keyboardStyleClassic => '經典';
 
   @override
-  String get keyboardPreferSystemImeDescription => '預設使用您裝置的輸入法輸入文字';
+  String get keyboardStyleGlass => '玻璃';
 
   @override
   String get themeMoonfin => 'Moonfin';
@@ -14522,9 +18071,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get discoverySubjects => '發現主題';
 
   @override
-  String get pickDiscoverySubjects => '選擇要在「發現」中顯示的主題來源。';
-
-  @override
   String get apply => '套用';
 
   @override
@@ -14535,20 +18081,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get audiobookGenres => '有聲書類型';
-
-  @override
-  String get pickAudiobookGenres => '挑選要在「有聲書探索頁」中顯示的類型。';
-
-  @override
-  String get discoverAudiobooks => '發現有聲書';
-
-  @override
-  String get librivoxDescription => '來自 LibriVox 的熱門公共領域標題。';
-
-  @override
-  String titlesCount(int count) {
-    return '$count 部作品';
-  }
 
   @override
   String get scrollLeft => '向左滾動';
@@ -14674,9 +18206,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get discover => '發現';
-
-  @override
-  String get trendingTitlesOpenLibrary => 'Open Library 中按主題劃分的熱門標題。';
 
   @override
   String get noBookmarkedItems => '還沒有加書籤的項目';
@@ -15324,11 +18853,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get perfectMatch => '完美搭配';
 
   @override
-  String channelsCount(int count) {
-    return '$count 聲道';
-  }
-
-  @override
   String get mono => '單聲道';
 
   @override
@@ -15464,9 +18988,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get bitrateOverride => '比特率覆蓋';
-
-  @override
   String get audioDelay => '音訊延遲';
 
   @override
@@ -15490,6 +19011,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get playbackInformation => '播放訊息';
+
+  @override
+  String get keyNameDelete => '刪除';
+
+  @override
+  String get keyNameHome => '首頁';
 
   @override
   String get playback => '回放';
@@ -15528,22 +19055,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get hdr => '高動態範圍';
 
   @override
-  String get codec => '編解碼器';
-
-  @override
-  String get videoBitrate => '視訊比特率';
-
-  @override
   String get track => '音軌';
 
   @override
   String get channels => '頻道';
-
-  @override
-  String get audioBitrate => '音訊比特率';
-
-  @override
-  String get sampleRate => '取樣率';
 
   @override
   String get format => '格式';
@@ -15730,6 +19245,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get premiere => '首播';
 
   @override
+  String get guideRepeatBadge => '重複';
+
+  @override
   String get guideTimeline => '指南時間表';
 
   @override
@@ -15783,6 +19301,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get record => '錄影';
+
+  @override
+  String get seriesRecordingAllEpisodes => '所有集數';
 
   @override
   String get cancelRecordingAction => '取消錄影';
@@ -16023,6 +19544,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get downloadedItems => '下載的項目';
 
   @override
+  String get savedMediaRead => '讀';
+
+  @override
+  String get sortByName => '姓名';
+
+  @override
   String get storageLimit => '儲存限制';
 
   @override
@@ -16164,12 +19691,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get scaleFocusedCards => '縮放聚焦或懸停的卡片和圖塊';
 
   @override
-  String get backgroundBackdrops => '背景背景';
-
-  @override
-  String get showBackdropImages => '顯示內容後面的背景影像';
-
-  @override
   String get seriesThumbnails => '顯示劇集縮圖';
 
   @override
@@ -16197,6 +19718,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get seasonalEffectsDescription => '視覺效果和季節性裝飾';
 
   @override
+  String get loadingAnimationSizeThumbnail => '縮圖';
+
+  @override
+  String get loadingAnimationSizeSmall => '小';
+
+  @override
+  String get loadingAnimationSizeMedium => '中';
+
+  @override
+  String get loadingAnimationSizeLarge => '大';
+
+  @override
+  String get loadingAnimationPositionBouncing => '彈跳';
+
+  @override
   String get snow => '雪';
 
   @override
@@ -16207,6 +19743,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get fallingLeaves => '落葉';
+
+  @override
+  String get seasonalDensityNormal => '普通的';
+
+  @override
+  String get seasonalRowCountry => '國家／地區';
+
+  @override
+  String get seasonalRowCountryAuto => '自動';
+
+  @override
+  String get seasonalRowCountryOther => '其他';
 
   @override
   String get themeMusic => '主題音樂';
@@ -16312,6 +19860,66 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get osdLockButtonDescription => '顯示一個鎖定按鈕，該按鈕會阻止觸控輸入，直到長按為止';
 
   @override
+  String get detailMetadataStatus => '劇集狀態';
+
+  @override
+  String get detailMetadataGenres => '類型';
+
+  @override
+  String get detailSectionGroupOther => '其他';
+
+  @override
+  String get detailSectionLogo => '標識';
+
+  @override
+  String get detailSectionTagline => '標語';
+
+  @override
+  String get detailSectionPoster => '海報';
+
+  @override
+  String get detailSectionUpNext => '接下來播放';
+
+  @override
+  String get detailSectionLyrics => '歌詞';
+
+  @override
+  String get detailSectionCast => '投放';
+
+  @override
+  String get detailSectionStudios => '製片商';
+
+  @override
+  String get detailSectionChapters => '章節';
+
+  @override
+  String get detailSectionExtras => '特別收錄';
+
+  @override
+  String get detailSectionCollections => '合輯';
+
+  @override
+  String get detailSectionMoreLikeThis => '更多類似的';
+
+  @override
+  String get detailSectionSeerrRecommendations => '建議';
+
+  @override
+  String get detailSectionSeerrPersonAppearances => '參演作品';
+
+  @override
+  String get detailSectionBiography => '傳';
+
+  @override
+  String get upcomingEpisodeToday => '今天';
+
+  @override
+  String get moveUp => '向上移動';
+
+  @override
+  String get moveDown => '下移';
+
+  @override
   String get audioBehavior => '音訊行為';
 
   @override
@@ -16334,21 +19942,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get preferAudioDescriptionDescription => '優先使用口述影像音軌，而非一般音軌。';
-
-  @override
-  String get transcodingAudio => '轉碼（音訊）';
-
-  @override
-  String get directStreamRemux => '直接串流（重新封裝）';
-
-  @override
-  String get transcodingBitrateOrResolution => '轉碼（位元率或解析度）';
-
-  @override
-  String get transcodingVideoAndAudio => '轉碼（視訊與音訊）';
-
-  @override
-  String get transcodingVideo => '轉碼（視訊）';
 
   @override
   String get autoServerDefault => '自動（伺服器預設）';
@@ -16546,37 +20139,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String settingsAudioPcmChannels(int count) {
     return '$count 聲道 PCM';
   }
-
-  @override
-  String get settingsAudioDiagnostics => '診斷';
-
-  @override
-  String get settingsAudioDiagnosticsVideoLevel => '視訊等級';
-
-  @override
-  String get settingsAudioDiagnosticsVideoRange => '視訊範圍';
-
-  @override
-  String get settingsAudioDiagnosticsSubtitleCodec => '字幕編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsAllowedAudioCodecs => '允許的音訊編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsHlsMpegTsAudioCodecs =>
-      'HLS MPEG-TS 音訊編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsHlsFmp4AudioCodecs => 'HLS fMP4 音訊編解碼器';
-
-  @override
-  String get settingsAudioDiagnosticsAudioSpdifPassthrough => 'audio-spdif 直通';
-
-  @override
-  String get settingsAudioDiagnosticsActiveAudioRoute => '使用中的音訊路由';
-
-  @override
-  String get settingsAudioDiagnosticsRouteHdAudioSupport => '路由 HD 音訊支援';
 
   @override
   String get nightMode => '夜間模式';
@@ -17001,10 +20563,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       '合併相同類型的媒體庫，並顯示於首頁的「最近新增」和「最近發行」。';
 
   @override
-  String get enableFolderView => '啟用資料夾視圖';
+  String get libraryStyleClassic => '經典';
 
   @override
-  String get showFolderBrowsingOption => '顯示資料夾瀏覽選項';
+  String get libraryStyleModern => '現代';
+
+  @override
+  String get bookLibraryStyleClassic => '經典';
+
+  @override
+  String get musicLibraryStyleClassic => '經典';
 
   @override
   String get groupItemsIntoCollections => '將影片歸類至系列合輯';
@@ -17075,6 +20643,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get mediaBarModeOff => '關閉';
+
+  @override
+  String get mediaBarModeBanner => '橫幅';
 
   @override
   String get enableMediaBar => '啟用媒體欄';
@@ -17206,6 +20777,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get homeRowsPaddingDescription => '自訂首頁列之間的內邊距';
 
   @override
+  String get homeRowsExternalLists => '外部清單';
+
+  @override
   String get perRowSettings => '每行設定';
 
   @override
@@ -17318,6 +20892,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get clockModeBouncing => '彈跳';
 
   @override
+  String get screensaverGeneralSettings => '常規設定';
+
+  @override
+  String get screensaverBackdrop => '背景';
+
+  @override
+  String get screensaverBackdropBlack => '黑色的';
+
+  @override
+  String get screensaverBackdropMoonfin => 'Moonfin';
+
+  @override
+  String get screensaverBackdropNeonPulse => '霓虹脈動';
+
+  @override
   String get rottenTomatoesCritics => '爛番茄（評論家）';
 
   @override
@@ -17424,6 +21013,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get networks => '網路';
+
+  @override
+  String get tags => '標籤';
 
   @override
   String get genresAndTags => '類型與標籤';
@@ -17583,9 +21175,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get featuredContentAppearance => '特色內容、外觀';
 
   @override
-  String get posterSizeImageTypeFolderView => '海報尺寸、圖像類型、資料夾視圖';
-
-  @override
   String gbValue(String value) {
     return '$value GB';
   }
@@ -17618,6 +21207,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get seerrRequestedStatus => '已請求';
+
+  @override
+  String get seerrDownloading => '正在下載';
 
   @override
   String seerrDownloadingPercent(int percent) {
@@ -18166,6 +21758,51 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get adminExitTooltip => '退出管理';
+
+  @override
+  String get adminEmbyConnect => 'Emby 連接';
+
+  @override
+  String get adminTranscodingHwaAdvanced => '進階';
+
+  @override
+  String get adminExternalIdTypeBook => '書籍';
+
+  @override
+  String get adminImageTypeMenu => '選單';
+
+  @override
+  String get adminMetadataFieldArtists => '藝人';
+
+  @override
+  String get adminMetadataFieldAlbum => '專輯';
+
+  @override
+  String get adminMetadataSectionRatings => '評級';
+
+  @override
+  String get adminLiveTvTabRecordings => '錄影內容';
+
+  @override
+  String get adminLogLevelNone => '無';
+
+  @override
+  String get adminTaskResultFailed => '失敗';
+
+  @override
+  String get adminLogWatch => '觀看';
+
+  @override
+  String get adminGroupOverview => '概述';
+
+  @override
+  String get adminGroupLibrary => '媒體庫';
+
+  @override
+  String get adminGroupPlayback => '回放';
+
+  @override
+  String get adminGroupPeople => '人們';
 
   @override
   String get adminDashboardLoadFailed => '無法載入儀表板';
@@ -20048,6 +23685,33 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get adminMetadataFieldOverview => '概述';
 
   @override
+  String get adminMetadataDisplayOrderTv => '電視';
+
+  @override
+  String get adminMetadataPersonKindAuthor => '作者';
+
+  @override
+  String get adminMetadataLockFieldName => '姓名';
+
+  @override
+  String get adminMetadataLockFieldOverview => '概述';
+
+  @override
+  String get adminMetadataLockFieldGenres => '類型';
+
+  @override
+  String get adminMetadataLockFieldCast => '人們';
+
+  @override
+  String get adminMetadataLockFieldRuntime => '運行時';
+
+  @override
+  String get adminMetadataLockFieldStudios => '製片商';
+
+  @override
+  String get adminMetadataLockFieldTags => '標籤';
+
+  @override
   String get adminMetadataGenres => '類型';
 
   @override
@@ -21258,6 +24922,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get trackActionPlayNext => '播放下一個';
 
   @override
+  String get trackActionViewDetails => '看詳情';
+
+  @override
   String get trackActionAddToQueue => '添加到隊列';
 
   @override
@@ -21529,6 +25196,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsSeasonalSurprise => '季節性驚喜';
 
   @override
+  String get emulatorCoreDownloading => '正在下載';
+
+  @override
   String get settingsHigh => '高的';
 
   @override
@@ -21677,13 +25347,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       '控制 Dolby Vision 設定檔 7 增強層流是否應直接播放。';
 
   @override
-  String get settingsAutoAftkrtEnabled => '自動（AFTKRT 已啟用）';
+  String get settingsAutoAftkrtEnabled => '自動';
 
   @override
-  String get settingsEnabledOnThisDevice => '在此裝置上啟用';
+  String get settingsEnabledOnThisDevice => '已啟用';
 
   @override
-  String get settingsDisabledPreferTranscode => '已停用（首選轉碼）';
+  String get settingsDisabledPreferTranscode => '關閉';
 
   @override
   String get settingsResumeRewindDescription => '恢復播放時（從「繼續觀看」或媒體項目頁面），應倒回多少秒？';
@@ -21886,9 +25556,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get showMediaDetailsOnLibraryPageDescription => '在媒體庫頁面頂端顯示所選項目的詳細資訊。';
 
   @override
-  String get hideBackdropsInLibraries => '瀏覽時隱藏背景圖？';
-
-  @override
   String get useDetailedSubHeadings => '使用詳細副標題';
 
   @override
@@ -22044,6 +25711,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get displayStudiosRowsSubtitle => '在首頁中顯示製片商列。';
 
   @override
+  String get sinceYouWatchedSourceLocal => 'Moonfin 推薦';
+
+  @override
+  String get sinceYouWatchedSourceOnline => 'TMDb 相似度';
+
+  @override
+  String get selectAllStudios => '選擇全部';
+
+  @override
+  String get filtersHeader => '過濾器';
+
+  @override
   String get displayPlaylistsRows => '顯示播放清單列';
 
   @override
@@ -22056,6 +25735,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playlistsRowSortingDescription => '依加入日期、上映日期、字母順序等方式排序播放清單列。';
 
   @override
+  String get playlistsRowShowEpisodes => '顯示單集';
+
+  @override
+  String get playlistsRowShowEpisodesSubtitle => '將電視劇展開，單獨顯示每一集。';
+
+  @override
   String get displayAudioRows => '顯示音訊列';
 
   @override
@@ -22066,6 +25751,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get audioRowsSortingDescription => '依加入日期、上映日期、字母順序等方式排序音訊列。';
+
+  @override
+  String get externalRowSortName => '姓名';
+
+  @override
+  String get externalRowSortReleaseDate => '發行日期';
+
+  @override
+  String get externalRowSortShuffle => '隨機播放';
 
   @override
   String get audioPlaylists => '音訊播放清單';
@@ -22341,10 +26035,54 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get watchWithGroup => '與群組一起觀看';
 
   @override
+  String get watchPartyType => '類型';
+
+  @override
   String get disk => '磁碟';
 
   @override
   String get openInBrowser => '在瀏覽器中開啟';
+
+  @override
+  String achievementsUnlockedMore(int count) {
+    return '+$count 個';
+  }
+
+  @override
+  String get achievementsDailyQuests => '日常的';
+
+  @override
+  String get achievementsWeeklyQuests => '每週';
+
+  @override
+  String get achievementsAppearance => '外觀';
+
+  @override
+  String get achievementsTitles => '作品';
+
+  @override
+  String get achievementsStatsWatched => '已觀看';
+
+  @override
+  String get achievementsStatUsers => '使用者';
+
+  @override
+  String get achievementsActivity => '活動';
+
+  @override
+  String get friendsDecline => '衰退';
+
+  @override
+  String get chatGroupName => '團體名稱';
+
+  @override
+  String get chatAdmin => '行政';
+
+  @override
+  String get chatLeave => '離開群組';
+
+  @override
+  String get chatCreate => '建立群組';
 
   @override
   String get embeddedBrowserNotAvailable => '此平台無法使用內嵌瀏覽器。';
@@ -22523,9 +26261,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get cb7ExtractionPluginUnavailable => '此平台無法使用 CB7 解壓縮外掛程式。';
-
-  @override
-  String get closeGenrePanel => '關閉類型面板';
 
   @override
   String get loadingShuffle => '正在載入隨機播放...';
@@ -23052,8 +26787,110 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get imdbTopEnglishMovies => 'IMDb 評分最高英語電影';
 
   @override
+  String get playlistTypeVideo => '影片';
+
+  @override
+  String get playlistTypeAudiobook => '有聲書';
+
+  @override
+  String get playlistTypeBook => '書籍';
+
+  @override
+  String get audioPlaylistsSection => '音訊播放清單';
+
+  @override
   String get groupByStudio => '製片商';
 
   @override
+  String get filterTrailers => '預告片';
+
+  @override
+  String get filterExtras => '特別收錄';
+
+  @override
+  String get seerrOriginalLanguage => '原始語言';
+
+  @override
+  String get seerrRuntime => '運行時';
+
+  @override
+  String get setupStyleClassic => '經典';
+
+  @override
+  String get setupStyleModern => '現代';
+
+  @override
+  String get setupStylePremiere => '首播';
+
+  @override
+  String get autoDownloadKeepAll => '全部';
+
+  @override
+  String get autoDownloadDeleteNever => '絕不';
+
+  @override
+  String get downloadNotificationRunning => '正在下載';
+
+  @override
+  String get animationSpeedMedium => '中';
+
+  @override
+  String get animationSpeedOff => '關閉';
+
+  @override
+  String get bottomNavbarTabsAutomatic => '自動';
+
+  @override
+  String get bottomNavbarTabsAvailable => '可用的';
+
+  @override
   String get integrations => '整合';
+
+  @override
+  String get settingsAdvancedSection => '進階';
+
+  @override
+  String get playlistSortReleaseDate => '發行日期';
+
+  @override
+  String get playlistSortRuntime => '運行時';
+
+  @override
+  String get playlistSortLastPlayed => '上次播放';
+
+  @override
+  String get librarySortAlbum => '專輯';
+
+  @override
+  String get librarySortGenre => '類型';
+
+  @override
+  String get detailsBackdropFit => '合身';
+
+  @override
+  String get recordPromptNow => '現在';
+
+  @override
+  String get siloApproveSignInApprove => '核准';
+
+  @override
+  String get calendarSettingsView => '看法';
+
+  @override
+  String get calendarSettingsSpecials => '特價商品';
+
+  @override
+  String get calendarSettingsColorByType => '類型';
+
+  @override
+  String get calendarSettingsActions => '行動';
+
+  @override
+  String get afterHoursPlay => '播放';
+
+  @override
+  String get afterHoursStart => '開始';
+
+  @override
+  String get afterHoursCastStatic => '固定';
 }

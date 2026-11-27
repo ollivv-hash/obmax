@@ -7,6 +7,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import 'seerr/seerr_media_type_badge.dart';
 import '../../preference/preference_constants.dart';
 import '../../util/platform_detection.dart';
+import '../../util/tv_ui_scale.dart';
 import '../../util/focus/dpad_keys.dart';
 import '../../util/focus/key_event_utils.dart';
 import '../../util/item_watch_state.dart';
@@ -15,16 +16,17 @@ import 'anime_marker_badge.dart';
 import 'bounded_network_image.dart';
 import 'focus/glass_focus_halo.dart';
 import 'marquee_text.dart';
+import 'live_tv/incomplete_recording.dart';
 import 'media_badge.dart';
+import 'poster_badges.dart';
 import 'seerr/seerr_status_dot.dart';
 import '../mixins/focus_state_mixin.dart';
 
 class MediaCard extends StatefulWidget {
-  /// How much a focused card grows. A card with a title grows from the bottom
-  /// of its artwork, so all of the extra height lands above it and half the
-  /// extra width past each side. One without a title grows about its center.
-  /// A layout that packs cards against a clip boundary or each other has to
-  /// leave that much room or the focused card loses its edges.
+  /// How much a focused card grows. It grows from the bottom of its artwork,
+  /// so all of the extra height lands above it and half the extra width past
+  /// each side. A layout that packs cards against a clip boundary or each
+  /// other has to leave that much room or the focused card loses its edges.
   ///
   /// A television gets the larger pop because it's read from across a room.
   /// Every television lays out on the same canvas, so which television it is
@@ -40,6 +42,19 @@ class MediaCard extends StatefulWidget {
   /// poster does not suit a banner.
   static double focusGap(double extent, {double minimum = 12.0}) =>
       minimum + (extent * (focusScale - 1) / 2);
+
+  /// How far a focused card grows above artwork [imageHeight] tall, which is
+  /// the room a row or grid leaves over its cards.
+  static double focusHeadroom(double imageHeight, {required bool expansion}) =>
+      expansion && !PlatformDetection.useMobileUi
+      ? imageHeight * (focusScale - 1)
+      : 0;
+
+  /// How far a focused card's ring reaches past its artwork. A grid that clips
+  /// at its top edge needs this on top of [focusHeadroom].
+  static double get focusRingOutset => PlatformDetection.useMobileUi
+      ? 0
+      : _CardImage._focusRingInset * focusScale;
 
   /// The widest decode a card of this shape ever holds, in physical pixels.
   ///
@@ -121,13 +136,38 @@ class MediaCard extends StatefulWidget {
   /// card guess from [aspectRatio].
   final bool isBanner;
 
+  /// Off hides the title and subtitle under the artwork. The title still
+  /// labels a card that has no artwork.
+  final bool showLabel;
+
+  /// Gives the label the classic home rows' larger type and spacing.
+  final bool classicHomeLabel;
+
   /// The item behind the subbed/dubbed pill. Set only for standalone items such as
   /// movies, which have no series to inherit a verdict from.
   final String? animeMarkerItemId;
 
+  /// The item behind the admin's poster badges, such as VFQ. Set only for the server's
+  /// own items: a Seerr card's id is a TMDB id, which the server could mistake for one
+  /// of its own.
+  final String? posterBadgeItemId;
+
+  /// The item behind the Incomplete badge, for cards that can show a Live TV
+  /// recording. The badge draws nothing unless the item is incomplete.
+  final String? recordingItemId;
+
   /// Extra widgets layered over the poster image (inside its clip), e.g.
   /// format badges. Position each with [Positioned].
   final List<Widget> imageOverlays;
+
+  /// Like [imageOverlays], but drawn under the badges.
+  final List<Widget> imageUnderlays;
+
+  /// The image's own aspect ratio, for a card that changes width while it
+  /// keeps the same image. The image then decodes at the size it fills at
+  /// that ratio, so its cache key holds still instead of stepping with the
+  /// width, which would blank it while each new size decoded.
+  final double? imageSourceAspectRatio;
 
   /// Set when an [imageOverlays] entry occupies the top-left corner so the
   /// favorite heart shifts down, like it does for the Seerr badge.
@@ -168,10 +208,16 @@ class MediaCard extends StatefulWidget {
     this.titleColor,
     this.subtitleColor,
     this.imageOverlays = const [],
+    this.imageUnderlays = const [],
+    this.imageSourceAspectRatio,
     this.overlayOccupiesTopLeft = false,
     this.isGenreFallback = false,
     this.isBanner = false,
+    this.showLabel = true,
+    this.classicHomeLabel = false,
     this.animeMarkerItemId,
+    this.posterBadgeItemId,
+    this.recordingItemId,
   });
 
   /// The genre name grows with the card, so it reads well both on a poster
@@ -337,27 +383,48 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
     final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
+    final classic = widget.classicHomeLabel;
     final baseTextStyle = MediaCard._labelBaseStyle(context);
     final subtitleColor =
         widget.subtitleColor ??
         (isNeon
             ? AppColorScheme.onSurface
+            : classic
+            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65)
             : Theme.of(context).colorScheme.onSurface.withAlpha(153));
     final titleStyle = baseTextStyle.copyWith(
       color:
           widget.titleColor ??
           (isNeon ? AppColorScheme.accent : AppColorScheme.onSurface),
-      fontWeight: FontWeight.bold,
-      fontSize: MediaCard._titleFontSize(baseTextStyle),
+      fontWeight: classic ? FontWeight.w600 : FontWeight.bold,
+      fontSize: classic
+          ? tvPx(22)
+          : MediaCard._titleFontSize(baseTextStyle),
+      height: classic ? 30 / 22 : null,
       shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
     );
     final subtitleStyle = baseTextStyle.copyWith(
       color: subtitleColor,
-      shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
+      fontSize: classic ? tvPx(20) : null,
+      fontWeight: isNeon
+          ? FontWeight.w600
+          : (classic ? FontWeight.w400 : null),
+      height: classic ? 28 / 20 : null,
+      shadows: isNeon
+          ? const [
+              Shadow(blurRadius: 4, color: Colors.black),
+              Shadow(blurRadius: 6, color: Colors.black87),
+            ]
+          : const [Shadow(blurRadius: 4, color: Colors.black54)],
     );
     final textScaler = MediaQuery.textScalerOf(context);
-    final titleLineHeight = MediaCard._lineHeight(textScaler, titleStyle);
-    final subtitleLineHeight = MediaCard._lineHeight(textScaler, subtitleStyle);
+    // The classic home label takes its line heights straight from the canvas.
+    double lineHeight(TextStyle style) => classic
+        ? textScaler.scale(style.fontSize!) * style.height!
+        : MediaCard._lineHeight(textScaler, style);
+    final titleLineHeight = lineHeight(titleStyle);
+    final subtitleLineHeight = lineHeight(subtitleStyle);
+    final labelGap = classic ? tvPx(16) : MediaCard._labelGap;
     final externallyDriven = widget.externalIsFocused != null;
     final hasNodeFocus = widget.focusNode?.hasFocus ?? false;
     final effectiveFocused = externallyDriven
@@ -398,7 +465,8 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                     curve: PlatformDetection.isAppleTV
                         ? Curves.easeOutCubic
                         : Curves.linear,
-                    alignment: widget.title != null
+                    alignment: (widget.showLabel && widget.title != null) ||
+                            widget.cardFocusExpansion
                         ? Alignment.bottomCenter
                         : Alignment.center,
                     child: _CardImage(
@@ -420,15 +488,19 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                       seerrMediaType: widget.seerrMediaType,
                       seerrStatus: widget.seerrStatus,
                       imageOverlays: widget.imageOverlays,
+                      imageUnderlays: widget.imageUnderlays,
+                      imageSourceAspectRatio: widget.imageSourceAspectRatio,
                       overlayOccupiesTopLeft: widget.overlayOccupiesTopLeft,
                       animeMarkerItemId: widget.animeMarkerItemId,
+                      posterBadgeItemId: widget.posterBadgeItemId,
+                      recordingItemId: widget.recordingItemId,
                       isGenreFallback: widget.isGenreFallback,
                     ),
                   ),
                 ),
-                if (widget.isBanner) ...[
+                if (widget.showLabel && widget.isBanner) ...[
                   if (widget.title != null) ...[
-                    const SizedBox(height: MediaCard._labelGap),
+                    SizedBox(height: labelGap),
                     SizedBox(
                       height: titleLineHeight,
                       width: cardWidth,
@@ -443,9 +515,9 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                     SizedBox(height: widget.title != null ? 2 : 6),
                     widget.subtitleWidget!,
                   ],
-                ] else ...[
+                ] else if (widget.showLabel) ...[
                   if (widget.title != null) ...[
-                    const SizedBox(height: MediaCard._labelGap),
+                    SizedBox(height: labelGap),
                     SizedBox(
                       height: titleLineHeight,
                       width: cardWidth,
@@ -674,9 +746,13 @@ class _CardImage extends StatelessWidget {
   final String? seerrMediaType;
   final int? seerrStatus;
   final List<Widget> imageOverlays;
+  final List<Widget> imageUnderlays;
+  final double? imageSourceAspectRatio;
   final bool overlayOccupiesTopLeft;
   final bool isGenreFallback;
   final String? animeMarkerItemId;
+  final String? posterBadgeItemId;
+  final String? recordingItemId;
 
   const _CardImage({
     this.imageUrl,
@@ -697,9 +773,13 @@ class _CardImage extends StatelessWidget {
     this.seerrMediaType,
     this.seerrStatus,
     this.imageOverlays = const [],
+    this.imageUnderlays = const [],
+    this.imageSourceAspectRatio,
     this.overlayOccupiesTopLeft = false,
     this.isGenreFallback = false,
     this.animeMarkerItemId,
+    this.posterBadgeItemId,
+    this.recordingItemId,
   });
 
   /// How far the focus ring sits outside the artwork. The ring is 3px thick
@@ -720,6 +800,13 @@ class _CardImage extends StatelessWidget {
     final borders = ThemeRegistry.active.borders;
     final showGlow =
         showBorder && !suppressFocusGlow && borders.focusGlow.isNotEmpty;
+    final seerrStyle = SeerrMediaStatus.hasDot(seerrStatus)
+        ? seerrBadgeStyle()
+        : null;
+    final showSeerrDot = seerrStyle == SeerrBadgeStyle.badge;
+    final bannerInset = seerrStyle == SeerrBadgeStyle.banner
+        ? kSeerrStatusBannerHeight
+        : 0.0;
 
     return AspectRatio(
       aspectRatio: aspectRatio,
@@ -777,13 +864,15 @@ class _CardImage extends StatelessWidget {
                                   : BoxFit.cover,
                               fadeInDuration: Duration.zero,
                               maxWidth: MediaCard.decodeMaxWidthFor(
-                                aspectRatio,
+                                imageSourceAspectRatio ?? aspectRatio,
                               ),
+                              sourceAspectRatio: imageSourceAspectRatio,
                               errorBuilder: (_, _, _) => _PlaceholderIcon(
                                 itemType: itemType,
                                 title: title,
                               ),
                             ),
+                            ...imageUnderlays,
                             if (isGenreFallback) ...[
                               Container(
                                 color: Colors.black.withValues(alpha: 0.45),
@@ -828,9 +917,11 @@ class _CardImage extends StatelessWidget {
                 ),
                 if (isFavorite ||
                     _showSeerrMediaTypeBadge ||
-                    animeMarkerItemId != null)
+                    animeMarkerItemId != null ||
+                    posterBadgeItemId != null ||
+                    recordingItemId != null)
                   Positioned(
-                    top: overlayOccupiesTopLeft ? 32 : 6,
+                    top: bannerInset + (overlayOccupiesTopLeft ? 32 : 6),
                     left: 6,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -848,6 +939,25 @@ class _CardImage extends StatelessWidget {
                           AnimeItemAudioBadge(
                             itemId: animeMarkerItemId!,
                             scale: 0.85,
+                            padding: isFavorite ||
+                                    posterBadgeItemId != null ||
+                                    recordingItemId != null
+                                ? const EdgeInsets.only(bottom: 4)
+                                : EdgeInsets.zero,
+                          ),
+                        // Takes no space until the server says the item has some.
+                        if (posterBadgeItemId != null)
+                          PosterBadges(
+                            itemId: posterBadgeItemId!,
+                            scale: 0.85,
+                            padding: isFavorite || recordingItemId != null
+                                ? const EdgeInsets.only(bottom: 4)
+                                : EdgeInsets.zero,
+                          ),
+                        // Takes no space until the item turns out incomplete.
+                        if (recordingItemId != null)
+                          IncompleteRecordingBadge(
+                            itemId: recordingItemId,
                             padding: isFavorite
                                 ? const EdgeInsets.only(bottom: 4)
                                 : EdgeInsets.zero,
@@ -857,14 +967,25 @@ class _CardImage extends StatelessWidget {
                       ],
                     ),
                   ),
-                if (_showSeerrStatusIndicator)
+                if (bannerInset > 0)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SeerrStatusBanner(status: seerrStatus),
+                  ),
+                if (showSeerrDot)
                   Positioned(
                     top: 6,
                     right: 6,
                     child: SeerrStatusDot(status: seerrStatus),
                   )
                 else if (_showWatchedIndicator)
-                  Positioned(top: 6, right: 6, child: _buildWatchedIndicator()),
+                  Positioned(
+                    top: bannerInset + 6,
+                    right: 6,
+                    child: _buildWatchedIndicator(),
+                  ),
                 if (playedPercentage != null && playedPercentage! > 0)
                   Positioned(
                     left: 6,
@@ -882,6 +1003,21 @@ class _CardImage extends StatelessWidget {
                           AppColorScheme.accent,
                         ),
                       ),
+                    ),
+                  ),
+                // The other corners, clear of the Seerr banner, the watched tick and
+                // the progress bar.
+                if (posterBadgeItemId != null)
+                  Positioned.fill(
+                    child: PosterBadgeCorners(
+                      itemId: posterBadgeItemId!,
+                      scale: 0.85,
+                      top:
+                          bannerInset +
+                          (showSeerrDot || _showWatchedIndicator ? 34 : 6),
+                      bottom: playedPercentage != null && playedPercentage! > 0
+                          ? 18
+                          : 6,
                     ),
                   ),
                 ...imageOverlays,
@@ -927,8 +1063,6 @@ class _CardImage extends StatelessWidget {
     final type = seerrMediaType?.toLowerCase();
     return type == 'movie' || type == 'tv';
   }
-
-  bool get _showSeerrStatusIndicator => SeerrMediaStatus.hasDot(seerrStatus);
 
   Widget _buildWatchedIndicator() {
     if (isPlayed) {

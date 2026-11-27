@@ -82,8 +82,24 @@ class SyncPlayManager extends ChangeNotifier {
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<void>? _queueChangedSub;
   bool _applyingRemoteCommand = false;
+  _PendingFinishedAdvance? _pendingFinishedAdvance;
   final Map<String, String> _itemTitleCache = {};
   final Set<String> _pendingTitleLookups = {};
+  /// Server users keyed by lower-cased name, for participant avatars. The
+  /// group only carries names, so the list is fetched once per server.
+  final Map<String, ServerUser> _usersByName = {};
+  bool _usersLoaded = false;
+  bool _usersLoading = false;
+  DateTime? _usersFailedAt;
+  int _usersGeneration = 0;
+
+  /// How long a failed user-list fetch waits before the next try, so a
+  /// server that refuses it isn't asked again on every rebuild.
+  static const Duration usersRetryDelay = Duration(minutes: 1);
+
+  /// The time source for that retry delay; tests replace it.
+  @visibleForTesting
+  DateTime Function() usersClock = DateTime.now;
 
   final StreamController<SyncPlayUiEvent> _uiEventsController =
       StreamController<SyncPlayUiEvent>.broadcast();
@@ -132,8 +148,7 @@ class SyncPlayManager extends ChangeNotifier {
   bool get syncPlayServerSupported {
     final client = _currentClient;
     if (client == null) return false;
-    return client.serverType == ServerType.jellyfin &&
-        client.syncPlayApi != null;
+    return client.features.supportsSyncPlay && client.syncPlayApi != null;
   }
 
   bool get syncPlayEnabled => syncPlayConfigured && syncPlayServerSupported;
@@ -168,8 +183,14 @@ class SyncPlayManager extends ChangeNotifier {
 
   MediaServerClient? get _currentClient {
     if (_currentClientRef != null) return _currentClientRef;
+    // The signed-in session's server. The factory's newest client can be
+    // another saved server when a device has several.
+    final getIt = GetIt.instance;
+    if (getIt.isRegistered<MediaServerClient>()) {
+      return getIt<MediaServerClient>();
+    }
     try {
-      final factory = GetIt.instance<MediaServerClientFactory>();
+      final factory = getIt<MediaServerClientFactory>();
       return factory.getActiveClient();
     } catch (_) {
       return null;
@@ -188,6 +209,59 @@ class SyncPlayManager extends ChangeNotifier {
       unawaited(_fetchItemTitle(itemId));
     }
     return null;
+  }
+
+  /// The avatar URL for the participant called [name], or null while the
+  /// user list is still loading or when that user has no picture. The first
+  /// call fetches the list in the background and notifies when it lands.
+  String? participantImageUrlFor(String name) {
+    if (!_usersLoaded) {
+      final failedAt = _usersFailedAt;
+      final waiting =
+          failedAt != null &&
+          usersClock().difference(failedAt) < usersRetryDelay;
+      if (!_usersLoading && !waiting) unawaited(_loadUsers());
+      return null;
+    }
+    final user = _usersByName[name.trim().toLowerCase()];
+    final tag = user?.primaryImageTag;
+    if (user == null || tag == null || tag.isEmpty) return null;
+    final client = _currentClient;
+    if (client == null) return null;
+    // The tag in the URL keeps a replaced avatar from being served from cache.
+    final uri = Uri.parse(client.imageApi.getUserImageUrl(user.id));
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      'tag': tag,
+      'width': '96',
+    }).toString();
+  }
+
+  Future<void> _loadUsers() async {
+    final client = _currentClient;
+    if (client == null) return;
+    _usersLoading = true;
+    final generation = _usersGeneration;
+    try {
+      final users = await client.adminUsersApi.getUsers();
+      // The server was switched while this was loading; drop the result.
+      if (generation != _usersGeneration) return;
+      _usersByName.clear();
+      for (final user in users) {
+        final name = user.name?.trim().toLowerCase();
+        if (name != null && name.isNotEmpty) _usersByName[name] = user;
+      }
+      _usersLoaded = true;
+      _usersFailedAt = null;
+      notifyListeners();
+    } catch (e) {
+      if (generation != _usersGeneration) return;
+      // Names still render with initials until a retry succeeds.
+      _usersFailedAt = usersClock();
+      _logger.w('SyncPlay user list failed', error: e);
+    } finally {
+      if (generation == _usersGeneration) _usersLoading = false;
+    }
   }
 
   Future<void> _fetchItemTitle(String itemId) async {
@@ -211,6 +285,11 @@ class SyncPlayManager extends ChangeNotifier {
     if (_activeServerId == newId) return;
     _activeServerId = newId;
     _currentClientRef = client;
+    _usersByName.clear();
+    _usersLoaded = false;
+    _usersLoading = false;
+    _usersFailedAt = null;
+    _usersGeneration++;
     if (_state.enabled) {
       _resetState();
     }
@@ -601,6 +680,7 @@ class SyncPlayManager extends ChangeNotifier {
   }
 
   void _applyQueueUpdate(SyncPlayPlayQueueUpdate update) {
+    final pendingFinished = _pendingFinishedAdvance;
     final previousPlaylistItemId = _state.currentPlaylistItemId;
     _state.queue = update.playlist;
     _state.currentItemIndex = update.playingItemIndex;
@@ -644,6 +724,20 @@ class SyncPlayManager extends ChangeNotifier {
     final hasActivePlayer = _playbackManager.currentResolution != null;
     final needsRemoteLoad = targetItemId != null &&
         (targetItemId != localCurrentItemId || !hasActivePlayer);
+    final matchesPendingAdvance =
+        pendingFinished != null &&
+        reason == SyncPlayQueueUpdateReason.nextItem &&
+        pendingFinished.itemId != null &&
+        pendingFinished.itemId == localCurrentItemId &&
+        targetPlaylistItemId != pendingFinished.playlistItemId;
+    final retainedPendingAdvance =
+        matchesPendingAdvance && needsRemoteLoad ? pendingFinished : null;
+    if (retainedPendingAdvance == null) {
+      // Clear unrelated or no-op replacements so a later change cannot inherit
+      // an old finished advance; rapid nextItem switches keep the intent tied
+      // to the outgoing local item until its matching stop runs.
+      _pendingFinishedAdvance = null;
+    }
     _trace(
       () => 'queue ${reason.name} item $targetItemId ($targetPlaylistItemId) from '
       '${startMs}ms isPlaying ${update.isPlaying} autoPlay $shouldAutoPlay '
@@ -655,6 +749,7 @@ class SyncPlayManager extends ChangeNotifier {
         startMs: startMs,
         shouldAutoPlay: shouldAutoPlay,
         targetPlaylistItemId: targetPlaylistItemId,
+        pendingFinishedAdvance: retainedPendingAdvance,
       ));
       return;
     }
@@ -685,11 +780,16 @@ class SyncPlayManager extends ChangeNotifier {
     required int startMs,
     required bool shouldAutoPlay,
     required String? targetPlaylistItemId,
+    _PendingFinishedAdvance? pendingFinishedAdvance,
   }) async {
     final client = _currentClient;
-    if (client == null) return;
-    final serverId = _resolveActiveServerId(client);
-    if (serverId == null) return;
+    final serverId = client == null ? null : _resolveActiveServerId(client);
+    if (client == null || serverId == null) {
+      if (identical(_pendingFinishedAdvance, pendingFinishedAdvance)) {
+        _pendingFinishedAdvance = null;
+      }
+      return;
+    }
 
     final loaded = await Future.wait(update.playlist.map((entry) async {
       try {
@@ -703,10 +803,15 @@ class SyncPlayManager extends ChangeNotifier {
         return null;
       }
     }));
-    final items = loaded.whereType<AggregatedItem>().toList(growable: false);
-    if (items.isEmpty) return;
     if (!_state.enabled) return;
     if (_state.currentPlaylistItemId != targetPlaylistItemId) return;
+    final items = loaded.whereType<AggregatedItem>().toList(growable: false);
+    if (items.isEmpty) {
+      if (identical(_pendingFinishedAdvance, pendingFinishedAdvance)) {
+        _pendingFinishedAdvance = null;
+      }
+      return;
+    }
 
     final startIndex = update.playingItemIndex < 0
         ? 0
@@ -721,11 +826,22 @@ class SyncPlayManager extends ChangeNotifier {
       // resume after its start seek would otherwise undo the pause below,
       // and a joiner playing through the handshake reports Ready from past
       // the group, is seeked back, plays on, and reports again, forever.
+      final currentOutgoingItemId =
+          _itemId(_playbackManager.queueService.currentItem);
+      final pendingNow = _pendingFinishedAdvance;
+      final stopAsFinished =
+          pendingNow != null &&
+          pendingNow.itemId != null &&
+          currentOutgoingItemId == pendingNow.itemId;
+      if (stopAsFinished) {
+        _pendingFinishedAdvance = null;
+      }
       await _playbackManager.playItems(
         items,
         startIndex: startIndex,
         startPosition: Duration(milliseconds: startMs),
         autoPlay: shouldAutoPlay,
+        stopCurrentAsFinished: stopAsFinished,
       );
       if (!shouldAutoPlay && _playbackManager.state.isPlaying) {
         await _playbackManager.pause();
@@ -766,13 +882,10 @@ class SyncPlayManager extends ChangeNotifier {
 
   String? _resolveActiveServerId(MediaServerClient client) {
     try {
-      final factory = GetIt.instance<MediaServerClientFactory>();
-      final entries = factory.clients.entries;
-      for (final entry in entries) {
-        if (identical(entry.value, client)) return entry.key;
-      }
-    } catch (_) {}
-    return null;
+      return GetIt.instance<MediaServerClientFactory>().serverIdOf(client);
+    } catch (_) {
+      return null;
+    }
   }
 
   void _handleUnpause(SyncPlayCommand command) {
@@ -1213,6 +1326,7 @@ class SyncPlayManager extends ChangeNotifier {
     _isBuffering = false;
     _bufferingReported = false;
     _startedPausedForHandshake = false;
+    _pendingFinishedAdvance = null;
     _playbackManager.setTransportInterceptor(null);
   }
 
@@ -1240,16 +1354,45 @@ class SyncPlayManager extends ChangeNotifier {
       case TransportAction.seek:
         final target = position ?? _playbackManager.state.position;
         // Swallowed either way: under SyncPlay the player only moves on the
-        // group's command.
-        if (!_isEchoOfGroupSeek(target)) _scheduleSeekRequest(target);
+        // group's command. Clear any pending finished advance on a real user
+        // seek so seeking back out of credits cancels the prior Next intent.
+        if (!_isEchoOfGroupSeek(target)) {
+          _pendingFinishedAdvance = null;
+          _scheduleSeekRequest(target);
+        }
         return true;
       case TransportAction.stop:
+        _pendingFinishedAdvance = null;
         await requestStop();
         return true;
       case TransportAction.next:
+        _pendingFinishedAdvance = null;
         await requestNext();
         return true;
+      case TransportAction.nextAsFinished:
+        final playlistItemId = _currentPlaylistItemId();
+        final outgoingItemId =
+            _itemId(_playbackManager.queueService.currentItem);
+        final previous = _pendingFinishedAdvance;
+        final pending = _PendingFinishedAdvance(
+          playlistItemId: playlistItemId,
+          itemId: outgoingItemId,
+        );
+        _pendingFinishedAdvance = pending;
+        final sent = await _sendNextRequest(playlistItemId);
+        if (!sent) {
+          pending.failed = true;
+          if (identical(_pendingFinishedAdvance, pending)) {
+            _pendingFinishedAdvance = (previous != null &&
+                    !previous.failed &&
+                    previous.itemId == outgoingItemId)
+                ? previous
+                : null;
+          }
+        }
+        return true;
       case TransportAction.previous:
+        _pendingFinishedAdvance = null;
         await requestPrevious();
         return true;
     }
@@ -1562,11 +1705,20 @@ class SyncPlayManager extends ChangeNotifier {
   }
 
   Future<void> requestNext() async {
-    final id = _currentPlaylistItemId();
-    if (!_state.enabled || !syncPlayEnabled || id == null) return;
+    await _sendNextRequest(_currentPlaylistItemId());
+  }
+
+  Future<bool> _sendNextRequest(String? id) async {
+    final api = _api;
+    if (!_state.enabled || !syncPlayEnabled || api == null || id == null) {
+      return false;
+    }
     try {
-      await _api?.nextItem(id);
-    } catch (_) {}
+      await api.nextItem(id);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> requestPrevious() async {
@@ -1578,6 +1730,7 @@ class SyncPlayManager extends ChangeNotifier {
   }
 
   Future<void> requestSetCurrentItem(String playlistItemId) async {
+    _pendingFinishedAdvance = null;
     if (!_state.enabled || !syncPlayEnabled) return;
     try {
       await _api?.setPlaylistItem(playlistItemId);
@@ -1749,4 +1902,15 @@ class SyncPlayUserLeftEvent extends SyncPlayUiEvent {
 
 class SyncPlayLibraryAccessDeniedEvent extends SyncPlayUiEvent {
   const SyncPlayLibraryAccessDeniedEvent();
+}
+
+class _PendingFinishedAdvance {
+  _PendingFinishedAdvance({
+    required this.playlistItemId,
+    required this.itemId,
+  });
+
+  final String? playlistItemId;
+  final String? itemId;
+  bool failed = false;
 }

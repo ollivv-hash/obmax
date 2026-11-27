@@ -28,6 +28,15 @@ String describeError(Object error, AppLocalizations l10n) {
   return text.startsWith(prefix) ? text.substring(prefix.length) : text;
 }
 
+/// Emby turns down a feature its Premiere license gates with a message that
+/// names Premiere.
+bool isPremiereError(Object error) =>
+    error is DioException &&
+    (_serverDetail(error.response?.data)?.toLowerCase().contains(
+          'emby premiere',
+        ) ??
+        false);
+
 String _describeDioError(DioException error, AppLocalizations l10n) {
   switch (error.type) {
     case DioExceptionType.connectionTimeout:
@@ -67,6 +76,11 @@ String? _serverDetail(Object? data) {
         text = value;
         break;
       }
+    }
+    // plex.tv sends its reasons as a list.
+    if (data['errors'] case [{'message': final String message}, ...]
+        when text == null) {
+      text = message;
     }
   } else if (data is String && !data.contains('<')) {
     text = data;

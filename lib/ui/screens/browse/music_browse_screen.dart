@@ -6,8 +6,6 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:server_core/server_core.dart';
-import 'package:playback_core/playback_core.dart';
-import '../../../data/services/media_server_client_factory.dart';
 
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/background_service.dart';
@@ -21,6 +19,8 @@ import '../../navigation/destinations.dart';
 import '../../widgets/focus/focusable_toolbar_button.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../../widgets/fullscreen_backdrop_switcher.dart';
+import '../../widgets/music/music_navigation.dart';
+import '../../widgets/settings/settings_preview_scope.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../util/home_row_title_localizer.dart';
 import '../../widgets/overlay_sheet.dart';
@@ -34,51 +34,8 @@ double get _cardSize => PlatformDetection.useMobileUi
     : (PlatformDetection.isTV ? 168.0 : 148.0);
 const _cardSpacing = 12.0;
 
-/// music library category shown in the chip bar (mobile/TV) and the desktop
-/// rail, routing to the matching all-items screen.
-class _MusicCategory {
-  final IconData icon;
-  final String label;
-  final String route;
-  const _MusicCategory(this.icon, this.label, this.route);
-}
-
-List<_MusicCategory> _musicCategories(BuildContext context, String libraryId) {
-  final l10n = AppLocalizations.of(context);
-  return [
-    _MusicCategory(
-      Icons.person,
-      l10n.artists,
-      Destinations.library(libraryId, includeItemTypes: const ['AlbumArtist']),
-    ),
-    _MusicCategory(
-      Icons.album,
-      l10n.albums,
-      Destinations.library(libraryId, includeItemTypes: const ['MusicAlbum']),
-    ),
-    _MusicCategory(
-      Icons.music_note,
-      l10n.songs,
-      Destinations.library(libraryId, includeItemTypes: const ['Audio']),
-    ),
-    _MusicCategory(
-      Icons.queue_music,
-      l10n.playlists,
-      Destinations.library(libraryId, includeItemTypes: const ['Playlist']),
-    ),
-    _MusicCategory(
-      Icons.category,
-      l10n.genres,
-      Destinations.libraryGenresOf(libraryId),
-    ),
-    _MusicCategory(
-      Icons.favorite,
-      l10n.favorites,
-      Destinations.library(libraryId, favorites: true),
-    ),
-  ];
-}
-
+/// The Classic music library: rows under a Jump Back In card, with category
+/// chips on phones and TV and a category rail on desktop.
 class MusicBrowseScreen extends StatefulWidget {
   final String libraryId;
 
@@ -96,6 +53,7 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
   String? _backdropUrl;
   Timer? _backdropDebounce;
   bool _initialBackdropApplied = false;
+  late final bool _inPreview = inSettingsPreview(context);
 
   @override
   void initState() {
@@ -107,9 +65,11 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
     );
     _vm.addListener(_onChanged);
     _vm.load();
-    _backgroundSub = _backgroundService.backgroundStream.listen((url) {
-      if (mounted) setState(() => _backdropUrl = url);
-    });
+    if (!_inPreview) {
+      _backgroundSub = _backgroundService.backgroundStream.listen((url) {
+        if (mounted) setState(() => _backdropUrl = url);
+      });
+    }
     _prefs.addListener(_onChanged);
   }
 
@@ -132,7 +92,13 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
       final featured = _vm.featuredItem;
       if (featured != null) {
         _initialBackdropApplied = true;
-        _backgroundService.setBackground(featured);
+        if (_inPreview) {
+          _backdropUrl = _backgroundService
+              .backdropUrlsFor(featured)
+              .firstOrNull;
+        } else {
+          _backgroundService.setBackground(featured);
+        }
       }
     }
     setState(() {});
@@ -154,17 +120,13 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
   }
 
   void _onItemTap(AggregatedItem item) {
-    if (item.type == 'Audio') {
-      unawaited(_playTrackDirectly(context, item));
-      return;
-    }
-    context.push(Destinations.item(item.id, serverId: item.serverId));
+    openMusicItem(context, item);
   }
 
   void _showFilterDialog(BuildContext context) {
     OverlaySheetController.show<void>(
       context,
-      builder: (sheetContext) => _MusicRowVisibilityDialog(
+      builder: (sheetContext) => MusicRowVisibilityDialog(
         libraryName: _vm.libraryName,
         onChanged: () => _vm.load(),
       ),
@@ -172,35 +134,7 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
   }
 
   VoidCallback? _seeAllForRow(String rowId) {
-    String? route;
-    if (rowId.startsWith('musicalbum_')) {
-      route = Destinations.library(
-        widget.libraryId,
-        includeItemTypes: const ['MusicAlbum'],
-      );
-    } else if (rowId.startsWith('albumartist_')) {
-      route = Destinations.library(
-        widget.libraryId,
-        includeItemTypes: const ['AlbumArtist'],
-      );
-    } else if (rowId.startsWith('musicartist_')) {
-      route = Destinations.library(
-        widget.libraryId,
-        includeItemTypes: const ['MusicArtist'],
-      );
-    } else if (rowId == 'playlists') {
-      route = Destinations.library(
-        widget.libraryId,
-        includeItemTypes: const ['Playlist'],
-      );
-    } else if (rowId.startsWith('favorites_')) {
-      // The row itself only holds albums, so keep the same shape behind See All.
-      route = Destinations.library(
-        widget.libraryId,
-        includeItemTypes: const ['MusicAlbum'],
-        favorites: true,
-      );
-    }
+    final route = musicSeeAllRoute(widget.libraryId, rowId);
     if (route == null) return null;
     final target = route;
     return () => context.push(target);
@@ -235,7 +169,7 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
           Row(
             children: [
               if (isDesktop)
-                _MusicCategoryRail(
+                MusicCategoryRail(
                   libraryId: widget.libraryId,
                   libraryName: _vm.libraryName,
                 ),
@@ -278,7 +212,7 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
                                           onHover: () => _setBackdrop(featured),
                                         ),
                                       if (!isDesktop)
-                                        _MusicCategoryBar(
+                                        MusicCategoryBar(
                                           key: const ValueKey('category_bar'),
                                           libraryId: widget.libraryId,
                                         ),
@@ -481,17 +415,7 @@ class _MusicHero extends StatefulWidget {
 
 class _MusicHeroState extends State<_MusicHero> with FocusStateMixin {
   void _open({bool play = true}) {
-    if (widget.item.type == 'Audio') {
-      unawaited(_playTrackDirectly(context, widget.item));
-      return;
-    }
-    context.push(
-      Destinations.item(
-        widget.item.id,
-        serverId: widget.item.serverId,
-        autoPlay: play,
-      ),
-    );
+    openMusicItem(context, widget.item, autoPlay: play);
   }
 
   @override
@@ -652,18 +576,89 @@ class _MusicHeroState extends State<_MusicHero> with FocusStateMixin {
   );
 }
 
-/// Horizontal category chips (mobile / TV) under the hero.
-class _MusicCategoryBar extends StatefulWidget {
-  final String libraryId;
-  const _MusicCategoryBar({super.key, required this.libraryId});
+/// One entry of a category bar or rail.
+typedef _CategoryEntry = ({
+  String id,
+  IconData icon,
+  String label,
+  bool selected,
+  VoidCallback onTap,
+});
 
-  @override
-  State<_MusicCategoryBar> createState() => _MusicCategoryBarState();
+/// The categories as bar or rail entries. With [nav] they lead with
+/// Overview and pick the category showing.
+List<_CategoryEntry> _categoryEntries(
+  BuildContext context,
+  String libraryId,
+  MusicCategoryNav? nav,
+) {
+  final categories = musicCategories(context, libraryId);
+  return [
+    if (nav != null)
+      (
+        id: 'overview',
+        icon: Icons.space_dashboard_outlined,
+        label: AppLocalizations.of(context).overview,
+        selected: false,
+        onTap: nav.onOverview,
+      ),
+    for (var i = 0; i < categories.length; i++)
+      (
+        id: MusicCategoryKind.values[i].name,
+        icon: categories[i].icon,
+        label: categories[i].label,
+        selected: nav?.current == MusicCategoryKind.values[i],
+        onTap: nav == null
+            ? () => context.push(categories[i].route)
+            : nav.current == MusicCategoryKind.values[i]
+            ? nav.onCurrent
+            : () => nav.onSelect(MusicCategoryKind.values[i]),
+      ),
+  ];
 }
 
-class _MusicCategoryBarState extends State<_MusicCategoryBar>
+/// Horizontal category chips (mobile / TV) under the hero, or along the top
+/// of a category screen when [nav] drives them.
+class MusicCategoryBar extends StatefulWidget {
+  final String libraryId;
+  final MusicCategoryNav? nav;
+  final EdgeInsets? padding;
+  final VoidCallback? onNavigateUp;
+  final VoidCallback? onNavigateDown;
+  final VoidCallback? onNavigateLeft;
+
+  const MusicCategoryBar({
+    super.key,
+    required this.libraryId,
+    this.nav,
+    this.padding,
+    this.onNavigateUp,
+    this.onNavigateDown,
+    this.onNavigateLeft,
+  });
+
+  @override
+  State<MusicCategoryBar> createState() => _MusicCategoryBarState();
+}
+
+class _MusicCategoryBarState extends State<MusicCategoryBar>
     with AutomaticKeepAliveClientMixin {
   final _scrollController = ScrollController();
+  final _selectedKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // A category screen opens with the chip of the category showing in view.
+    if (widget.nav != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final selected = _selectedKey.currentContext;
+        if (mounted && selected != null) {
+          Scrollable.ensureVisible(selected, alignment: 0.5);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -694,44 +689,72 @@ class _MusicCategoryBarState extends State<_MusicCategoryBar>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final categories = _musicCategories(context, widget.libraryId);
+    final nav = widget.nav;
+    final entries = _categoryEntries(context, widget.libraryId, nav);
+    // Few enough to build at once, so the chip of the category showing is
+    // always there to scroll to.
     return SizedBox(
       height: 56,
-      child: ListView.separated(
+      child: SingleChildScrollView(
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
-        padding: EdgeInsets.fromLTRB(_horizontalPadding, 6, _horizontalPadding, 8),
-        itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) {
-          final c = categories[i];
-          return _CategoryButton(
-            icon: c.icon,
-            label: c.label,
-            isFirst: i == 0,
-            isLast: i == categories.length - 1,
-            onFocused: () => _ensureVisible(i == 0),
-            onTap: () => context.push(c.route),
-          );
-        },
+        padding:
+            widget.padding ??
+            EdgeInsets.fromLTRB(_horizontalPadding, 6, _horizontalPadding, 8),
+        child: Row(
+          children: [
+            for (var i = 0; i < entries.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              MusicCategoryButton(
+                key: entries[i].selected ? _selectedKey : null,
+                icon: entries[i].icon,
+                label: entries[i].label,
+                selected: entries[i].selected,
+                focusNode: nav?.focusNode(entries[i].id),
+                isFirst: i == 0,
+                isLast: i == entries.length - 1,
+                onFocused: () => _ensureVisible(i == 0),
+                onTap: entries[i].onTap,
+                onNavigateUp: widget.onNavigateUp,
+                onNavigateDown: widget.onNavigateDown,
+                onNavigateLeft: i == 0 ? widget.onNavigateLeft : null,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Vertical category rail shown on the left of the desktop layout.
-class _MusicCategoryRail extends StatelessWidget {
+/// Vertical category rail shown on the left of the desktop layout, and of a
+/// category screen when [nav] drives it.
+class MusicCategoryRail extends StatelessWidget {
   final String libraryId;
   final String libraryName;
-  const _MusicCategoryRail({
+  final MusicCategoryNav? nav;
+
+  /// Room over the rail for the app's top navbar.
+  final double topPadding;
+  final VoidCallback? onNavigateUp;
+  final VoidCallback? onNavigateLeft;
+  final VoidCallback? onNavigateRight;
+
+  const MusicCategoryRail({
+    super.key,
     required this.libraryId,
     required this.libraryName,
+    this.nav,
+    this.topPadding = 0,
+    this.onNavigateUp,
+    this.onNavigateLeft,
+    this.onNavigateRight,
   });
 
   @override
   Widget build(BuildContext context) {
-    final categories = _musicCategories(context, libraryId);
+    final entries = _categoryEntries(context, libraryId, nav);
     final title = libraryName.isEmpty
         ? AppLocalizations.of(context).music
         : libraryName;
@@ -744,7 +767,7 @@ class _MusicCategoryRail extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(28, 24, 20, 18),
+              padding: EdgeInsets.fromLTRB(28, 24 + topPadding, 20, 18),
               child: Text(
                 title,
                 maxLines: 1,
@@ -759,15 +782,23 @@ class _MusicCategoryRail extends StatelessWidget {
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: categories.length,
+                itemCount: entries.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 4),
                 itemBuilder: (context, i) {
-                  final c = categories[i];
-                  return _CategoryButton(
-                    icon: c.icon,
-                    label: c.label,
+                  final entry = entries[i];
+                  return MusicCategoryButton(
+                    icon: entry.icon,
+                    label: entry.label,
                     vertical: true,
-                    onTap: () => context.push(c.route),
+                    selected: entry.selected,
+                    focusNode: nav?.focusNode(entry.id),
+                    onTap: entry.onTap,
+                    onNavigateUp: i == 0 ? onNavigateUp : null,
+                    onNavigateDown: nav != null && i == entries.length - 1
+                        ? () {}
+                        : null,
+                    onNavigateLeft: onNavigateLeft,
+                    onNavigateRight: onNavigateRight,
                   );
                 },
               ),
@@ -780,8 +811,9 @@ class _MusicCategoryRail extends StatelessWidget {
 }
 
 /// A focusable category control rendered either as a horizontal pill (chip
-/// bar) or a full-width tile (desktop rail)
-class _CategoryButton extends StatefulWidget {
+/// bar) or a full-width tile (desktop rail). The category showing is tinted
+/// with the accent.
+class MusicCategoryButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -789,8 +821,15 @@ class _CategoryButton extends StatefulWidget {
   final bool isFirst;
   final bool isLast;
   final bool vertical;
+  final bool selected;
+  final FocusNode? focusNode;
+  final VoidCallback? onNavigateUp;
+  final VoidCallback? onNavigateDown;
+  final VoidCallback? onNavigateLeft;
+  final VoidCallback? onNavigateRight;
 
-  const _CategoryButton({
+  const MusicCategoryButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -798,19 +837,29 @@ class _CategoryButton extends StatefulWidget {
     this.isFirst = false,
     this.isLast = false,
     this.vertical = false,
+    this.selected = false,
+    this.focusNode,
+    this.onNavigateUp,
+    this.onNavigateDown,
+    this.onNavigateLeft,
+    this.onNavigateRight,
   });
 
   @override
-  State<_CategoryButton> createState() => _CategoryButtonState();
+  State<MusicCategoryButton> createState() => _CategoryButtonState();
 }
 
-class _CategoryButtonState extends State<_CategoryButton> with FocusStateMixin {
+class _CategoryButtonState extends State<MusicCategoryButton>
+    with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
     final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final active = showFocusBorder;
+    final selected = widget.selected && !active;
     final fg = active
         ? AppColorScheme.onAccent
+        : selected
+        ? AppColorScheme.accent
         : AppColorScheme.onSurface.withAlpha(220);
 
     return MouseRegion(
@@ -818,6 +867,7 @@ class _CategoryButtonState extends State<_CategoryButton> with FocusStateMixin {
       onEnter: (_) => setHovered(true),
       onExit: (_) => setHovered(false),
       child: Focus(
+        focusNode: widget.focusNode,
         onFocusChange: (hasFocus) {
           setFocused(hasFocus);
           if (hasFocus) widget.onFocused?.call();
@@ -826,6 +876,22 @@ class _CategoryButtonState extends State<_CategoryButton> with FocusStateMixin {
           if (isActivateKey(event)) {
             widget.onTap();
             return KeyEventResult.handled;
+          }
+          if (event.isActionable) {
+            final key = event.logicalKey;
+            final edge = key.isUpKey
+                ? widget.onNavigateUp
+                : key.isDownKey
+                ? widget.onNavigateDown
+                : key.isLeftKey
+                ? widget.onNavigateLeft
+                : key.isRightKey
+                ? widget.onNavigateRight
+                : null;
+            if (edge != null) {
+              edge();
+              return KeyEventResult.handled;
+            }
           }
           if (event.isActionable && !widget.vertical) {
             if (widget.isFirst && event.logicalKey.isLeftKey) {
@@ -848,6 +914,8 @@ class _CategoryButtonState extends State<_CategoryButton> with FocusStateMixin {
             decoration: BoxDecoration(
               color: active
                   ? AppColorScheme.accent
+                  : selected
+                  ? AppColorScheme.accent.withValues(alpha: 0.16)
                   : (widget.vertical
                         ? Colors.transparent
                         : AppColorScheme.onSurface.withAlpha(22)),
@@ -1238,20 +1306,21 @@ class _MusicSquareCardState extends State<_MusicSquareCard>
   }
 }
 
-class _MusicRowVisibilityDialog extends StatefulWidget {
+class MusicRowVisibilityDialog extends StatefulWidget {
   final String libraryName;
   final VoidCallback onChanged;
 
-  const _MusicRowVisibilityDialog({
+  const MusicRowVisibilityDialog({
+    super.key,
     required this.libraryName,
     required this.onChanged,
   });
 
   @override
-  State<_MusicRowVisibilityDialog> createState() => _MusicRowVisibilityDialogState();
+  State<MusicRowVisibilityDialog> createState() => _MusicRowVisibilityDialogState();
 }
 
-class _MusicRowVisibilityDialogState extends State<_MusicRowVisibilityDialog> {
+class _MusicRowVisibilityDialogState extends State<MusicRowVisibilityDialog> {
   final _prefs = GetIt.instance<UserPreferences>();
   late final ScrollController _scrollController;
 
@@ -1569,78 +1638,5 @@ class _DialogCheckboxTileState extends State<_DialogCheckboxTile> {
         ),
       ),
     );
-  }
-}
-
-Future<void> _playTrackDirectly(BuildContext context, AggregatedItem item) async {
-  final navigator = Navigator.of(context, rootNavigator: true);
-  final manager = GetIt.instance<PlaybackManager>();
-  var loadingVisible = true;
-  void dismissLoading() {
-    if (loadingVisible) {
-      loadingVisible = false;
-      navigator.pop();
-    }
-  }
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const Center(child: CircularProgressIndicator()),
-  );
-
-  final albumId =
-      item.albumId?.isNotEmpty == true ? item.albumId : item.parentId;
-
-  try {
-    var tracks = <AggregatedItem>[item];
-    var startIndex = 0;
-
-    if (albumId != null && albumId.isNotEmpty) {
-      final factory = GetIt.instance<MediaServerClientFactory>();
-      final client = item.serverId.isNotEmpty
-          ? factory.getClientIfExists(item.serverId) ??
-                GetIt.instance<MediaServerClient>()
-          : GetIt.instance<MediaServerClient>();
-
-      final data = await client.itemsApi.getItems(
-        parentId: albumId,
-        includeItemTypes: const ['Audio'],
-        sortBy: 'ParentIndexNumber,IndexNumber,SortName',
-        fields: 'PrimaryImageAspectRatio,BasicSyncInfo',
-      );
-
-      final loadedTracks = (data['Items'] as List?)
-              ?.whereType<Map>()
-              .map((raw) => raw.cast<String, dynamic>())
-              .where((raw) => raw['Id']?.toString().isNotEmpty == true)
-              .map((raw) => AggregatedItem(
-                    id: raw['Id'].toString(),
-                    serverId: item.serverId,
-                    rawData: raw,
-                  ))
-              .toList() ??
-          const <AggregatedItem>[];
-
-      if (loadedTracks.isNotEmpty) {
-        tracks = loadedTracks;
-        final idx = tracks.indexWhere((t) => t.id == item.id);
-        if (idx >= 0) {
-          startIndex = idx;
-        }
-      }
-    }
-
-    await manager.playItems(tracks, startIndex: startIndex);
-    dismissLoading();
-    if (context.mounted) {
-      context.push(Destinations.audioPlayer);
-    }
-  } catch (_) {
-    dismissLoading();
-    await manager.playItems([item]);
-    if (context.mounted) {
-      context.push(Destinations.audioPlayer);
-    }
   }
 }

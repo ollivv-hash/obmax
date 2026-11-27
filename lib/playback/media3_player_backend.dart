@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show ValueNotifier, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:playback_core/playback_core.dart';
@@ -14,10 +14,20 @@ import '../util/platform_detection.dart';
 import 'device_profile_builder.dart';
 import 'known_defects.dart';
 import 'media3_letterbox_crop.dart';
+import 'media3_playback_status.dart';
 import 'server_transcode_capabilities.dart';
+import 'subtitle_fonts.dart';
 
 class Media3PlayerBackend extends PlayerBackend
-    implements SubtitleLoadingBackend {
+    with SubtitleDelayState
+    implements SubtitleLoadingBackend, SecondarySubtitleBackend {
+  @override
+  bool get supportsSecondarySubtitleDelay => true;
+  @override
+  bool get supportsSecondarySubtitlePosition => true;
+  @override
+  bool get supportsSecondarySubtitleStyle => true;
+
   static const _discontinuityWindowMs = 15000;
   static const _discontinuityThreshold = 3;
   static const _audioSinkErrorThreshold = 2;
@@ -98,6 +108,20 @@ class Media3PlayerBackend extends PlayerBackend
         : Media3DoviCompatMode.strip;
   }
 
+  /// Whether the native side drops the Dolby Vision layer from this source so
+  /// its HDR10+ stream plays on its own.
+  @visibleForTesting
+  static bool stripsDolbyVision(UserPreferences prefs, String? videoRangeType) {
+    if (!prefs.get(UserPreferences.media3StripDolbyVisionWithHdr10Plus)) {
+      return false;
+    }
+    final range = videoRangeType?.toUpperCase().replaceAll(
+      RegExp(r'[^A-Z0-9]+'),
+      '',
+    );
+    return range == 'DOVIWITHHDR10PLUS' || range == 'DOVIWITHELHDR10PLUS';
+  }
+
   final UserPreferences _prefs;
   late final Media3LetterboxCropper _letterboxCropper;
   String? _currentUrl;
@@ -105,6 +129,16 @@ class Media3PlayerBackend extends PlayerBackend
   StreamSubscription<dynamic>? _eventSub;
 
   Duration _position = Duration.zero;
+
+  /// Where the previous item stopped, while the native ticker may still
+  /// report it for the item that just started.
+  Duration? _previousItemPosition;
+
+  /// How close a tick has to be to [_previousItemPosition] to count as the
+  /// previous item's, and how far a new item has to start from it for the
+  /// check to apply at all: a resume of the same spot is not checked.
+  static const _previousItemTolerance = Duration(milliseconds: 500);
+  static const _newItemJump = Duration(seconds: 1);
   Duration _duration = Duration.zero;
   Duration _buffer = Duration.zero;
   bool _isPlaying = false;
@@ -113,8 +147,6 @@ class Media3PlayerBackend extends PlayerBackend
   Duration? _liveEdge;
   double _volume = 100.0;
   double _audioDelaySeconds = 0.0;
-  double _subtitleDelaySeconds = 0.0;
-  int? _subtitleDelaySessionId;
   int _volumeBoostLevel = 0;
   bool _skipSilenceEnabled = false;
   RepeatMode _repeatMode = RepeatMode.none;
@@ -178,6 +210,14 @@ class Media3PlayerBackend extends PlayerBackend
   bool? _playWhenReady;
   String? _lastFrameRateLine;
 
+  /// What the native player decided and is putting out for this source.
+  final Media3PlaybackStatus playbackStatus = Media3PlaybackStatus();
+
+  /// The frame rate the display is switching to while the start or a live
+  /// correction waits for it, otherwise null. Never disposed: a screen can
+  /// still be listening for a frame after the backend is replaced.
+  final ValueNotifier<double?> displayMatchFps = ValueNotifier(null);
+
   final _positionStream = StreamController<Duration>.broadcast();
   final _durationStream = StreamController<Duration>.broadcast();
   final _bufferStream = StreamController<Duration>.broadcast();
@@ -193,8 +233,6 @@ class Media3PlayerBackend extends PlayerBackend
 
   @override
   bool? get playWhenReady => _playWhenReady;
-
-  double get subtitleDelaySeconds => _subtitleDelaySeconds;
 
   Future<T?> _invoke<T>(String method, [dynamic arguments]) async {
     if (_disposed) return null;
@@ -225,6 +263,16 @@ class Media3PlayerBackend extends PlayerBackend
     await _stopActivity();
   }
 
+  /// A tick still describing the previous item. The first tick that does
+  /// not ends the wait, so a real one is never held back for long.
+  bool _isPreviousItemTick(Duration reported) {
+    final previous = _previousItemPosition;
+    if (previous == null) return false;
+    if ((reported - previous).abs() <= _previousItemTolerance) return true;
+    _previousItemPosition = null;
+    return false;
+  }
+
   void _handleEvent(dynamic event) {
     if (_disposed || event is! Map) return;
     final map = event.map((k, v) => MapEntry(k.toString(), v));
@@ -232,9 +280,13 @@ class Media3PlayerBackend extends PlayerBackend
 
     switch (eventType) {
       case 'state':
+        final reported = Duration(milliseconds: _toInt(map['positionMs']));
+        // Its duration and play state are the previous item's too: taken
+        // here, a resume past that length would count as finished.
+        if (_isPreviousItemTick(reported)) return;
         final wasPlaying = _isPlaying;
         final wasBuffering = _isBuffering;
-        _position = Duration(milliseconds: _toInt(map['positionMs']));
+        _position = reported;
         _duration = Duration(milliseconds: _toInt(map['durationMs']));
         _buffer = Duration(milliseconds: _toInt(map['bufferedMs']));
         _isPlaying = _toBool(map['isPlaying']);
@@ -255,6 +307,7 @@ class Media3PlayerBackend extends PlayerBackend
           _playbackSpeed = reportedSpeed;
         }
         final liveEdgeMs = (map['liveEdgeMs'] as num?)?.toInt();
+        displayMatchFps.value = (map['displayMatchFps'] as num?)?.toDouble();
         _liveEdge = liveEdgeMs == null
             ? null
             : Duration(milliseconds: liveEdgeMs);
@@ -379,7 +432,7 @@ class Media3PlayerBackend extends PlayerBackend
         _completedStream.add(false);
       case 'syncDelays':
         _audioDelaySeconds = _toInt(map['audioDelayMs']) / 1000.0;
-        _subtitleDelaySeconds = _toInt(map['subtitleDelayMs']) / 1000.0;
+        subtitleDelaySeconds = _toInt(map['subtitleDelayMs']) / 1000.0;
       case 'volumeBoost':
         _volumeBoostLevel = (_toInt(map['level']).clamp(0, 10)).toInt();
       case 'repeatModeChanged':
@@ -399,6 +452,36 @@ class Media3PlayerBackend extends PlayerBackend
           '${_toInt(map['elapsedMs'])}ms',
           level: LogLevel.warning,
         );
+      case 'frameCadence':
+        _diag(_frameCadenceLine(map));
+      case 'streamRateObservation':
+        _diag(_streamRateObservationLine(map));
+      case 'streamRateEvidence':
+        _diag(_streamRateEvidenceLine(map));
+      case 'frameRateCorrection':
+        _diag(_frameRateCorrectionLine(map));
+        _applyRateDecision(map, correction: true);
+      case 'frameRateDecision':
+        _diag(_frameRateDecisionLine(map));
+        _applyRateDecision(map);
+      case 'videoFrameOffset':
+        _diag(
+          'Media3: video frames ran ${_toInt(map['averageOffsetUs'])}us early '
+          'on average over ${_toInt(map['frameCount'])} frames',
+        );
+      case 'videoCounters':
+        _diag(
+          'Media3: video counters (${map['reason']}) '
+          'rendered=${_toInt(map['rendered'])} '
+          'skipped=${_toInt(map['skipped'])} '
+          'dropped=${_toInt(map['dropped'])} '
+          'droppedInput=${_toInt(map['droppedInput'])} '
+          'maxConsecutiveDropped=${_toInt(map['maxConsecutiveDropped'])} '
+          'droppedToKeyframe=${_toInt(map['droppedToKeyframe'])} '
+          'decoderInits=${_toInt(map['decoderInits'])}',
+        );
+      case 'frameRateObservation':
+        _diag(_frameRateObservationLine(map));
       case 'audioUnderrun':
         _diag(
           'Media3: audio underrun (buffer ${_toInt(map['bufferSizeMs'])}ms, '
@@ -416,6 +499,9 @@ class Media3PlayerBackend extends PlayerBackend
               ? LogLevel.warning
               : LogLevel.debug,
         );
+      case 'secondarySubtitleSelection':
+        _diag('Media3: secondary subtitle ${map['mode']} '
+            '(track=${map['trackId'] ?? 'none'})');
       case 'secondarySubtitleError':
         _diag(
           'Media3: secondary subtitle failed: ${map['message'] ?? 'unknown error'}',
@@ -441,6 +527,18 @@ class Media3PlayerBackend extends PlayerBackend
         _diag(
           'Media3: held the start ${_toInt(map['heldMs'])}ms '
           'for the display mode switch to settle',
+        );
+      case 'audioOutputRebuilt':
+        _diag(
+          'Media3: audio route dropped during the display mode switch, '
+          'rebuilt the audio output at ${_toInt(map['positionMs'])}ms',
+          level: LogLevel.warning,
+        );
+      case 'audioRouteDroppedNotRebuilt':
+        _diag(
+          'Media3: audio route dropped during the display mode switch under '
+          'an open audio track that cannot be rebuilt in place',
+          level: LogLevel.warning,
         );
       case 'routeFlapResume':
         _diag(
@@ -515,6 +613,10 @@ class Media3PlayerBackend extends PlayerBackend
         _diag('Media3: audio decoder initialized (${map['decoder'] ?? ''})');
       case 'audioTrackInitialized':
         _onAudioTrackInitialized(map);
+        playbackStatus
+          ..audioEncoding = map['encodingName']?.toString()
+          ..audioChannels = _toInt(map['outputChannels'])
+          ..audioPassthrough = map['passthrough'] == true;
       case 'audioTrackMapping':
         _onAudioTrackMapping(map);
       case 'doviCompat':
@@ -534,15 +636,54 @@ class Media3PlayerBackend extends PlayerBackend
         _diag(
           'Media3: video size ${_toInt(map['width'])}x${_toInt(map['height'])}',
         );
+        final width = _toInt(map['width']);
+        final height = _toInt(map['height']);
+        if (width > 0 && height > 0) {
+          playbackStatus
+            ..videoWidth = width
+            ..videoHeight = height;
+        }
       case 'frameRate':
         _onFrameRateEvent(map);
     }
   }
 
+  void _applyRateDecision(
+    Map<String, dynamic> map, {
+    bool correction = false,
+  }) {
+    playbackStatus.applyRateDecision(
+      frameRate: _finitePositiveDouble(map['frameRate']),
+      source: map['source']?.toString(),
+      fieldRateApplied: map['fieldRateApplied'] == true,
+      scanType: map['scanType']?.toString(),
+      correction: correction,
+    );
+  }
+
   void _onFrameRateEvent(Map<String, dynamic> map) {
     final detected = (map['detectedFrameRate'] as num?)?.toDouble();
-    final applied = (map['appliedFrameRate'] as num?)?.toDouble();
+    final applied = _finitePositiveDouble(map['appliedFrameRate']);
     final behavior = map['behavior']?.toString() ?? '';
+    final enabled = map['enabled'] == true;
+    playbackStatus
+      ..switchingEnabled = enabled
+      ..switchingBehavior = behavior.isEmpty ? null : behavior;
+    // Files have no startup decision event; the rate they switched for is it.
+    if (playbackStatus.decisionSource == null && detected != null) {
+      playbackStatus.decisionFrameRate = detected;
+    }
+    if (enabled && applied != null) {
+      playbackStatus
+        ..displayRefreshRate = applied
+        ..displayWidth = _toInt(map['appliedWidth'])
+        ..displayHeight = _toInt(map['appliedHeight']);
+    } else {
+      playbackStatus
+        ..displayRefreshRate = null
+        ..displayWidth = null
+        ..displayHeight = null;
+    }
     final content = detected == null
         ? 'content of unknown frame rate'
         : '${detected.toStringAsFixed(3)}fps content';
@@ -616,25 +757,29 @@ class Media3PlayerBackend extends PlayerBackend
     );
   }
 
-  /// Records what the Dolby Vision profile 7 chain did with a track. A P7
-  /// stream that plays wrong is otherwise indistinguishable from a bad file,
-  /// so the report carries the decision, where the RPU came from, and the
-  /// running counts behind it.
+  /// Records what the Dolby Vision chain did with a track. A rewritten stream
+  /// that plays wrong otherwise looks just like a bad file, so the report
+  /// carries the decision, where the RPU came from, and the running counts
+  /// behind it.
   void _onDoviCompat(Map<String, dynamic> map) {
     final reason = map['reason']?.toString() ?? 'decided';
     final applied = map['mode']?.toString() ?? 'none';
     final requested = map['requestedMode']?.toString() ?? 'none';
     final detail = map['detail']?.toString();
+    final codecs = map['codecs']?.toString() ?? '';
+    final profile = codecs.startsWith('dvhe.08') || codecs.startsWith('dvh1.08')
+        ? 'P8'
+        : 'P7';
 
     final headline = switch (reason) {
-      'untouched' => 'DoVi P7 left untouched',
-      'progress' => 'DoVi P7 still handled as $applied',
-      'converterFailed' => 'DoVi P7 conversion stopped working',
-      'disarmed' => 'DoVi P7 rewriting stood down',
+      'untouched' => 'DoVi $profile left untouched',
+      'progress' => 'DoVi $profile still handled as $applied',
+      'converterFailed' => 'DoVi $profile conversion stopped working',
+      'disarmed' => 'DoVi $profile rewriting stood down',
       _ =>
         applied == requested
-            ? 'DoVi P7 handled as $applied'
-            : 'DoVi P7 asked for $requested, settled on $applied',
+            ? 'DoVi $profile handled as $applied'
+            : 'DoVi $profile asked for $requested, settled on $applied',
     };
 
     final counts =
@@ -659,12 +804,12 @@ class Media3PlayerBackend extends PlayerBackend
     );
 
     // A stand-down before the first sample decided anything sends the raw
-    // profile 7 stream to a decoder that can't play it, which reads as a
+    // Dolby Vision stream to a decoder that can't show it, which reads as a
     // silent black screen. Raising it as a recoverable video error routes
     // playback into the transcode fallback instead.
     if (reason == 'disarmed' && applied == 'none') {
       _diag(
-        'Media3: raising a recoverable video error for the untouched P7 '
+        'Media3: raising a recoverable video error for the untouched $profile '
         'stream so playback can fall back',
         level: LogLevel.warning,
       );
@@ -673,7 +818,7 @@ class Media3PlayerBackend extends PlayerBackend
         'recoverable': true,
         'kind': 'unsupported_video',
         'message':
-            'DoVi P7 rewriting stood down before playback could start'
+            'DoVi $profile rewriting stood down before playback could start'
             '${detail == null ? '' : ': $detail'}',
       });
     }
@@ -972,6 +1117,117 @@ class Media3PlayerBackend extends PlayerBackend
     return 0;
   }
 
+  double? _finitePositiveDouble(dynamic value) {
+    if (value is! num) return null;
+    final rate = value.toDouble();
+    return rate.isFinite && rate > 0 ? rate : null;
+  }
+
+  bool? _optionalBool(dynamic value) => value is bool ? value : null;
+
+  String _frameRateObservationLine(Map<dynamic, dynamic> map) {
+    String fixed(dynamic value) =>
+        value is num ? value.toStringAsFixed(3) : '?';
+    return 'Media3: reported ${fixed(map['reportedFrameRate'])}fps '
+        '(${map['stage'] ?? 'unknown'}); display decision kept at '
+        '${fixed(map['decisionFrameRate'])}fps';
+  }
+
+  String _streamRateObservationLine(Map<dynamic, dynamic> map) {
+    String fixed(dynamic value) =>
+        value is num && value.isFinite ? value.toStringAsFixed(3) : '?';
+    final kind = map['kind']?.toString();
+    final readableKind = kind == null || kind.isEmpty ? 'unknown' : kind;
+    return 'Media3: stream cadence ${fixed(map['frameRate'])}fps '
+        '($readableKind) differs from decision '
+        '${fixed(map['decisionFrameRate'])}fps at '
+        '${_toInt(map['timestampMs'])}ms; display at '
+        '${fixed(map['displayHz'])}Hz';
+  }
+
+  String _streamRateEvidenceLine(Map<dynamic, dynamic> map) {
+    String fixed(dynamic value) =>
+        value is num && value.isFinite ? value.toStringAsFixed(3) : '?';
+    return 'Media3: stream rate evidence measured=${fixed(map['measuredFrameRate'])}fps '
+        'serverReal=${fixed(map['serverRealFrameRate'])}fps '
+        'serverAverage=${fixed(map['serverAverageFrameRate'])}fps '
+        'decision=${fixed(map['decisionFrameRate'])}fps '
+        'display=${fixed(map['displayHz'])}Hz '
+        'kind=${map['kind'] ?? 'unknown'} intervals=${_toInt(map['intervals'])}';
+  }
+
+  String _frameRateCorrectionLine(Map<dynamic, dynamic> map) {
+    String fixed(dynamic value) =>
+        value is num && value.isFinite ? value.toStringAsFixed(3) : '?';
+    final reason = switch (map['reason']) {
+      'start' => 'wrong starting rate',
+      'programme' => 'programme change',
+      _ => 'unknown reason',
+    };
+    return 'Media3: display rate corrected for '
+        '${fixed(map['frameRate'])}fps ($reason); display was '
+        '${fixed(map['displayHz'])}Hz';
+  }
+
+  String _frameRateDecisionLine(Map<dynamic, dynamic> map) {
+    final source = switch (map['source']) {
+      'header' => 'header',
+      'measured' => 'measured',
+      'serverReal' => 'serverReal',
+      'serverAverage' => 'serverAverage',
+      'serverHint' => 'serverHint',
+      'none' => 'none',
+      _ => 'none',
+    };
+    final scanType = switch (map['scanType']) {
+      'progressive' => 'progressive',
+      'interlaced' => 'interlaced',
+      'repeated_fields' => 'repeated fields',
+      _ => 'unknown scan',
+    };
+    final rawReason = map['reason']?.toString();
+    final reason = rawReason == null || rawReason.isEmpty
+        ? 'unknown reason'
+        : rawReason;
+    final elapsed = '${_toInt(map['elapsedMs'])}ms';
+    final rate = map['frameRate'];
+    if (rate is! num || !rate.isFinite) {
+      return 'Media3: rate decision unavailable (source $source; $scanType; '
+          '$reason; $elapsed)';
+    }
+    final rateKind = map['fieldRateApplied'] == true ? 'field rate' : 'picture rate';
+    return 'Media3: rate decision ${rate.toStringAsFixed(3)}fps from $source '
+        '($rateKind; $scanType; $reason; $elapsed)';
+  }
+
+  /// One line per cadence reading, e.g. `Media3: cadence output grid
+  /// 23.976fps on 29.970Hz (1x110,4x10), dominant 33.37ms 92% at 1234567ms
+  /// [video/mpeg2] demux=differs`.
+  String _frameCadenceLine(Map<dynamic, dynamic> map) {
+    String fixed(dynamic value, int digits) =>
+        value is num && value.isFinite ? value.toStringAsFixed(digits) : '?';
+    final grid = map['gridHz'] is num
+        ? ' on ${fixed(map['gridHz'], 3)}Hz (${map['units']})'
+        : '';
+    final share = map['dominantShare'] is num
+        ? '${((map['dominantShare'] as num) * 100).round()}%'
+        : '?';
+    final declared = map['formatFrameRate'] is num
+        ? ', declared ${fixed(map['formatFrameRate'], 3)}fps'
+        : '';
+    final demux = switch (map['matchesDemux']) {
+      true => ' demux=matches',
+      false => ' demux=differs',
+      _ => '',
+    };
+    return 'Media3: cadence ${map['stage']} ${map['kind']} '
+        '${fixed(map['meanFps'], 3)}fps$grid, dominant '
+        '${fixed(_toInt(map['dominantIntervalUs']) / 1000, 2)}ms $share '
+        'over ${_toInt(map['intervals'])} at ${_toInt(map['timestampMs'])}ms '
+        '[${map['mimeType'] ?? '?'}$declared] '
+        'discontinuities=${_toInt(map['discontinuities'])}$demux';
+  }
+
   bool _toBool(dynamic value) {
     if (value is bool) return value;
     return false;
@@ -1042,6 +1298,17 @@ class Media3PlayerBackend extends PlayerBackend
     final isPreview = payload['preview'] == true;
 
     _completed = false;
+    // The native ticker keeps reporting the previous item's frozen position
+    // until the new source is set. Left in place, a stop in the first second
+    // reports where the last episode ended, which marks this one watched.
+    // A play before the new source's first tick keeps the previous item's
+    // position: [_position] is only the start position set below.
+    final previous = _previousItemPosition ?? _position;
+    _previousItemPosition = (previous - startPosition).abs() > _newItemJump
+        ? previous
+        : null;
+    _position = startPosition;
+    _positionStream.add(_position);
     _tracksKnown = false;
     _textTrackCount = 0;
     _embeddedCaptionTracks = const [];
@@ -1110,16 +1377,11 @@ class Media3PlayerBackend extends PlayerBackend
       ...audioDecoderPreferencesPayload(_prefs),
     });
     _lastFrameRateLine = null;
+    playbackStatus.reset();
+    displayMatchFps.value = null;
     _liveEdge = null;
     _sourceIsLive = payload['isLive'] == true;
-    // Reset for a new viewing session, but keep the adjustment when the
-    // same session changes quality or restores playback after backgrounding.
-    final subtitleDelaySessionId = payload['subtitleDelaySessionId'] as int?;
-    if (subtitleDelaySessionId == null ||
-        subtitleDelaySessionId != _subtitleDelaySessionId) {
-      _subtitleDelaySeconds = 0.0;
-    }
-    _subtitleDelaySessionId = subtitleDelaySessionId;
+    updateSubtitleDelaySession(payload['subtitleDelaySessionId'] as int?);
     await _invoke<void>('setSource', {
       'url': url,
       'headers': headers,
@@ -1127,8 +1389,16 @@ class Media3PlayerBackend extends PlayerBackend
       'startPositionMs': startPosition.inMilliseconds,
       'container': container,
       'videoRangeType': videoRangeType,
+      'stripDolbyVision': stripsDolbyVision(_prefs, videoRangeType),
       'mediaType': mediaType,
       'videoFrameRate': (payload['videoFrameRate'] as num?)?.toDouble(),
+      'videoRealFrameRate': _finitePositiveDouble(
+        payload['videoRealFrameRate'],
+      ),
+      'videoAverageFrameRate': _finitePositiveDouble(
+        payload['videoAverageFrameRate'],
+      ),
+      'videoInterlaced': _optionalBool(payload['videoInterlaced']),
       'videoStartDelayMs': _prefs.get(UserPreferences.videoStartDelay),
       'videoWidth': (payload['videoWidth'] as num?)?.toInt(),
       'videoHeight': (payload['videoHeight'] as num?)?.toInt(),
@@ -1138,6 +1408,8 @@ class Media3PlayerBackend extends PlayerBackend
       'preferredAudioLanguage': preferredAudioLanguage,
       'preferredTextLanguage': preferredSubtitleLanguage,
       'externalSubtitles': payload['externalSubtitles'] ?? const [],
+      if (payload['secondarySubtitleTrackId'] is int)
+        'secondarySubtitleTrackId': payload['secondarySubtitleTrackId'],
       if (payload['secondarySubtitleUrl'] is String)
         'secondarySubtitleUrl': payload['secondarySubtitleUrl'],
       if (payload['secondarySubtitleCodec'] is String)
@@ -1145,7 +1417,9 @@ class Media3PlayerBackend extends PlayerBackend
       if (payload['secondarySubtitleDelayMs'] is int)
         'secondarySubtitleDelayMs': payload['secondarySubtitleDelayMs'],
       if (payload['secondarySubtitleOffset'] is num)
-        'secondarySubtitleOffset': payload['secondarySubtitleOffset'],
+        'secondarySubtitleOffset': PlaybackManager.clampSecondarySubtitleOffset(
+          (payload['secondarySubtitleOffset'] as num).toDouble(),
+        ),
       if (payload['secondarySubtitleFontSize'] is num)
         'secondarySubtitleFontSize': payload['secondarySubtitleFontSize'],
       if (payload['secondarySubtitleTextColor'] is int)
@@ -1156,7 +1430,7 @@ class Media3PlayerBackend extends PlayerBackend
       'forceSubtitlesDisabledOnStart':
           _prefs.get(UserPreferences.subtitleMode) == SubtitleMode.none,
       'audioDelayMs': (_audioDelaySeconds * 1000).round(),
-      'subtitleDelayMs': (_subtitleDelaySeconds * 1000).round(),
+      'subtitleDelayMs': (subtitleDelaySeconds * 1000).round(),
       'volumeBoostLevel': _volumeBoostLevel,
       'preview': isPreview,
     });
@@ -1206,6 +1480,18 @@ class Media3PlayerBackend extends PlayerBackend
     return true;
   }
 
+  // Media3 reads the source's headers on every request it opens, so new
+  // credentials reach the stream that plays without reopening it. The server
+  // reads the headers before a token in the URL.
+  @override
+  Future<bool> updateStreamCredentials(StreamCredentials credentials) async {
+    if (credentials.requestHeaders.isEmpty) return false;
+    await _invoke<void>('updateRequestHeaders', {
+      'headers': credentials.requestHeaders,
+    });
+    return true;
+  }
+
   @override
   LiveSeekWindow? get liveSeekWindow {
     final edge = _liveEdge;
@@ -1217,7 +1503,8 @@ class Media3PlayerBackend extends PlayerBackend
   @override
   Future<void> stop() => _teardown('stop');
 
-  Future<void> release() => _teardown('release');
+  Future<void> release({bool previewOnly = false}) =>
+      _teardown('release', previewOnly ? const {'previewOnly': true} : null);
 
   Future<void> appPaused() async {
     await _invoke<void>('appPaused');
@@ -1227,14 +1514,16 @@ class Media3PlayerBackend extends PlayerBackend
     await _invoke<void>('appResumed');
   }
 
-  Future<void> _teardown(String command) async {
+  Future<void> _teardown(String command, [Map<String, Object?>? arguments]) async {
     _setSubtitleLoading(false);
     // The watchdogs guard a single item's bring-up, so stopping has to stop
     // the timer too or it keeps warning about a player that was told to stop.
     _watchdogTimer?.cancel();
     _watchdogTimer = null;
     _loadRequestedAtMs = 0;
-    await _invoke<void>(command);
+    // Ticks between this stop and the next load still carry this position.
+    _previousItemPosition = _position;
+    await _invoke<void>(command, arguments);
     if (_isPlaying) {
       _isPlaying = false;
       _playingStream.add(false);
@@ -1295,6 +1584,7 @@ class Media3PlayerBackend extends PlayerBackend
       maxBitrateMbps: maxBitrate,
       audioCapabilityProfile: audioCapabilityProfile,
       audioFallbackCodec: _prefs.resolveAudioFallbackCodec(),
+      transcodeAudioCodecs: _prefs.resolveTranscodeAudioCodecs(),
       ac3PassthroughEnabled: _prefs.resolveAc3PassthroughEnabled(),
       eac3PassthroughEnabled: _prefs.resolveEac3PassthroughEnabled(),
       dtsCorePassthroughEnabled: _prefs.resolveDtsCorePassthroughEnabled(),
@@ -1358,6 +1648,8 @@ class Media3PlayerBackend extends PlayerBackend
             hasDoviCompat: true,
           ),
       directPlayVideoContainers: media3DirectPlayVideoContainers,
+      hlsCopyPlaysAsPlainHevc: true,
+      mpegTsSplitsEac3Substreams: true,
     );
   }
 
@@ -1451,8 +1743,15 @@ class Media3PlayerBackend extends PlayerBackend
   }
 
   @override
-  Future<void> setSecondarySubtitle({String? url, String? codec}) async {
-    await _invoke<void>('setSecondarySubtitle', {'url': url, 'codec': codec});
+  Future<void> setSecondarySubtitle({
+    String? url,
+    String? codec,
+    String? language,
+    int? embeddedTrackId,
+  }) async {
+    await _invoke<void>('setSecondarySubtitle', {
+      'url': url, 'codec': codec, 'embeddedTrackId': embeddedTrackId,
+    });
   }
 
   @override
@@ -1471,7 +1770,9 @@ class Media3PlayerBackend extends PlayerBackend
   }) async {
     await _invoke<void>('configureSecondarySubtitleStyle', {
       'fontSize': fontSize,
-      'verticalOffset': verticalOffset,
+      'verticalOffset': verticalOffset == null
+          ? null
+          : PlaybackManager.clampSecondarySubtitleOffset(verticalOffset),
       'textColor': textColor,
     });
   }
@@ -1530,7 +1831,7 @@ class Media3PlayerBackend extends PlayerBackend
 
   @override
   Future<void> setSubtitleDelay(double seconds) async {
-    _subtitleDelaySeconds = seconds;
+    subtitleDelaySeconds = seconds;
     await _invoke<void>('setSubtitleDelay', {
       'seconds': seconds,
       'delayMs': (seconds * 1000).round(),
@@ -1560,6 +1861,11 @@ class Media3PlayerBackend extends PlayerBackend
     double? fontSize,
     int? fontWeight,
     double? verticalOffset,
+    double? strokeScale,
+    int? shadowColor,
+    double? shadowOffset,
+    double? shadowBlur,
+    String? fontFamily,
     bool? applyEmbeddedStyles,
     bool? applyEmbeddedFontSizes,
   }) async {
@@ -1570,6 +1876,11 @@ class Media3PlayerBackend extends PlayerBackend
       'fontSize': fontSize,
       'fontWeight': fontWeight,
       'verticalOffset': verticalOffset,
+      'strokeScale': strokeScale,
+      'shadowColor': shadowColor,
+      'shadowOffset': shadowOffset,
+      'shadowBlur': shadowBlur,
+      ...await subtitleFontPaths(fontFamily),
       'applyEmbeddedStyles': applyEmbeddedStyles,
       'applyEmbeddedFontSizes': applyEmbeddedFontSizes,
     });
@@ -1752,4 +2063,4 @@ enum Media3DoviCompatMode { native, convert, strip, off }
 /// (its Ogg support is audio only), so those route to a server remux here.
 /// AVI and FLV extractors exist in media3 and join in their place.
 const String media3DirectPlayVideoContainers =
-    'avi,dash,flv,hls,m4v,mkv,mov,mp4,ts,vob,webm,xvid';
+    'avi,dash,flv,hls,m4v,mkv,mov,mp4,mpegts,ts,vob,webm,xvid';

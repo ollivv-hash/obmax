@@ -299,6 +299,40 @@ class GameSummary {
       );
 }
 
+/// A game in a library's Recently Added or Recently Released home row.
+class RecentGame extends GameSummary {
+  final int? year;
+  final String? overview;
+  final GameArtworkDescriptor? boxart;
+
+  const RecentGame({
+    required super.id,
+    required super.title,
+    required super.system,
+    required super.core,
+    required super.fileName,
+    this.year,
+    this.overview,
+    this.boxart,
+  });
+
+  factory RecentGame.fromJson(Map<String, dynamic> json) {
+    final boxart = json['boxart'];
+    return RecentGame(
+      id: (json['id'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      system: (json['system'] as String?) ?? '',
+      core: (json['core'] as String?) ?? '',
+      fileName: (json['fileName'] as String?) ?? '',
+      year: _intValue(json['year']),
+      overview: _stringValue(json['overview']),
+      boxart: boxart is Map
+          ? GameArtworkDescriptor.fromJson(boxart.cast<String, dynamic>())
+          : null,
+    );
+  }
+}
+
 class GameBios {
   final String id;
   final String fileName;
@@ -430,4 +464,66 @@ class GameDetail {
     overview: json['overview'] as String?,
     rating: (json['rating'] as num?)?.toDouble(),
   );
+}
+
+/// The signed-in user's RomM link, from /Moonfin/Games/Romm/Account.
+class RommAccount {
+  /// False when the server has no RomM library to link to.
+  final bool available;
+  final bool linked;
+  final String? username;
+
+  /// The code waiting for approval in RomM, while a link is in progress.
+  final RommLinkCode? pending;
+
+  /// `expired`, `denied` or `unreachable`, set on the answer right after it
+  /// happened.
+  final String? error;
+
+  const RommAccount({
+    required this.available,
+    required this.linked,
+    this.username,
+    this.pending,
+    this.error,
+  });
+
+  static const unavailable = RommAccount(available: false, linked: false);
+
+  factory RommAccount.fromJson(Map<String, dynamic> json) => RommAccount(
+    available: json['available'] == true,
+    linked: json['linked'] == true,
+    username: _stringValue(json['username']),
+    pending: json['pending'] is Map
+        ? RommLinkCode.fromJson((json['pending'] as Map).cast<String, dynamic>())
+        : null,
+    error: _stringValue(json['error']),
+  );
+}
+
+class RommLinkCode {
+  final String userCode;
+  final String verificationUrl;
+
+  /// [verificationUrl] with the code filled in, for a QR or a link.
+  final String verificationUrlComplete;
+  final int intervalSeconds;
+
+  const RommLinkCode({
+    required this.userCode,
+    required this.verificationUrl,
+    required this.verificationUrlComplete,
+    required this.intervalSeconds,
+  });
+
+  factory RommLinkCode.fromJson(Map<String, dynamic> json) {
+    final url = _stringValue(json['verificationUrl']) ?? '';
+    return RommLinkCode(
+      userCode: _stringValue(json['userCode']) ?? '',
+      verificationUrl: url,
+      verificationUrlComplete:
+          _stringValue(json['verificationUrlComplete']) ?? url,
+      intervalSeconds: _intValue(json['intervalSeconds']) ?? 5,
+    );
+  }
 }

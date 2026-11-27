@@ -11,25 +11,35 @@ abstract class AdminLibraryApi {
     Map<String, dynamic>? libraryOptions,
     bool refreshLibrary = false,
   });
-  Future<void> removeVirtualFolder(String name, {bool refreshLibrary = false});
+  // The mutations below take the library by name. Emby also wants its
+  // [libraryId], which Jellyfin ignores.
+  Future<void> removeVirtualFolder(
+    String name, {
+    bool refreshLibrary = false,
+    String? libraryId,
+  });
   Future<void> renameVirtualFolder(
     String name,
     String newName, {
     bool refreshLibrary = false,
+    String? libraryId,
   });
   Future<void> addMediaPath(
     String libraryName,
     String path, {
     bool refreshLibrary = false,
+    String? libraryId,
   });
   Future<void> updateMediaPath(
     String libraryName,
-    Map<String, dynamic> pathInfo,
-  );
+    Map<String, dynamic> pathInfo, {
+    String? libraryId,
+  });
   Future<void> removeMediaPath(
     String libraryName,
     String path, {
     bool refreshLibrary = false,
+    String? libraryId,
   });
   Future<void> updateLibraryOptions(
     String libraryId,

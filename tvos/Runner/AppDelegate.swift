@@ -1,5 +1,6 @@
 import Flutter
 import GameController
+import TVServices
 import UIKit
 
 /// Hosts the Flutter view so a game controller can be kept away from the UI.
@@ -37,12 +38,14 @@ final class GamepadNavigationHostViewController: GCEventViewController {
 
 @main
 class AppDelegate: FlutterAppDelegate {
-    private var appleTvVideoChannel: AppleTvVideoChannel?
+    private var nativeApplePlayerChannel: NativeApplePlayerChannel?
+    private var aetherVideoChannel: AetherVideoChannel?
     private var topShelfChannel: TopShelfChannel?
     private var previewChannel: AppleTvPreviewChannel?
     private var systemChannel: AppleTvSystemChannel?
     private var audioChannel: AppleTvAudioChannel?
     private var themeMusicChannel: AppleTvThemeMusicChannel?
+    private var arcadeSoundChannel: AppleArcadeSoundChannel?
     private var sfSymbolChannel: AppleTvSfSymbolChannel?
     private var gameChannel: AppleTvGameChannel?
 
@@ -63,9 +66,20 @@ class AppDelegate: FlutterAppDelegate {
         // register against the controller directly.
         GeneratedPluginRegistrant.register(with: flutterViewController)
 
-        appleTvVideoChannel = AppleTvVideoChannel(
+        nativeApplePlayerChannel = NativeApplePlayerChannel(
             messenger: flutterViewController.binaryMessenger,
-            rootViewController: flutterViewController)
+            textures: flutterViewController,
+            rootProvider: { [weak flutterViewController] in flutterViewController })
+        // The Flutter player option draws its own controls over this video view.
+        let aetherChannel = AetherVideoChannel(messenger: flutterViewController.binaryMessenger)
+        aetherVideoChannel = aetherChannel
+        flutterViewController.registrar(forPlugin: "moonfin_aether_video")?.register(
+            AetherVideoViewFactory(
+                messenger: flutterViewController.binaryMessenger,
+                wrapperProvider: { [weak aetherChannel] in
+                    aetherChannel?.player ?? AetherPlayerWrapper()
+                }),
+            withId: AetherVideoViewFactory.viewType)
         topShelfChannel = TopShelfChannel(
             messenger: flutterViewController.binaryMessenger)
         previewChannel = AppleTvPreviewChannel(
@@ -77,6 +91,8 @@ class AppDelegate: FlutterAppDelegate {
         audioChannel = AppleTvAudioChannel(
             messenger: flutterViewController.binaryMessenger)
         themeMusicChannel = AppleTvThemeMusicChannel(
+            messenger: flutterViewController.binaryMessenger)
+        arcadeSoundChannel = AppleArcadeSoundChannel(
             messenger: flutterViewController.binaryMessenger)
         sfSymbolChannel = AppleTvSfSymbolChannel(
             messenger: flutterViewController.binaryMessenger)
@@ -98,6 +114,20 @@ class AppDelegate: FlutterAppDelegate {
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
         topShelfChannel?.deliverDeepLink(url, isLaunch: false)
+        return true
+    }
+
+    /// A remote's Guide button, which only the Live TV player acts on.
+    override func application(
+        _ application: UIApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([any UIUserActivityRestoring]?) -> Void
+    ) -> Bool {
+        guard userActivity.activityType == TVUserActivityTypeBrowsingChannelGuide else {
+            return super.application(
+                application, continue: userActivity, restorationHandler: restorationHandler)
+        }
+        nativeApplePlayerChannel?.handleGuideButton()
         return true
     }
 }

@@ -6,6 +6,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import '../../../data/models/media_bar_slide_item.dart';
 import '../bounded_network_image.dart';
 import 'gallery_glow.dart';
+import 'media_bar_new_release_label.dart';
 
 class GalleryCoverflow extends StatefulWidget {
   static const int kCoverDecodeWidth = 600;
@@ -25,6 +26,9 @@ class GalleryCoverflow extends StatefulWidget {
   /// in the tree before it can start and report playback.
   final bool fullWidthTrailer;
 
+  /// Room left at the top for the status bar and the navigation over it.
+  final double topInset;
+
   const GalleryCoverflow({
     super.key,
     required this.items,
@@ -36,6 +40,7 @@ class GalleryCoverflow extends StatefulWidget {
     this.activeTrailer,
     this.trailerActive = false,
     this.fullWidthTrailer = false,
+    this.topInset = 0,
   });
 
   @override
@@ -83,14 +88,13 @@ class _GalleryCoverflowState extends State<GalleryCoverflow> {
       widget.items.length - 1,
     )];
     final glow = glowColorForGenres(active.genres);
-    final topInset = MediaQuery.paddingOf(context).top;
 
     return Stack(
       fit: StackFit.expand,
       children: [
         _AmbientGlow(color: glow),
         Padding(
-          padding: EdgeInsets.only(top: topInset + 8),
+          padding: EdgeInsets.only(top: widget.topInset + 8),
           child: Column(
             children: [
               Expanded(child: _buildCarousel(glow)),
@@ -306,6 +310,11 @@ class _Info extends StatelessWidget {
         _formatRuntime(item.runtime!),
       if (item.officialRating != null) item.officialRating!,
     ].join('  ·  ');
+    final metaStyle = theme.textTheme.labelMedium?.copyWith(
+      color: AppColorScheme.onSurface.withValues(alpha: 0.7),
+      fontWeight: FontWeight.w600,
+    );
+    final release = item.newRelease;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
@@ -324,14 +333,33 @@ class _Info extends StatelessWidget {
               shadows: shadows,
             ),
           ),
-          if (meta.isNotEmpty) ...[
+          // Only phones in portrait get here. The label leads the meta line
+          // rather than taking its own, so the poster keeps its height.
+          if (release != null || meta.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(
-              meta,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColorScheme.onSurface.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                if (release != null)
+                  MediaBarNewReleaseLine(
+                    release: release,
+                    showMessage: false,
+                    alignment: CrossAxisAlignment.center,
+                  ),
+                if (release != null && meta.isNotEmpty)
+                  Text('  ·  ', style: metaStyle),
+                if (meta.isNotEmpty)
+                  Flexible(
+                    child: Text(
+                      meta,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: metaStyle,
+                    ),
+                  ),
+              ],
             ),
           ],
           if (ratings != null) ...[

@@ -18,8 +18,15 @@ void main() {
   group('parsePinnedBottomNavTabs', () {
     test('reads names case-insensitively and ignores whitespace', () {
       expect(
-        parsePinnedBottomNavTabs(' Search , LIVETV,folders'),
-        [BottomNavTab.search, BottomNavTab.liveTv, BottomNavTab.folders],
+        parsePinnedBottomNavTabs(' Search , LIVETV,Favorites'),
+        [BottomNavTab.search, BottomNavTab.liveTv, BottomNavTab.favorites],
+      );
+    });
+
+    test('drops a folders pin, which the bar no longer offers', () {
+      expect(
+        parsePinnedBottomNavTabs('search,folders,liveTv'),
+        [BottomNavTab.search, BottomNavTab.liveTv],
       );
     });
 
@@ -105,6 +112,28 @@ void main() {
     test('drop a tab that is no longer offered without topping up', () {
       const gates = BottomNavTabGates(showGenres: false);
       expect(gates.resolvePins('genres,search'), [BottomNavTab.search]);
+    });
+
+    test('Calendar needs the plugin, its button and no Kids Mode', () {
+      const off = BottomNavTabGates();
+      const on = BottomNavTabGates(calendarAvailable: true);
+      expect(off.resolvePins('calendar,search'), [BottomNavTab.search]);
+      expect(on.resolvePins('calendar,search'), [
+        BottomNavTab.calendar,
+        BottomNavTab.search,
+      ]);
+      expect(
+        const BottomNavTabGates(calendarAvailable: true, showCalendar: false)
+            .resolvePins('calendar'),
+        isEmpty,
+      );
+      expect(
+        const BottomNavTabGates(calendarAvailable: true, kidsMode: true)
+            .offers(BottomNavTab.calendar),
+        isFalse,
+      );
+      // It never takes an automatic slot ahead of the older tabs.
+      expect(on.resolvePins(''), isNot(contains(BottomNavTab.calendar)));
     });
   });
 

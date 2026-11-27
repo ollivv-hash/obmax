@@ -208,9 +208,15 @@ class SeerrBrowseViewModel extends ChangeNotifier {
   /// cannot walk the whole library.
   static const _maxPagesPerScan = 6;
 
+  /// TMDB serves no page past this, whatever total it reports.
+  static const _maxPage = 500;
+
+  int _loadGen = 0;
+
   final SeerrRepository _repo;
   final String? filterId;
-  final String mediaType;
+  String _mediaType;
+  String get mediaType => _mediaType;
   final String? filterType;
 
   bool _requestLookupLoaded = false;
@@ -225,13 +231,14 @@ class SeerrBrowseViewModel extends ChangeNotifier {
   SeerrBrowseViewModel(
     this._repo, {
     this.filterId,
-    required this.mediaType,
+    required this._mediaType,
     this.filterType,
   }) {
     _state = SeerrBrowseState(sortBy: sortOptions.first);
   }
 
   Future<void> load() async {
+    final gen = ++_loadGen;
     _state = SeerrBrowseState(
       isLoading: true,
       sortBy: _state.sortBy,
@@ -250,30 +257,16 @@ class SeerrBrowseViewModel extends ChangeNotifier {
     try {
       await _repo.ensureInitialized();
       await _ensureRequestLookup();
-      var pageNum = 1;
-      final matches = <SeerrDiscoverItem>[];
-      late SeerrDiscoverPage lastPage;
-
-      // A letter or availability filter can reject a whole page, so keep
-      // reading ahead until there is enough to fill the grid.
-      while (matches.length < _minMatchesPerLoad &&
-          pageNum <= _maxPagesPerScan) {
-        final page = await _fetchPage(pageNum);
-        lastPage = page;
-        matches.addAll(_applyFilter(_attachRequesters(page.results)));
-        if (page.page >= page.totalPages || page.results.isEmpty) {
-          break;
-        }
-        pageNum++;
-      }
-
+      final scan = await _scan(1, gen);
+      if (scan == null) return;
       _state = _state.copyWith(
         isLoading: false,
-        items: matches,
-        currentPage: lastPage.page,
-        totalPages: lastPage.totalPages,
+        items: scan.items,
+        currentPage: scan.page,
+        totalPages: scan.totalPages,
       );
     } catch (e) {
+      if (gen != _loadGen) return;
       _state = _state.copyWith(isLoading: false, error: e);
     }
     notifyListeners();
@@ -281,43 +274,84 @@ class SeerrBrowseViewModel extends ChangeNotifier {
 
   Future<void> loadMore() async {
     if (!_state.canLoadMore) return;
+    final gen = _loadGen;
 
     _state = _state.copyWith(isLoadingMore: true);
     notifyListeners();
 
     try {
       await _ensureRequestLookup();
-      final startPage = _state.currentPage + 1;
-      var pageNum = startPage;
-      final matches = <SeerrDiscoverItem>[];
-      late SeerrDiscoverPage lastPage;
-
-      while (matches.length < _minMatchesPerLoad &&
-          pageNum < startPage + _maxPagesPerScan) {
-        final page = await _fetchPage(pageNum);
-        lastPage = page;
-        matches.addAll(_applyFilter(_attachRequesters(page.results)));
-        if (page.page >= page.totalPages || page.results.isEmpty) {
-          break;
-        }
-        pageNum++;
-      }
-
+      final scan = await _scan(_state.currentPage + 1, gen);
+      if (scan == null) return;
       _state = _state.copyWith(
         isLoadingMore: false,
-        items: [..._state.items, ...matches],
-        currentPage: lastPage.page,
-        totalPages: lastPage.totalPages,
+        items: [..._state.items, ...scan.items],
+        currentPage: scan.page,
+        // A short grid asks for more as soon as a round ends, so a round
+        // that found nothing ends paging instead of walking every page left.
+        totalPages: scan.items.isEmpty ? scan.page : scan.totalPages,
       );
     } catch (e) {
-      _state = _state.copyWith(isLoadingMore: false);
+      if (gen != _loadGen) return;
+      // Ends paging too, or a short grid would ask for the failed page again
+      // on the next frame.
+      _state = _state.copyWith(
+        isLoadingMore: false,
+        totalPages: _state.currentPage,
+      );
     }
     notifyListeners();
+  }
+
+  /// A letter or availability filter can reject a whole page, so this reads
+  /// ahead until enough titles pass. Comes back null once a newer load has
+  /// replaced the one it belongs to.
+  Future<({List<SeerrDiscoverItem> items, int page, int totalPages})?> _scan(
+    int startPage,
+    int gen,
+  ) async {
+    final items = <SeerrDiscoverItem>[];
+    for (var pageNum = startPage; ; pageNum++) {
+      final page = await _fetchPage(pageNum);
+      if (gen != _loadGen) return null;
+      items.addAll(_applyFilter(_attachRequesters(page.results)));
+      final totalPages = page.totalPages.clamp(0, _maxPage);
+      if (items.length >= _minMatchesPerLoad ||
+          pageNum - startPage + 1 >= _maxPagesPerScan ||
+          page.page >= totalPages ||
+          page.results.isEmpty) {
+        return (items: items, page: page.page, totalPages: totalPages);
+      }
+    }
   }
 
   void setSortBy(SeerrSortOption option) {
     if (option.value == _state.sortBy.value) return;
     _state = _state.copyWith(sortBy: option);
+    load();
+  }
+
+  /// Genres and series statuses belong to one media type, so switching drops
+  /// them and reads the genre list again. The sort carries over by name, since
+  /// its field differs between movies and series.
+  void setMediaType(String type) {
+    if (type == _mediaType) return;
+    _mediaType = type;
+    final sort = _state.sortBy;
+    final match = sortOptions.where((o) => o.label == sort.label).firstOrNull;
+    final direction = sort.value.endsWith('.asc') ? 'asc' : 'desc';
+    _filterOptionsRequested = false;
+    _filterGenres = const [];
+    _state = _state.copyWith(
+      sortBy: match == null
+          ? sortOptions.first
+          : SeerrSortOption(
+              match.label,
+              '${match.value.split('.').first}.$direction',
+            ),
+      genreIds: const {},
+      tvStatuses: const {},
+    );
     load();
   }
 

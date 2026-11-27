@@ -45,39 +45,19 @@ class _QualityDecodingScreen extends StatelessWidget {
                   MaxVideoResolution.res2160p => '2160p (4K)',
                 },
               ),
-              SwitchPreferenceTile(
-                preference: UserPreferences.liveTvDirectPlayEnabled,
-                title: l10n.settingsLiveTvDirect,
-                subtitle: l10n.settingsLiveTvDirectSubtitle,
-                icon: Icons.live_tv,
-              ),
+              if (liveTvOnAnySignedInServer())
+                SwitchPreferenceTile(
+                  preference: UserPreferences.liveTvDirectPlayEnabled,
+                  title: l10n.settingsLiveTvDirect,
+                  subtitle: l10n.settingsLiveTvDirectSubtitle,
+                  icon: Icons.live_tv,
+                ),
             ],
           ),
 
-          const _SectionHeader('Decoding & Rendering'),
+          _SectionHeader(l10n.settingsDecodingAndRenderingSection),
           adaptiveListSection(
             children: [
-              if (PlatformDetection.isAndroid)
-                EnumPreferenceTile<PlaybackEnginePreference>(
-                  preference: UserPreferences.playbackEnginePreference,
-                  title: PlatformDetection.isTV
-                      ? l10n.settingsPlaybackEngineAndroidTv
-                      : l10n.settingsPlaybackEngineAndroidTv.replaceAll(
-                          'Android TV',
-                          'Android',
-                        ),
-                  description: PlatformDetection.isTV
-                      ? l10n.settingsPlaybackEngineAndroidTvDescription
-                      : l10n.settingsPlaybackEngineAndroidTvDescription
-                            .replaceAll('Android TV', 'Android'),
-                  icon: Icons.video_settings,
-                  labelOf: (v) => switch (v) {
-                    PlaybackEnginePreference.media3 =>
-                      l10n.settingsPlaybackEngineMedia3Recommended,
-                    PlaybackEnginePreference.mpv =>
-                      l10n.settingsPlaybackEngineMpvLegacy,
-                  },
-                ),
               // Hidden on Apple TV: AetherEngine always uses VideoToolbox for
               // hardware-capable codecs and software decode otherwise, so there
               // is no user-facing toggle to honor.
@@ -95,7 +75,28 @@ class _QualityDecodingScreen extends StatelessWidget {
                   subtitle: l10n.preferSoftwareDecodersSubtitle,
                   icon: Icons.memory,
                 ),
+              if (PlatformDetection.offersHevcSoftwareDecode)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.hevcSoftwareDirectPlay,
+                  title: l10n.hevcSoftwareDirectPlay,
+                  subtitle: l10n.hevcSoftwareDirectPlaySubtitle,
+                  icon: Icons.memory,
+                ),
+              if (PlatformDetection.offersAv1SoftwareUhd)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.av1SoftwareUhdDirectPlay,
+                  title: l10n.av1SoftwareUhdDirectPlay,
+                  subtitle: l10n.av1SoftwareUhdDirectPlaySubtitle,
+                  icon: Icons.memory,
+                ),
               if (DisplayHdrProbe.isSupported) const _RedetectDisplayTile(),
+              if (PlatformDetection.isAppleTV)
+                SwitchPreferenceTile(
+                  preference: UserPreferences.cadenceSlowdown,
+                  title: l10n.cadenceSlowdown,
+                  subtitle: l10n.cadenceSlowdownSubtitle,
+                  icon: Icons.speed,
+                ),
               if (isAndroidTv)
                 EnumPreferenceTile<RefreshRateSwitchingBehavior>(
                   preference: UserPreferences.refreshRateSwitchingBehavior,
@@ -187,6 +188,14 @@ class _QualityDecodingScreen extends StatelessWidget {
                   subtitle: l10n.mapDolbyVisionP7Subtitle,
                   icon: Icons.hdr_strong,
                 ),
+                if (KnownDefects.hevcDoviHdr10PlusBug)
+                  SwitchPreferenceTile(
+                    preference:
+                        UserPreferences.media3StripDolbyVisionWithHdr10Plus,
+                    title: l10n.stripDolbyVisionHdr10PlusTitle,
+                    subtitle: l10n.stripDolbyVisionHdr10PlusSubtitle,
+                    icon: Icons.hdr_strong,
+                  ),
               ],
             ),
           ],

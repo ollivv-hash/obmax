@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/users/admin_user_edit_screen.dart';
 import 'package:server_core/server_core.dart';
 
@@ -19,6 +21,63 @@ const _userId = 'fa030fcaad884e85b9eaad296e00c7cc';
 Map<String, dynamic> _fixture() =>
     jsonDecode(File('test/fixtures/admin/user.json').readAsStringSync())
         as Map<String, dynamic>;
+
+/// An Emby 4.9 server's UserDto, which leaves out what Emby doesn't have.
+Map<String, dynamic> _embyUser() => {
+      'Name': 'second',
+      'ServerId': '2c58c82b8fa14a4899e23627cb1bea10',
+      'Id': _userId,
+      'HasPassword': false,
+      'Configuration': {'SubtitleMode': 'Smart', 'OrderedViews': []},
+      'Policy': {
+        'IsAdministrator': false,
+        'IsHidden': false,
+        'IsHiddenRemotely': true,
+        'IsHiddenFromUnusedDevices': false,
+        'IsDisabled': false,
+        'LockedOutDate': 0,
+        'AllowTagOrRating': false,
+        'BlockedTags': [],
+        'IsTagBlockingModeInclusive': false,
+        'IncludeTags': [],
+        'EnableUserPreferenceAccess': true,
+        'AccessSchedules': [],
+        'BlockUnratedItems': [],
+        'EnableRemoteControlOfOtherUsers': false,
+        'EnableSharedDeviceControl': true,
+        'EnableRemoteAccess': true,
+        'EnableLiveTvManagement': true,
+        'EnableLiveTvAccess': true,
+        'EnableMediaPlayback': true,
+        'EnableAudioPlaybackTranscoding': true,
+        'EnableVideoPlaybackTranscoding': true,
+        'AutoRemoteQuality': 0,
+        'EnablePlaybackRemuxing': true,
+        'EnableContentDeletion': false,
+        'RestrictedFeatures': [],
+        'EnableContentDeletionFromFolders': [],
+        'EnableContentDownloading': true,
+        'EnableSubtitleDownloading': true,
+        'EnableSubtitleManagement': false,
+        'EnableSyncTranscoding': true,
+        'EnableMediaConversion': true,
+        'EnabledChannels': [],
+        'EnableAllChannels': true,
+        'EnabledFolders': [],
+        'EnableAllFolders': true,
+        'InvalidLoginAttemptCount': 0,
+        'EnablePublicSharing': true,
+        'RemoteClientBitrateLimit': 0,
+        'AuthenticationProviderId':
+            'Emby.Server.Implementations.Library.DefaultAuthenticationProvider',
+        'ExcludedSubFolders': [],
+        'SimultaneousStreamLimit': 0,
+        'EnabledDevices': [],
+        'EnableAllDevices': true,
+        'AllowCameraUpload': true,
+        'AllowSharingPersonalItems': false,
+      },
+    };
 
 Map<String, dynamic> _copy(Map<String, dynamic> m) =>
     jsonDecode(jsonEncode(m)) as Map<String, dynamic>;
@@ -97,6 +156,43 @@ class _FakeSystemApi extends Fake implements AdminSystemApi {
   @override
   Future<Map<String, dynamic>> getNamedConfiguration(String key) async =>
       {'EnableRemoteAccess': remoteAccess};
+
+  /// Where Emby keeps the remote access switch.
+  @override
+  Future<Map<String, dynamic>> getServerConfiguration() async =>
+      {'EnableRemoteAccess': remoteAccess};
+}
+
+class _FakeEmbyApi extends Fake implements EmbyAdminApi {
+  _FakeEmbyApi(this.users);
+
+  final _FakeUsersApi users;
+  final links = <String>[];
+  int unlinks = 0;
+  Object? linkError;
+
+  @override
+  Future<PremiereStatus> getPremiereStatus() async =>
+      const PremiereStatus(isActive: false, hasKey: false);
+
+  @override
+  Future<Map<String, dynamic>> linkConnectUser(
+    String userId,
+    String connectUsername,
+  ) async {
+    expect(userId, _userId);
+    if (linkError != null) throw linkError!;
+    links.add(connectUsername);
+    users.user['ConnectUserName'] = connectUsername;
+    return {'IsPending': false, 'IsNewUserInvitation': false};
+  }
+
+  @override
+  Future<void> unlinkConnectUser(String userId) async {
+    expect(userId, _userId);
+    unlinks++;
+    users.user.remove('ConnectUserName');
+  }
 }
 
 class _FakeDevicesApi extends Fake implements AdminDevicesApi {
@@ -107,6 +203,7 @@ class _FakeDevicesApi extends Fake implements AdminDevicesApi {
 void main() {
   late _FakeUsersApi users;
   late _FakeSystemApi system;
+  late _FakeEmbyApi emby;
   late _MockMediaServerClient client;
   late AppLocalizations l10n;
 
@@ -118,6 +215,8 @@ void main() {
     when(() => client.adminLibraryApi).thenReturn(_FakeLibraryApi());
     when(() => client.adminSystemApi).thenReturn(system);
     when(() => client.adminDevicesApi).thenReturn(_FakeDevicesApi());
+    emby = _FakeEmbyApi(users);
+    when(() => client.embyAdminApi).thenReturn(emby);
     when(() => client.userId).thenReturn('someone-else');
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<MediaServerClient>(client);
@@ -129,16 +228,24 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {bool onEmby = false}) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    const page = AdminUserEditScreen(userId: _userId);
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: AdminUserEditScreen(userId: _userId)),
+          home: Scaffold(
+            body: onEmby
+                ? const AdminServerScope(
+                    serverType: ServerType.emby,
+                    child: page,
+                  )
+                : page,
+          ),
         ),
       ),
     );
@@ -477,5 +584,104 @@ void main() {
       await openTab(tester, tab);
       expect(find.widgetWithText(FilledButton, l10n.save), findsNothing);
     }
+  });
+
+  group('on Emby', () {
+    setUp(() => users.user = _embyUser());
+
+    testWidgets('Jellyfin rows hide and Emby rows save', (tester) async {
+      final keys = users.policy.keys.toSet();
+      await pump(tester, onEmby: true);
+      await openTab(tester, l10n.permissions);
+
+      for (final label in [
+        l10n.adminForceRemoteTranscoding,
+        l10n.adminMaxActiveSessions,
+        l10n.adminAllowCollectionManagement,
+        l10n.adminAllowLyricManagement,
+        l10n.adminLoginAttemptsBeforeLockout,
+        l10n.adminSyncPlayAccess,
+        l10n.authentication.toUpperCase(),
+      ]) {
+        expect(find.text(label), findsNothing, reason: label);
+      }
+      expect(find.text(l10n.adminPremiereNote), findsOneWidget);
+
+      await toggle(tester, l10n.adminHiddenRemotely);
+      await toggle(tester, l10n.adminAllowCameraUpload);
+      await toggle(tester, l10n.adminAllowSharingPersonalItems);
+      await toggle(tester, l10n.adminAllowSubtitleDownloading);
+      await tester.enterText(field(l10n.adminAutoRemoteQuality), '4');
+      await tester.pump();
+      await pick(tester, find.byType(DropdownButtonFormField<int>), '3');
+
+      await openTab(tester, l10n.adminParentalControl);
+      expect(find.text(l10n.adminAllowedTagsHint), findsNothing);
+      await pick(
+        tester,
+        find.byType(DropdownButtonFormField<bool>),
+        l10n.adminAllowedTags,
+      );
+      expect(find.text(l10n.adminAllowedTagsHint), findsOneWidget);
+
+      await save();
+      final p = users.postedPolicies.single;
+      expect(p['IsHiddenRemotely'], isFalse);
+      expect(p['AllowCameraUpload'], isFalse);
+      expect(p['AllowSharingPersonalItems'], isTrue);
+      expect(p['EnableSubtitleDownloading'], isFalse);
+      expect(p['AutoRemoteQuality'], 4000000);
+      expect(p['SimultaneousStreamLimit'], 3);
+      expect(p['IsTagBlockingModeInclusive'], isTrue);
+      // Nothing Jellyfin only is added.
+      expect(p.keys.toSet(), keys);
+    });
+
+    testWidgets('Emby Connect links and unlinks at once', (tester) async {
+      await pump(tester, onEmby: true);
+      final connect = field(l10n.adminEmbyConnectUser);
+
+      await tester.enterText(connect, 'someone@example.com');
+      await tester.pump();
+      await tester.tap(find.text(l10n.adminEmbyConnectLink));
+      await tester.pumpAndSettle();
+      expect(emby.links, ['someone@example.com']);
+      expect(find.text(l10n.adminEmbyConnectUnlink), findsOneWidget);
+
+      await tester.tap(find.text(l10n.adminEmbyConnectUnlink));
+      await tester.pumpAndSettle();
+      expect(emby.unlinks, 1);
+      expect(find.text(l10n.adminEmbyConnectLink), findsOneWidget);
+      // Neither touches the draft.
+      expect(AdminDraft.active.value!.isDirty, isFalse);
+    });
+
+    testWidgets('an unknown Emby Connect account says so', (tester) async {
+      final request = RequestOptions(path: '/Users/$_userId/Connect/Link');
+      emby.linkError = DioException(
+        requestOptions: request,
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: request,
+          statusCode: 500,
+          data: 'NotFound',
+        ),
+      );
+      await pump(tester, onEmby: true);
+      await tester.enterText(field(l10n.adminEmbyConnectUser), 'nobody');
+      await tester.pump();
+      await tester.tap(find.text(l10n.adminEmbyConnectLink));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.adminEmbyConnectNotFound), findsOneWidget);
+    });
+
+    testWidgets('Jellyfin has no Emby rows', (tester) async {
+      users.user = _fixture();
+      await pump(tester);
+      expect(find.text(l10n.adminEmbyConnect.toUpperCase()), findsNothing);
+      await openTab(tester, l10n.permissions);
+      expect(find.text(l10n.adminAllowMediaConversion), findsNothing);
+      expect(find.text(l10n.adminStreamingStreamLimit), findsNothing);
+    });
   });
 }

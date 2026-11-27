@@ -28,6 +28,7 @@ void main() {
     itemsApi = _MockItemsApi();
     when(() => client.itemsApi).thenReturn(itemsApi);
     when(() => client.gamesApi).thenReturn(null);
+    when(() => client.serverType).thenReturn(ServerType.jellyfin);
   });
 
   tearDown(() => GetIt.instance.reset());
@@ -38,6 +39,7 @@ void main() {
         searchTerm: term,
         parentId: any(named: 'parentId'),
         includeItemTypes: any(named: 'includeItemTypes'),
+        excludeItemTypes: any(named: 'excludeItemTypes'),
         limit: any(named: 'limit'),
         recursive: any(named: 'recursive'),
         fields: any(named: 'fields'),
@@ -183,6 +185,22 @@ void main() {
       async.flushMicrotasks();
 
       expect(groupTypes(vm), ['Movie']);
+    });
+  });
+
+  test('a search that answers after the screen closed is dropped', () {
+    fakeAsync((async) {
+      itemsFor('hanks', []);
+      final people = peopleFor('hanks');
+      final vm = SearchViewModel(SearchRepository(client), client);
+
+      vm.searchImmediate('hanks');
+      async.elapse(const Duration(seconds: 1));
+      vm.dispose();
+      people.complete(person('p1'));
+      async.flushMicrotasks();
+
+      expect(vm.state, SearchState.loading);
     });
   });
 

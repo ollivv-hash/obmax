@@ -6,6 +6,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 import '../../util/focus/dpad_keys.dart';
 import '../../util/idiom/glass_capability.dart';
 import 'focus/glass_focus_halo.dart';
+import 'scroll_edge_arrows.dart';
 
 /// Release velocity, in track widths per second, beyond which the pill flicks
 /// to the next segment even if it hasn't crossed the halfway point.
@@ -53,6 +54,9 @@ class SlidingPillTabs extends StatefulWidget {
   /// Left D-pad from the first segment; e.g. hop to the sidebar.
   final VoidCallback? onExitLeft;
 
+  /// Right D-pad from the last segment, to a control beside the strip.
+  final VoidCallback? onExitRight;
+
   /// Where the strip sits once it has hugged its content. Search lines it up
   /// under the field on the left, a panel centres it over its list.
   final Alignment alignment;
@@ -65,6 +69,7 @@ class SlidingPillTabs extends StatefulWidget {
     this.focusNode,
     this.onVerticalNavigation,
     this.onExitLeft,
+    this.onExitRight,
     this.alignment = Alignment.centerLeft,
   });
 
@@ -81,6 +86,7 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
   List<GlobalKey> _segmentKeys = const [];
   List<double> _widths = const [];
   bool _focused = false;
+  final _scroll = ScrollController();
 
   /// Where the pill rests. Follows selectedIndex, but a drag release moves it
   /// first so the pill lands on the segment the finger chose instead of
@@ -121,6 +127,7 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
   @override
   void dispose() {
     _ownedNode?.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -145,7 +152,11 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
       widths.add(box.size.width);
     }
     if (widths.isEmpty || listEquals(widths, _widths)) return;
+    final first = _widths.isEmpty;
     setState(() => _widths = widths);
+    // The first measurement rebuilds the strip around a new scroll view, so a
+    // segment picked from the start is only brought into view after it.
+    if (first && widget.selectedIndex > 0) _revealSelected();
   }
 
   void _scheduleEnsureVisible() {
@@ -159,6 +170,16 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
+    });
+  }
+
+  /// Scrolls the strip, and only the strip, to the selected segment.
+  void _revealSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _selectedKey?.currentContext;
+      final object = ctx?.findRenderObject();
+      if (!mounted || ctx == null || object == null) return;
+      Scrollable.maybeOf(ctx)?.position.ensureVisible(object, alignment: 0.5);
     });
   }
 
@@ -245,14 +266,14 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
       if (movesToNextIndex) {
         if (index < widget.labels.length - 1) {
           widget.onChanged(index + 1);
-        } else if (isRtl && widget.onExitLeft != null) {
-          widget.onExitLeft!();
+        } else {
+          (isRtl ? widget.onExitLeft : widget.onExitRight)?.call();
         }
       } else {
         if (index > 0) {
           widget.onChanged(index - 1);
-        } else if (!isRtl && widget.onExitLeft != null) {
-          widget.onExitLeft!();
+        } else {
+          (isRtl ? widget.onExitRight : widget.onExitLeft)?.call();
         }
       }
       return KeyEventResult.handled;
@@ -418,16 +439,20 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
               );
             }
           } else {
+            // With focus the pill grows into the pane's padding, so it fills
+            // the ring painted around the pane rather than sitting inside it.
+            final swell = _focused ? _kPanePadding : 0.0;
             stack = Stack(
+              clipBehavior: Clip.none,
               children: [
                 if (hasThumb)
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutCubic,
-                    top: 0,
-                    bottom: 0,
-                    left: _leftOf(_restIndex),
-                    width: _widths[_restIndex],
+                    top: -swell,
+                    bottom: -swell,
+                    left: _leftOf(_restIndex) - swell,
+                    width: _widths[_restIndex] + swell * 2,
                     child: Container(
                       decoration: BoxDecoration(
                         color: thumbColor,
@@ -455,12 +480,17 @@ class _SlidingPillTabsState extends State<SlidingPillTabs> {
             padding: const EdgeInsets.all(_kPanePadding),
             child: SizedBox(
               height: _kSegmentHeight,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                // Only clip when there is something scrolled out of view to
-                // clip. Otherwise it would cut the swell off at the segments.
-                clipBehavior: fits ? Clip.none : Clip.hardEdge,
-                child: stack,
+              child: ScrollEdgeArrows(
+                controller: _scroll,
+                size: _kSegmentHeight,
+                child: SingleChildScrollView(
+                  controller: _scroll,
+                  scrollDirection: Axis.horizontal,
+                  // Only clip when there is something scrolled out of view to
+                  // clip. Otherwise it would cut the swell off at the segments.
+                  clipBehavior: fits ? Clip.none : Clip.hardEdge,
+                  child: stack,
+                ),
               ),
             ),
           );

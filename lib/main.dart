@@ -32,14 +32,16 @@ import 'data/services/media_server_client_factory.dart';
 import 'data/services/crash_report_service.dart';
 import 'data/services/log_service.dart';
 import 'data/services/storage_path_service.dart';
+import 'util/macos_touch_input.dart';
 import 'util/scroll_sensitivity_binding.dart';
+import 'util/silo_image_hooks.dart';
 import 'util/webview_environment.dart';
 import 'data/services/theme_store_service.dart';
 import 'di/injection.dart';
 import 'obmax/obmax_defaults.dart'; // OBMAX
 import 'obmax/splash/obmax_boot.dart'; // OBMAX
 import 'playback/appletv_audio_now_playing_feeder.dart';
-import 'playback/appletv_backend.dart';
+import 'playback/native_apple_player_backend.dart';
 import 'playback/audio_capability_probe.dart';
 import 'playback/audio_handler.dart';
 import 'playback/codec_caps_repair.dart';
@@ -48,6 +50,7 @@ import 'playback/display_hdr_probe.dart';
 import 'playback/media_browse_service.dart';
 import 'playback/mpris_service.dart';
 import 'playback/playback_lifecycle_handler.dart';
+import 'playback/subtitle_fonts.dart';
 import 'platform/background_refresh.dart';
 import 'platform/web_runtime_config.dart';
 import 'preference/preference_constants.dart';
@@ -60,6 +63,8 @@ import 'util/game_core_licenses.dart';
 import 'util/device_performance.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/screensaver/screensaver_controller.dart';
+import 'ui/widgets/reader/epub_js_view.dart';
+import 'util/device_hinge.dart';
 import 'util/platform_detection.dart';
 import 'util/process_exit_reporter.dart';
 import 'util/system_ui.dart';
@@ -323,6 +328,13 @@ Future<void> _detectAndSetTvMode() async {
       final isTV = await channel.invokeMethod<bool>('isTvDevice');
       if (isTV != null) {
         PlatformDetection.setTvMode(isTV);
+        if (isTV) {
+          try {
+            final touch =
+                await channel.invokeMethod<bool>('supportsTouchLayout');
+            if (touch != null) PlatformDetection.setSupportsTouchLayout(touch);
+          } catch (_) {}
+        }
         return;
       }
     } catch (_) {}
@@ -649,7 +661,7 @@ Future<Map<String, dynamic>?> _queryAppleVideoCaps(
 }
 
 Future<void> _detectAndSetAppleTvCapabilities() async {
-  const channel = MethodChannel('moonfin/appletv_video_control');
+  const channel = MethodChannel('moonfin/native_apple_player_control');
   final caps = await _queryAppleVideoCaps(channel);
 
   PlatformDetection.setMediaCodecCapabilities(
@@ -850,6 +862,7 @@ Future<void> autoDownloadBackgroundMain() =>
 void main() async {
   configureHttpOverrides();
   ScrollSensitivityBinding.ensureInitialized();
+  MacosTouchInput.install();
   ObMaxBoot.showSplash(); // OBMAX: animated splash while the app initializes
 
   // Pre-warms the liquid_glass_widgets shader programs so the first glass
@@ -859,6 +872,7 @@ void main() async {
   await LiquidGlassWidgets.initialize();
 
   registerGameCoreLicenses();
+  registerEpubJsLicenses();
 
   if (!PlatformDetection.isWeb && PlatformDetection.isWindows) {
     try {
@@ -932,6 +946,7 @@ void main() async {
   }
 
   _configureImageCache();
+  installSiloImageHooks();
   _capSkiaCache();
   await configureImageDiskCache(tier: _resolvedTier());
 
@@ -1020,7 +1035,7 @@ void main() async {
       final feeder = AppleTvAudioNowPlayingFeeder(
         manager: GetIt.instance<PlaybackManager>(),
         clientFactory: GetIt.instance<MediaServerClientFactory>(),
-        backend: GetIt.instance<AppleTvBackend>(),
+        backend: GetIt.instance<NativeApplePlayerBackend>(),
       )..start();
       GetIt.instance.registerSingleton<AppleTvAudioNowPlayingFeeder>(feeder);
     } catch (_) {}
@@ -1035,6 +1050,8 @@ void main() async {
   try {
     GetIt.instance<AirPlayCommandBridge>().start();
   } catch (_) {}
+
+  DeviceHinge.init();
 
   ObMaxBoot.finish(const MoonfinApp()); // OBMAX: was runApp(const MoonfinApp())
 }
@@ -1068,6 +1085,8 @@ Future<void> _initDeferredStartupServices(UserPreferences prefs) async {
 
   await _detectAndApplyAudioCapabilities(prefs);
 
+  unawaited(SubtitleFonts.instance.follow(prefs));
+
   try {
     await GetIt.instance<DownloadNotificationService>().initialize();
   } catch (_) {}
@@ -1082,12 +1101,6 @@ Future<void> _initDeferredStartupServices(UserPreferences prefs) async {
     await GetIt.instance<SeerrNotificationService>().initialize();
     await GetIt.instance<SeerrNotificationService>().handleColdStart();
   } catch (_) {}
-
-  if (PlatformDetection.isMobile) {
-    try {
-      await GetIt.instance<PushMessagingService>().initialize();
-    } catch (_) {}
-  }
 
   // Audio session ownership differs per platform:
   // - Android: MoonfinAudioHandler acquires audio focus per playback, and skips

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 
+import '../../data/services/pin_guard.dart';
 import '../../l10n/app_localizations.dart';
 import '../../util/focus/dpad_keys.dart';
 import 'overlay_sheet.dart';
@@ -18,6 +19,11 @@ enum PinEntryMode { set, verify }
 class PinEntryDialog extends StatefulWidget {
   final PinEntryMode mode;
   final bool Function(String pin)? onVerify;
+
+  /// Checks a PIN that may have to ask the server, and says how long to wait
+  /// after too many wrong guesses. Used instead of [onVerify] when given, and
+  /// the one that counts the guesses, so [onFailedAttempt] is not needed with it.
+  final Future<PinOutcome> Function(String pin)? onVerifyAsync;
   final Future<void> Function(String pin)? onPinSet;
   final VoidCallback? onForgotPin;
   final int pinLength;
@@ -31,27 +37,44 @@ class PinEntryDialog extends StatefulWidget {
   /// opens, so a reopen doesn't hand back a fresh set of free guesses.
   final Duration Function()? lockoutRemaining;
 
+  /// Says what the PIN is for when verifying, in place of the generic
+  /// "Enter PIN" wording, for a dialog the person didn't open themselves.
+  final String? title;
+  final String? subtitle;
+
   const PinEntryDialog({
     super.key,
     required this.mode,
     this.onVerify,
+    this.onVerifyAsync,
     this.onPinSet,
     this.onForgotPin,
     this.pinLength = 4,
     this.onFailedAttempt,
     this.lockoutRemaining,
+    this.title,
+    this.subtitle,
   });
+
+  /// How long a wait is said to be in the dialog.
+  static String formatWait(Duration wait) {
+    if (wait.inSeconds < 60) return '${wait.inSeconds}s';
+    return '${wait.inMinutes}m';
+  }
 
   /// Show the PIN dialog and return true if verified/set, false otherwise.
   static Future<bool> show(
     BuildContext context, {
     required PinEntryMode mode,
     bool Function(String pin)? onVerify,
+    Future<PinOutcome> Function(String pin)? onVerifyAsync,
     Future<void> Function(String pin)? onPinSet,
     VoidCallback? onForgotPin,
     int pinLength = 4,
     Future<Duration> Function()? onFailedAttempt,
     Duration Function()? lockoutRemaining,
+    String? title,
+    String? subtitle,
   }) async {
     final result = await showFocusRestoringDialog<bool>(
       context: context,
@@ -59,11 +82,14 @@ class PinEntryDialog extends StatefulWidget {
       builder: (_) => PinEntryDialog(
         mode: mode,
         onVerify: onVerify,
+        onVerifyAsync: onVerifyAsync,
         onPinSet: onPinSet,
         onForgotPin: onForgotPin,
         pinLength: pinLength,
         onFailedAttempt: onFailedAttempt,
         lockoutRemaining: lockoutRemaining,
+        title: title,
+        subtitle: subtitle,
       ),
     );
     return result ?? false;
@@ -78,6 +104,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   String? _firstPin;
   String? _errorText;
   bool _isConfirming = false;
+  bool _isVerifying = false;
   DateTime? _lastButtonPressAt;
 
   bool _consumeButtonPress() {
@@ -94,7 +121,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
     if (widget.mode == PinEntryMode.set) {
       return _isConfirming ? l10n.pinConfirmTitle : l10n.pinSetTitle;
     }
-    return l10n.pinEnterTitle;
+    return widget.title ?? l10n.pinEnterTitle;
   }
 
   String _subtitle(AppLocalizations l10n) {
@@ -103,11 +130,11 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
           ? l10n.pinReenterToConfirm
           : l10n.pinEnterNDigit(widget.pinLength);
     }
-    return l10n.pinEnterYourNDigit(widget.pinLength);
+    return widget.subtitle ?? l10n.pinEnterYourNDigit(widget.pinLength);
   }
 
   void _onDigitPressed(int digit) {
-    if (_enteredPin.length >= widget.pinLength) return;
+    if (_isVerifying || _enteredPin.length >= widget.pinLength) return;
     setState(() {
       _enteredPin += digit.toString();
       _errorText = null;
@@ -119,7 +146,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   }
 
   void _onBackspace() {
-    if (_enteredPin.isEmpty) return;
+    if (_isVerifying || _enteredPin.isEmpty) return;
     setState(() {
       _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
       _errorText = null;
@@ -127,25 +154,50 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   }
 
   void _onClear() {
+    if (_isVerifying) return;
     setState(() {
       _enteredPin = '';
       _errorText = null;
     });
   }
 
-  static String _formatWait(Duration wait) {
-    if (wait.inSeconds < 60) return '${wait.inSeconds}s';
-    return '${wait.inMinutes}m';
-  }
-
   Future<void> _onPinComplete() async {
+    if (widget.mode == PinEntryMode.verify && widget.onVerifyAsync != null) {
+      setState(() => _isVerifying = true);
+      final PinOutcome outcome;
+      try {
+        outcome = await widget.onVerifyAsync!(_enteredPin);
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _isVerifying = false;
+          _errorText = AppLocalizations.of(context).pinIncorrect;
+          _enteredPin = '';
+        });
+        return;
+      }
+      if (!mounted) return;
+      if (outcome is PinAccepted) {
+        Navigator.of(context).pop(true);
+        return;
+      }
+      final l10n = AppLocalizations.of(context);
+      setState(() {
+        _isVerifying = false;
+        _errorText = outcome is PinLockedOut
+            ? l10n.pinTryAgainIn(PinEntryDialog.formatWait(outcome.wait))
+            : l10n.pinIncorrect;
+        _enteredPin = '';
+      });
+      return;
+    }
     if (widget.mode == PinEntryMode.verify) {
       // Reopening the dialog must not hand back a fresh set of free guesses.
       final locked = widget.lockoutRemaining?.call() ?? Duration.zero;
       if (locked > Duration.zero) {
         final l10n = AppLocalizations.of(context);
         setState(() {
-          _errorText = l10n.pinTryAgainIn(_formatWait(locked));
+          _errorText = l10n.pinTryAgainIn(PinEntryDialog.formatWait(locked));
           _enteredPin = '';
         });
         return;
@@ -158,7 +210,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
         final l10n = AppLocalizations.of(context);
         setState(() {
           _errorText = wait > Duration.zero
-              ? l10n.pinTryAgainIn(_formatWait(wait))
+              ? l10n.pinTryAgainIn(PinEntryDialog.formatWait(wait))
               : l10n.pinIncorrect;
           _enteredPin = '';
         });
@@ -173,7 +225,24 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
       } else {
         if (_enteredPin == _firstPin) {
           if (widget.onPinSet != null) {
-            await widget.onPinSet!.call(_enteredPin);
+            try {
+              await widget.onPinSet!.call(_enteredPin);
+            } on PinChangeRefused catch (refused) {
+              if (!mounted) return;
+              final l10n = AppLocalizations.of(context);
+              final outcome = refused.outcome;
+              setState(() {
+                _errorText = refused.unreachable
+                    ? l10n.unableToConnectToServer
+                    : outcome is PinLockedOut
+                    ? l10n.pinTryAgainIn(PinEntryDialog.formatWait(outcome.wait))
+                    : l10n.pinIncorrect;
+                _enteredPin = '';
+                _isConfirming = false;
+                _firstPin = null;
+              });
+              return;
+            }
           }
           if (!mounted) return;
           Navigator.of(context).pop(true);

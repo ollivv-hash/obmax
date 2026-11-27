@@ -81,15 +81,22 @@ abstract final class ObMaxDefaults {
     );
   }
 
-  /// My Media, Continue watching, Next up, then the latest additions of each
-  /// library (Films, Séries, Concerts in the server's library order).
-  /// Everything else is off.
+  /// My Media, Continue watching, Next up, the latest additions of each
+  /// library (Films, Séries, Concerts in the server's library order), then a
+  /// few outside charts served by Moonbase. Everything else is off.
+  ///
+  /// Home skips a chart the server cannot fill (no Moonbase, no MDBList or
+  /// TMDB key there), so these cost nothing on a server without them.
   static List<HomeSectionConfig> homeSections() {
     const shown = [
       HomeSectionType.libraryButtons,
       HomeSectionType.resume,
       HomeSectionType.nextUp,
       HomeSectionType.latestMedia,
+      HomeSectionType.justwatchTopMovies,
+      HomeSectionType.justwatchTopShows,
+      HomeSectionType.mdblistAnticipatedMovies,
+      HomeSectionType.tmdbNewDigitalMovies,
     ];
     final rest = HomeSectionConfig.defaults()
         .where((c) => c.isBuiltin && !shown.contains(c.type))
@@ -101,6 +108,40 @@ abstract final class ObMaxDefaults {
         rest[i].copyWith(enabled: false, order: shown.length + i),
     ];
   }
+
+  /// French titles of the outside chart rows, which Moonfin writes in
+  /// English in `externalCharts`.
+  static const _chartTitles = {
+    HomeSectionType.mdblistMostWatchedWeekMovies:
+        'Films les plus vus cette semaine',
+    HomeSectionType.mdblistMostWatchedWeekShows:
+        'Séries les plus vues cette semaine',
+    HomeSectionType.mdblistMostWatchedYearMovies:
+        "Films les plus vus de l'année",
+    HomeSectionType.mdblistMostWatchedYearShows:
+        "Séries les plus vues de l'année",
+    HomeSectionType.mdblistAnticipatedMovies: 'Films les plus attendus',
+    HomeSectionType.mdblistAnticipatedShows: 'Séries les plus attendues',
+    HomeSectionType.mdblistStreamingChartsMovies: 'Films en tête du streaming',
+    HomeSectionType.mdblistStreamingChartsShows: 'Séries en tête du streaming',
+    HomeSectionType.justwatchTopMovies: 'Top films en streaming du jour',
+    HomeSectionType.justwatchTopShows: 'Top séries en streaming du jour',
+    HomeSectionType.tmdbTrendingAllDaily: 'Tendances du jour',
+    HomeSectionType.tmdbKoreanDramas: 'Dramas coréens',
+    HomeSectionType.tmdbAnime: 'Animes populaires',
+    HomeSectionType.tmdbNewDigitalMovies: 'Nouveautés en numérique',
+    HomeSectionType.tmdbHiddenGems: 'Pépites méconnues',
+    HomeSectionType.tmdbNetflix: 'Populaire sur Netflix',
+    HomeSectionType.tmdbPrimeVideo: 'Populaire sur Prime Video',
+    HomeSectionType.tmdbDisneyPlus: 'Populaire sur Disney+',
+    HomeSectionType.tmdbHboMax: 'Populaire sur HBO Max',
+    HomeSectionType.tmdbAppleTv: 'Populaire sur Apple TV',
+    HomeSectionType.tmdbParamountPlus: 'Populaire sur Paramount+',
+  };
+
+  /// The title Home shows for the outside chart row [section].
+  static String chartTitle(HomeSectionType section, String fallback) =>
+      _chartTitles[section] ?? fallback;
 
   static bool _isOffered(Map item) {
     final type = item['CollectionType'] as String?;

@@ -102,13 +102,18 @@ class OfflineRepository {
   /// used when resolving an online/offline progress conflict. When
   /// [metadataJson] is given it is written too, so the displayed UserData
   /// (which the UI reads from metadata) stays consistent with the new ticks.
+  /// [serverId] limits the write to that server's row, as another server's
+  /// download can share an Emby id.
   Future<void> setSyncedPlaybackPosition(
     String itemId,
     int positionTicks, {
     String? metadataJson,
+    String? serverId,
   }) async {
     await (_db.update(_db.downloadedItems)
-          ..where((t) => t.itemId.equals(itemId)))
+          ..where((t) => serverId == null
+              ? t.itemId.equals(itemId)
+              : t.itemId.equals(itemId) & t.serverId.equals(serverId)))
         .write(DownloadedItemsCompanion(
       playbackPositionTicks: Value(positionTicks),
       progressSynced: const Value(true),
@@ -123,16 +128,7 @@ class OfflineRepository {
     final item = await getItem(itemId);
     if (item == null) return;
 
-    Map<String, dynamic> metadata;
-    try {
-      final decoded = jsonDecode(item.metadataJson);
-      metadata = decoded is Map<String, dynamic>
-          ? decoded
-          : <String, dynamic>{};
-    } catch (_) {
-      metadata = <String, dynamic>{};
-    }
-
+    final metadata = _metadataOf(item);
     final userData =
         (metadata['UserData'] as Map?)?.cast<String, dynamic>() ??
         <String, dynamic>{};
@@ -144,11 +140,54 @@ class OfflineRepository {
       }
     });
     metadata['UserData'] = userData;
-
-    await (_db.update(_db.downloadedItems)
-          ..where((t) => t.itemId.equals(itemId)))
-        .write(DownloadedItemsCompanion(metadataJson: Value(jsonEncode(metadata))));
+    await _writeMetadata(itemId, metadata);
   }
+
+  /// Adds [streams] to the stored item's streams and its first version's,
+  /// skipping any whose index is already there.
+  Future<void> addMediaStreams(
+    String itemId,
+    List<Map<String, dynamic>> streams,
+  ) async {
+    if (streams.isEmpty) return;
+    final item = await getItem(itemId);
+    if (item == null) return;
+
+    final metadata = _metadataOf(item);
+    List<dynamic> withStreams(Object? existing) {
+      final list = [...(existing as List?) ?? const []];
+      final indices = {
+        for (final s in list)
+          if (s is Map) s['Index'],
+      };
+      return [
+        ...list,
+        for (final s in streams)
+          if (!indices.contains(s['Index'])) s,
+      ];
+    }
+
+    metadata['MediaStreams'] = withStreams(metadata['MediaStreams']);
+    final sources = metadata['MediaSources'];
+    if (sources is List && sources.isNotEmpty && sources.first is Map) {
+      final first = sources.first as Map;
+      first['MediaStreams'] = withStreams(first['MediaStreams']);
+    }
+    await _writeMetadata(itemId, metadata);
+  }
+
+  Map<String, dynamic> _metadataOf(DownloadedItem item) {
+    try {
+      final decoded = jsonDecode(item.metadataJson);
+      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<void> _writeMetadata(String itemId, Map<String, dynamic> metadata) =>
+      (_db.update(_db.downloadedItems)..where((t) => t.itemId.equals(itemId)))
+          .write(DownloadedItemsCompanion(metadataJson: Value(jsonEncode(metadata))));
 
   // ---------------------------------------------------------------------
   // Auto-download subscriptions
@@ -362,6 +401,13 @@ class OfflineRepository {
     return rows.isNotEmpty ? rows.first : null;
   }
 
+  /// Every server's row for [itemId]. Emby ids are plain numbers, so two
+  /// servers can each have one.
+  Future<List<DownloadedItem>> getItemsWithId(String itemId) =>
+      (_db.select(_db.downloadedItems)
+            ..where((t) => t.itemId.equals(itemId)))
+          .get();
+
   Future<bool> isAvailableOffline(String itemId) async {
     final item = await getItem(itemId);
     return item != null && item.downloadStatus == 2;
@@ -423,6 +469,11 @@ class OfflineRepository {
     }
     return counts;
   }
+
+  /// Fires after every write to the downloads table, without reading it.
+  Stream<void> watchItemChanges() => _db
+      .tableUpdates(TableUpdateQuery.onTable(_db.downloadedItems))
+      .map((_) {});
 
   Stream<List<DownloadedItem>> watchItems({
     String? type,

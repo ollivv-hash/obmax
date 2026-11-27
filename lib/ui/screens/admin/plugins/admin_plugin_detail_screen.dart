@@ -6,6 +6,7 @@ import 'package:server_core/server_core.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../admin_nav.dart';
 import '../admin_plugin_version_utils.dart';
 import '../../../widgets/adaptive/adaptive_dialog.dart';
 import '../providers/admin_user_providers.dart';
@@ -62,6 +63,51 @@ String? configurationPageFor(
   }
   final name = (page?['Name'] ?? '').toString().trim();
   return name.isEmpty ? null : name;
+}
+
+/// Emby sends no CanUninstall since any plugin can be removed, and none can
+/// be turned off.
+bool canUninstallPlugin(BuildContext context, PluginInfo plugin) =>
+    plugin.canUninstall || AdminServerScope.isEmby(context);
+
+bool canTogglePlugin(BuildContext context, PluginInfo plugin) =>
+    plugin.canUninstall && !AdminServerScope.isEmby(context);
+
+/// Emby's image for a plugin, keyed by its tag, or null without one.
+String? pluginThumbUrl(String baseUrl, PluginInfo plugin) {
+  final tag = plugin.imageTag;
+  if (tag == null) return null;
+  return '$baseUrl/Plugins/${Uri.encodeComponent(plugin.id)}/Thumb'
+      '?tag=${Uri.encodeQueryComponent(tag)}';
+}
+
+/// A plugin's settings page is the server's own web client, written for a
+/// desktop browser and signed in by its own session, so it opens in the
+/// browser rather than a web view the app would have to sign into itself.
+Future<void> openPluginSettingsPage(
+  BuildContext context,
+  String pageName,
+) async {
+  // Concatenated rather than resolved, which keeps a reverse proxy's base
+  // path such as `https://host/jellyfin`.
+  final base = GetIt.instance<MediaServerClient>().baseUrl;
+  final root = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+  final name = Uri.encodeComponent(pageName);
+  final uri = Uri.parse(
+    AdminServerScope.isEmby(context)
+        ? '$root/web/index.html#!/configurationpage?name=$name'
+        : '$root/web/#/configurationpage?name=$name',
+  );
+  final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).adminCouldNotOpenUrl(uri.toString()),
+        ),
+      ),
+    );
+  }
 }
 
 class AdminPluginDetailScreen extends ConsumerStatefulWidget {
@@ -178,6 +224,7 @@ class _AdminPluginDetailScreenState
         repositoryUrl: version.repositoryUrl.isNotEmpty
             ? version.repositoryUrl
             : null,
+        updateClass: version.classification,
       );
 
       ref.invalidate(adminInstalledPluginsProvider);
@@ -206,37 +253,8 @@ class _AdminPluginDetailScreenState
 
   String _pluginImageUrl(PluginInfo plugin) {
     final client = GetIt.instance<MediaServerClient>();
-    return '${client.baseUrl}/Plugins/${plugin.id}/${plugin.version}/Image';
-  }
-
-  /// Server base URL without a trailing slash. String concatenation (rather
-  /// than `Uri.resolve('/...')`) preserves any reverse-proxy base path such as
-  /// `https://host/jellyfin`.
-  String get _webBaseUrl {
-    final base = GetIt.instance<MediaServerClient>().baseUrl;
-    return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
-  }
-
-  Uri _pluginHtmlSettingsUri(String configPageName) {
-    final encoded = Uri.encodeComponent(configPageName);
-    return Uri.parse('$_webBaseUrl/web/#/configurationpage?name=$encoded');
-  }
-
-  /// A plugin's settings page is the server's own web client, written for a
-  /// desktop browser and signed in by its own session, so it opens in the
-  /// browser rather than a web view the app would have to sign into itself.
-  Future<void> _openHtmlSettings(String configPageName) async {
-    final uri = _pluginHtmlSettingsUri(configPageName);
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).adminCouldNotOpenUrl(uri.toString()),
-          ),
-        ),
-      );
-    }
+    return pluginThumbUrl(client.baseUrl, plugin) ??
+        '${client.baseUrl}/Plugins/${plugin.id}/${plugin.version}/Image';
   }
 
   @override
@@ -350,7 +368,8 @@ class _AdminPluginDetailScreenState
                     ),
                     const SizedBox(height: 16),
                     // Bundled plugins have no actions but keep their Settings.
-                    if (plugin.canUninstall || configPage != null) ...[
+                    if (canUninstallPlugin(context, plugin) ||
+                        configPage != null) ...[
                       _ActionsSection(
                         plugin: plugin,
                         toggling: _toggling,
@@ -367,7 +386,7 @@ class _AdminPluginDetailScreenState
                         onUninstall: () => _uninstallPlugin(plugin),
                         onOpenHtmlSettings: configPage == null
                             ? null
-                            : () => _openHtmlSettings(configPage),
+                            : () => openPluginSettingsPage(context, configPage),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -421,7 +440,7 @@ class _AdminPluginDetailScreenState
           ),
         ],
 
-        if (plugin.canUninstall || configPage != null) ...[
+        if (canUninstallPlugin(context, plugin) || configPage != null) ...[
           const SizedBox(height: 16),
           _ActionsSection(
             plugin: plugin,
@@ -438,7 +457,7 @@ class _AdminPluginDetailScreenState
             onUninstall: () => _uninstallPlugin(plugin),
             onOpenHtmlSettings: configPage == null
                 ? null
-                : () => _openHtmlSettings(configPage),
+                : () => openPluginSettingsPage(context, configPage),
           ),
         ],
 
@@ -569,11 +588,12 @@ class _ActionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isRestartPending = plugin.status == PluginStatus.restart;
+    final canUninstall = canUninstallPlugin(context, plugin);
 
     return adminGlassGroup(
       context,
       children: [
-        if (plugin.canUninstall)
+        if (canTogglePlugin(context, plugin))
           SwitchListTile.adaptive(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             title: Text(
@@ -583,7 +603,7 @@ class _ActionsSection extends StatelessWidget {
             onChanged:
                 (isRestartPending || toggling) ? null : (_) => onToggle(),
           ),
-        if (plugin.canUninstall &&
+        if (canUninstall &&
             !PlatformDetection.isTV &&
             onInstallUpdate != null)
           ListTile(
@@ -610,7 +630,7 @@ class _ActionsSection extends StatelessWidget {
             ),
             onTap: onOpenHtmlSettings,
           ),
-        if (plugin.canUninstall)
+        if (canUninstall)
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(
@@ -661,19 +681,23 @@ class _DetailsTable extends StatelessWidget {
                     plugin.status.label,
                   ),
                   _row(context, 'Version', plugin.version),
-                  _row(
-                    context,
-                    AppLocalizations.of(context).adminPluginDetailDeveloper,
-                    developer ?? AppLocalizations.of(context).unknown,
-                  ),
-                  _row(
-                    context,
-                    AppLocalizations.of(context).adminPluginDetailRepository,
-                    plugin.canUninstall
-                        ? (repoName ?? AppLocalizations.of(context).unknown)
-                        : AppLocalizations.of(context)
-                            .adminPluginDetailBundled,
-                  ),
+                  // Emby's catalog names no developers and has no
+                  // repositories.
+                  if (!AdminServerScope.isEmby(context)) ...[
+                    _row(
+                      context,
+                      AppLocalizations.of(context).adminPluginDetailDeveloper,
+                      developer ?? AppLocalizations.of(context).unknown,
+                    ),
+                    _row(
+                      context,
+                      AppLocalizations.of(context).adminPluginDetailRepository,
+                      plugin.canUninstall
+                          ? (repoName ?? AppLocalizations.of(context).unknown)
+                          : AppLocalizations.of(context)
+                              .adminPluginDetailBundled,
+                    ),
+                  ],
                 ],
               ),
             ),

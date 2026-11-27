@@ -287,6 +287,13 @@ class _FakeGamesApi extends GamesApi {
   Future<List<GameLibrary>> getLibraries() async => const [];
 
   @override
+  Future<List<RecentGame>> getRecentGames(
+    String libraryId, {
+    bool released = false,
+    int limit = 16,
+  }) async => const [];
+
+  @override
   String thumbUrl({
     required String libraryId,
     required String gameId,
@@ -303,6 +310,7 @@ class _FakeGamesApi extends GamesApi {
     String? gameName,
     bool includeSaveUrl = false,
     String? saveId,
+    bool includeSramUrl = false,
   }) => '';
 
   @override

@@ -424,11 +424,15 @@ class _TriggersSection extends StatelessWidget {
                       ? Text(l10n.adminTimeLimitDuration(_hoursText(
                           trigger.maxRuntimeTicks! / _ticksPerHour, l10n)))
                       : null,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: l10n.delete,
-                    onPressed: () => onRemove(i),
-                  ),
+                  // Emby's system event triggers can't be made here, so they
+                  // stay as they are.
+                  trailing: trigger.type == 'SystemEventTrigger'
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: l10n.delete,
+                          onPressed: () => onRemove(i),
+                        ),
                 );
               }),
             ],
@@ -447,6 +451,8 @@ class _TriggersSection extends StatelessWidget {
         return Icons.timer;
       case 'StartupTrigger':
         return Icons.power_settings_new;
+      case 'SystemEventTrigger':
+        return Icons.bolt_outlined;
       default:
         return Icons.schedule;
     }
@@ -470,6 +476,10 @@ class _TriggersSection extends StatelessWidget {
         return _intervalText(trigger.intervalTicks ?? 0, l10n);
       case 'StartupTrigger':
         return l10n.adminTaskTriggerStartup;
+      case 'SystemEventTrigger':
+        return l10n.adminTaskTriggerSystemEvent(
+          trigger.systemEvent ?? l10n.unknown,
+        );
       default:
         return trigger.type;
     }

@@ -152,6 +152,33 @@ void main() {
     });
   });
 
+  testWidgets('an Emby system event trigger is read-only and kept', (
+    tester,
+  ) async {
+    const event = {
+      'Type': 'SystemEventTrigger',
+      'SystemEvent': 'DisplayConfigurationChange',
+    };
+    api.triggers = [event, ...api.triggers];
+    await pump(tester);
+
+    expect(
+      find.text(l10n.adminTaskTriggerSystemEvent('DisplayConfigurationChange')),
+      findsOneWidget,
+    );
+    // Only the daily and interval triggers can be removed.
+    expect(find.byTooltip(l10n.delete), findsNWidgets(2));
+
+    await tester.tap(find.byTooltip(l10n.delete).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10n.delete));
+    await tester.pumpAndSettle();
+    expect(api.posted.single, [
+      event,
+      {'Type': 'IntervalTrigger', 'IntervalTicks': 9000000000},
+    ]);
+  });
+
   testWidgets('a time limit under one hour can\'t be added', (tester) async {
     await pump(tester);
 

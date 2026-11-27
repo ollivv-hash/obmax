@@ -120,12 +120,30 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
     final q = _query.trim().toLowerCase();
     return all.where((line) {
       if (q.isNotEmpty && !line.toLowerCase().contains(q)) return false;
-      if (_levelFilter != null &&
-          !line.toUpperCase().contains('[$_levelFilter]')) {
+      if (_levelFilter != null && _levelOf(line) != _levelFilter) {
         return false;
       }
       return true;
     }).toList();
+  }
+
+  /// Emby writes the level as a word after the time, where Jellyfin tags
+  /// the line with `[ERR]` and the like.
+  static final _embyLevel = RegExp(r'^\S+ \S+ (Error|Fatal|Warn|Info|Debug) ');
+
+  /// ERR, WRN, INF or DBG, or null for a line without a level.
+  static String? _levelOf(String line) {
+    final upper = line.toUpperCase();
+    for (final level in const ['ERR', 'WRN', 'INF', 'DBG']) {
+      if (upper.contains('[$level]')) return level;
+    }
+    return switch (_embyLevel.firstMatch(line)?.group(1)) {
+      'Error' || 'Fatal' => 'ERR',
+      'Warn' => 'WRN',
+      'Info' => 'INF',
+      'Debug' => 'DBG',
+      _ => null,
+    };
   }
 
   Future<void> _copyAll() async {
@@ -182,16 +200,13 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
     }
   }
 
-  Color _lineColor(ThemeData theme, String line) {
-    final upper = line.toUpperCase();
-    if (upper.contains('[ERR]')) return AppColorScheme.statusRequested;
-    if (upper.contains('[WRN]')) return AppColorScheme.statusPending;
-    if (upper.contains('[INF]')) return AppColorScheme.statusAvailable;
-    if (upper.contains('[DBG]')) {
-      return AppColorScheme.onSurface.withValues(alpha: 0.6);
-    }
-    return theme.colorScheme.onSurface;
-  }
+  Color _lineColor(ThemeData theme, String line) => switch (_levelOf(line)) {
+    'ERR' => AppColorScheme.statusRequested,
+    'WRN' => AppColorScheme.statusPending,
+    'INF' => AppColorScheme.statusAvailable,
+    'DBG' => AppColorScheme.onSurface.withValues(alpha: 0.6),
+    _ => theme.colorScheme.onSurface,
+  };
 
   TextSpan _buildLineSpan({
     required String line,

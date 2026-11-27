@@ -4,13 +4,18 @@ import 'dart:io';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:moonfin/data/database/offline_database.dart';
 import 'package:moonfin/data/offline/offline_catalog.dart';
 import 'package:moonfin/data/offline/offline_items_api.dart';
+import 'package:moonfin/data/offline/offline_media_segments.dart';
 import 'package:moonfin/data/offline/offline_user_views_api.dart';
 import 'package:moonfin/data/offline/offline_views.dart';
 import 'package:moonfin/data/repositories/offline_repository.dart';
 import 'package:moonfin/data/services/storage_path_service.dart';
+import 'package:moonfin/preference/user_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeStoragePathService extends StoragePathService {
   final Directory dir;
@@ -416,6 +421,42 @@ void main() {
     expect(items(latest).map((i) => i['Id']), ['s1', 'm1']);
   });
 
+  test('getLatestItems filters watched items before applying limit', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = PreferenceStore();
+    await store.init();
+    final prefs = UserPreferences(store);
+    await prefs.set(UserPreferences.hideWatchedInRecentRows, true);
+    GetIt.instance.registerSingleton<UserPreferences>(prefs);
+    addTearDown(() => GetIt.instance.reset());
+
+    for (var i = 0; i < 15; i++) {
+      await insert(
+        id: 'watched_$i',
+        type: 'Movie',
+        name: 'Watched $i',
+        downloadedAt: DateTime(2026, 2, 10 + i),
+        metadata: {
+          'UserData': {'Played': true},
+        },
+      );
+    }
+    await insert(
+      id: 'unwatched_older',
+      type: 'Movie',
+      name: 'Unwatched Older',
+      downloadedAt: DateTime(2026, 1, 1),
+      metadata: {
+        'UserData': {'Played': false},
+      },
+    );
+    await catalog.warm();
+
+    final latest = await api.getLatestItems(limit: 15);
+    expect(items(latest).map((i) => i['Id']), ['unwatched_older']);
+    expect(latest['TotalRecordCount'], 1);
+  });
+
   test('getUserViews only returns populated views', () async {
     await insert(id: 'm1', type: 'Movie', name: 'Film');
     await insert(id: 'b1', type: 'Book', name: 'Book');
@@ -435,5 +476,29 @@ void main() {
     expect(view['CollectionType'], 'movies');
 
     expect(() => api.getItem('nope'), throwsA(anything));
+  });
+
+  test('getMediaSegments returns the segments saved with a download', () async {
+    final intro = {
+      'Id': 's1',
+      'ItemId': 'e1',
+      'Type': 'Intro',
+      'StartTicks': 0,
+      'EndTicks': 300000000,
+    };
+    await insert(
+      id: 'e1',
+      type: 'Episode',
+      name: 'Pilot',
+      metadata: {
+        offlineMediaSegmentsKey: [intro],
+      },
+    );
+    await insert(id: 'm1', type: 'Movie', name: 'Film');
+    await catalog.warm();
+
+    expect(await api.getMediaSegments('e1'), [intro]);
+    expect(await api.getMediaSegments('m1'), isEmpty);
+    expect(await api.getMediaSegments('nope'), isEmpty);
   });
 }

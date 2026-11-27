@@ -8,6 +8,10 @@ import 'package:server_core/server_core.dart';
 
 import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
+import '../repositories/item_mutation_repository.dart';
+import '../services/user_data_sync.dart';
+import '../models/live_tv_recording_state.dart';
+import '../models/series_recording_episodes.dart';
 
 class GuideChannel {
   final String id;
@@ -25,6 +29,34 @@ class GuideChannel {
     this.isFavorite = false,
     required this.rawData,
   });
+
+  GuideChannel withSyncedUserData() {
+    final synced = userDataSync.favoriteFor(id);
+    if (synced == null || synced == isFavorite) return this;
+    final current = rawData['UserData'];
+    return GuideChannel(
+      id: id,
+      name: name,
+      number: number,
+      imageTag: imageTag,
+      isFavorite: synced,
+      rawData: {
+        ...rawData,
+        'UserData': {if (current is Map) ...current, 'IsFavorite': synced},
+      },
+    );
+  }
+
+  /// [channels] with synced user data applied, or null when none changed.
+  static List<GuideChannel>? withSyncedUserDataAll(
+    List<GuideChannel> channels,
+  ) {
+    final updated = [for (final c in channels) c.withSyncedUserData()];
+    for (var i = 0; i < updated.length; i++) {
+      if (!identical(updated[i], channels[i])) return updated;
+    }
+    return null;
+  }
 
   factory GuideChannel.fromRawItem(Map<String, dynamic> raw) => GuideChannel(
     id: raw['Id']?.toString() ?? '',
@@ -133,6 +165,9 @@ class GuideProgram {
 
   bool get isRepeat => rawData['IsRepeat'] == true;
 
+  /// Only Emby sends this flag.
+  bool get isNew => rawData['IsNew'] == true;
+
   /// `S{season}:E{episode}`, matching the quick channel changer's format.
   String? get seasonEpisodeLabel {
     final season = rawData['ParentIndexNumber'];
@@ -229,6 +264,11 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   // until their programs arrive.
   final Set<String> _programsLoadedIds = <String>{};
 
+  // Channel ids with a program request out, the generation it belongs to and
+  // when it's done.
+  final Map<String, ({int generation, Future<void> done})> _programsPending =
+      {};
+
   bool _loadingMore = false;
 
   // Category filters walk the lineup in larger server-filtered batches so a
@@ -254,6 +294,10 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   int _programGeneration = 0;
   int _loadGeneration = 0;
   bool _reloadOnEntry = false;
+
+  /// [liveTvRecordingRevision] as of the last complete load, so re-entry can
+  /// tell that a recording changed elsewhere since.
+  int _loadedRecordingRevision = liveTvRecordingRevision.value;
   bool _atLivePosition = true;
 
   bool get atLivePosition => _atLivePosition;
@@ -385,6 +429,19 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   GuideFilter _filter = GuideFilter.all;
   GuideFilter get filter => _filter;
 
+  /// The filters the guide offers
+  /// ([FeatureDetector.supportsGuideCategoryFilters]).
+  List<GuideFilter> get filters =>
+      _client.features.supportsGuideCategoryFilters
+      ? GuideFilter.values
+      : const [
+          GuideFilter.all,
+          GuideFilter.movies,
+          GuideFilter.series,
+          GuideFilter.premiere,
+          GuideFilter.favorites,
+        ];
+
   // Seeded from the injected clock in the constructor, so the initial value
   // is testable rather than tied to the real wall clock.
   DateTime _guideDate;
@@ -472,6 +529,32 @@ class LiveTvGuideViewModel extends ChangeNotifier {
     GuideFilter.favorites => true,
   };
 
+  bool _publishingFetchedUserData = false;
+
+  void syncChannelUserData() {
+    if (_publishingFetchedUserData) return;
+    final updated = GuideChannel.withSyncedUserDataAll(_channels);
+    if (updated == null) return;
+    if (_sortReadsFavorite) updated.sort(comparatorFor(_sortBy));
+    _channels = updated;
+    if (_sortReadsFavorite) _programsHighWater = 0;
+    _notifyListeners();
+    if (_filter == GuideFilter.favorites) {
+      unawaited(
+        ensureProgramsForChannels([
+          for (final c in _channels)
+            if (c.isFavorite) c.id,
+        ]).catchError((Object _) {
+          // The row stays unloaded, so reselecting the filter or the next
+          // favorite change asks again.
+        }),
+      );
+    }
+    if (_sortReadsFavorite && _state == GuideState.ready) {
+      unawaited(loadMorePrograms());
+    }
+  }
+
   Future<void> toggleChannelFavorite(String channelId) async {
     final index = _channels.indexWhere((c) => c.id == channelId);
     if (index < 0) return;
@@ -496,13 +579,10 @@ class LiveTvGuideViewModel extends ChangeNotifier {
     );
 
     _applyChannelUpdate(updated);
-
     try {
-      if (next) {
-        await _client.userLibraryApi.markFavorite(channelId);
-      } else {
-        await _client.userLibraryApi.unmarkFavorite(channelId);
-      }
+      await ItemMutationRepository(
+        _client,
+      ).setFavorite(channelId, isFavorite: next);
     } catch (_) {
       _applyChannelUpdate(current);
       rethrow;
@@ -542,12 +622,69 @@ class LiveTvGuideViewModel extends ChangeNotifier {
     } else {
       await _client.liveTvApi.createTimer(program.id);
     }
-    await _reloadPrograms();
+    await recordingChanged();
   }
 
-  /// Records every showing of this program's series, or drops the rule if one
-  /// is already in place.
-  Future<void> toggleSeriesRecording(GuideProgram program) async {
+  LiveTvApi get liveTvApi => _client.liveTvApi;
+
+  /// Re-reads the programs in the current window when a recording changed
+  /// elsewhere since they loaded.
+  Future<void> reloadIfRecordingsChanged() async {
+    if (_loadedRecordingRevision == liveTvRecordingRevision.value) return;
+    await _refreshRecordingState();
+  }
+
+  /// Tells the other Live TV surfaces a recording changed, then shows it here.
+  Future<void> recordingChanged() {
+    notifyLiveTvRecordingsChanged();
+    return _refreshRecordingState();
+  }
+
+  /// Re-reads the loaded rows in place, without the guide-wide loading state
+  /// that would rebuild the grid and drop the focused cell. A failed refresh
+  /// reloads in full.
+  Future<void> _refreshRecordingState() async {
+    final recordingRevision = liveTvRecordingRevision.value;
+    try {
+      if (_isCategory(_filter)) await _refreshCategoryRows();
+      await _refreshLoadedChannels(_now());
+      _loadedRecordingRevision = recordingRevision;
+    } catch (_) {
+      await _reloadPrograms();
+    }
+  }
+
+  /// A category view keeps its own program lists. A recording change doesn't
+  /// change which programs belong to the category, so the channels already
+  /// shown are fetched again and their lists swapped.
+  Future<void> _refreshCategoryRows() async {
+    final request = _categoryRequest;
+    final filter = _filter;
+    final channels = _categoryPrograms.keys
+        .map(channelForId)
+        .whereType<GuideChannel>()
+        .toList();
+    final size = _serverFilteredCategories.contains(filter)
+        ? _categoryBatchSize
+        : _programBatchSize;
+    for (var i = 0; i < channels.length; i += size) {
+      final batch = channels.sublist(i, min(i + size, channels.length));
+      final fetched = await _fetchPrograms(batch, category: filter);
+      if (request != _categoryRequest) return;
+      for (final channel in batch) {
+        final programs = fetched[channel.id];
+        if (programs != null) _categoryPrograms[channel.id] = programs;
+      }
+    }
+    _notifyListeners();
+  }
+
+  /// Records the showings of this program's series that [episodes] picks, or
+  /// drops the rule if one is already in place.
+  Future<void> toggleSeriesRecording(
+    GuideProgram program, {
+    SeriesRecordingEpisodes? episodes,
+  }) async {
     if (program.hasSeriesTimer) {
       final seriesTimerId = program.rawData['SeriesTimerId']?.toString();
       if (seriesTimerId == null || seriesTimerId.isEmpty) {
@@ -557,9 +694,12 @@ class LiveTvGuideViewModel extends ChangeNotifier {
       }
       await _client.liveTvApi.cancelSeriesTimer(seriesTimerId);
     } else {
-      await _client.liveTvApi.createSeriesTimer(program.id);
+      await _client.liveTvApi.createSeriesTimer(
+        program.id,
+        settings: episodes?.settings,
+      );
     }
-    await _reloadPrograms();
+    await recordingChanged();
   }
 
   Future<void> load({
@@ -569,6 +709,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
     bool livePosition = true,
   }) async {
     final loadGeneration = ++_loadGeneration;
+    final recordingRevision = liveTvRecordingRevision.value;
     if (window != null) _guideWindow = window;
     _state = GuideState.loading;
     _notifyListeners();
@@ -599,6 +740,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
       if (_disposed || loadGeneration != _loadGeneration) return;
       _state = GuideState.ready;
       _reloadOnEntry = false;
+      _loadedRecordingRevision = recordingRevision;
     } catch (e) {
       if (_disposed || loadGeneration != _loadGeneration) return;
       _error = e;
@@ -751,6 +893,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
 
   Future<void> _reloadPrograms() async {
     final loadGeneration = ++_loadGeneration;
+    final recordingRevision = liveTvRecordingRevision.value;
     _state = GuideState.loading;
     _notifyListeners();
 
@@ -770,6 +913,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
       }
       if (_disposed || loadGeneration != _loadGeneration) return;
       _state = GuideState.ready;
+      _loadedRecordingRevision = recordingRevision;
     } catch (e) {
       if (_disposed || loadGeneration != _loadGeneration) return;
       _error = e;
@@ -792,6 +936,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   /// still correct, since background refresh elsewhere avoids it.
   Future<void> reloadIfStale({Duration? window, DateTime? windowStart}) async {
     if (_reloadOnEntry ||
+        _loadedRecordingRevision != liveTvRecordingRevision.value ||
         _windowStart.add(const Duration(minutes: 30)).isBefore(_now())) {
       _guideDate = _now();
       await load(window: window, windowStart: windowStart, livePosition: true);
@@ -812,6 +957,8 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   }
 
   Future<bool> _fetchChannels(int loadGeneration) async {
+    final revision = userDataSync.revision;
+    final session = userDataSync.session;
     final response = await _client.liveTvApi.getChannels(
       sortBy: 'SortName',
       sortOrder: 'Ascending',
@@ -819,12 +966,37 @@ class LiveTvGuideViewModel extends ChangeNotifier {
       enableTotalRecordCount: false,
       userId: _client.userId,
     );
-    if (_disposed || loadGeneration != _loadGeneration) return false;
+    // A user switch while this was out would publish the old user's favorites.
+    if (_disposed ||
+        loadGeneration != _loadGeneration ||
+        session != userDataSync.session) {
+      return false;
+    }
     final items = (response['Items'] as List?) ?? [];
+    final fresh = <String, Map<String, dynamic>>{};
+    for (final item in items.cast<Map<String, dynamic>>()) {
+      final id = item['Id']?.toString();
+      final data = item['UserData'];
+      if (id != null &&
+          data is Map &&
+          !userDataSync.favoriteChangePending(id) &&
+          userDataSync.revisionFor(id) <= revision) {
+        fresh[id] = Map<String, dynamic>.from(data);
+      }
+    }
+    // The lineup below is rebuilt from this data. Syncing the old one first
+    // would re-sort it and fetch programs for rows about to be replaced.
+    _publishingFetchedUserData = true;
+    try {
+      userDataSync.publishAll(fresh, replace: true);
+    } finally {
+      _publishingFetchedUserData = false;
+    }
     _channels =
         items
             .cast<Map<String, dynamic>>()
             .map(GuideChannel.fromRawItem)
+            .map((channel) => channel.withSyncedUserData())
             .toList()
           ..sort(comparatorFor(_sortBy));
     return true;
@@ -880,7 +1052,10 @@ class LiveTvGuideViewModel extends ChangeNotifier {
         .sublist(_programsHighWater, end)
         .where((c) => !_programsLoadedIds.contains(c.id))
         .toList();
-    if (await _loadProgramsBatch(batch)) {
+    // A channel whose earlier request failed stays below the mark, so the
+    // next pass asks for it again.
+    if (await _loadProgramsBatch(batch) &&
+        batch.every((c) => _programsLoadedIds.contains(c.id))) {
       _programsHighWater = end;
     }
   }
@@ -1309,16 +1484,16 @@ class LiveTvGuideViewModel extends ChangeNotifier {
     final channelId = raw['ChannelId']?.toString();
     if (channelId == null) return null;
 
-    final startStr = raw['StartDate'] as String?;
-    final endStr = raw['EndDate'] as String?;
-    if (startStr == null || endStr == null) return null;
+    final start = parseServerDate(raw['StartDate']);
+    final end = parseServerDate(raw['EndDate']);
+    if (start == null || end == null) return null;
 
     return GuideProgram(
       id: raw['Id']?.toString() ?? '',
       channelId: channelId,
       name: raw['Name'] as String? ?? '',
-      startDate: DateTime.parse(startStr).toLocal(),
-      endDate: DateTime.parse(endStr).toLocal(),
+      startDate: start.toLocal(),
+      endDate: end.toLocal(),
       overview: raw['Overview'] as String?,
       // Some guide sources deliver EpisodeTitle with literal backslash-escaped
       // quotes (`\"Raygun\"`) even though the same program's Overview does
@@ -1556,32 +1731,59 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   /// Fetches programs for one batch of channels over the current window and
   /// merges them into the cache.
   Future<bool> _loadProgramsBatch(List<GuideChannel> batch) async {
-    if (batch.isEmpty) return true;
     final generation = _programGeneration;
-    final ids = batch.map((c) => c.id).toList();
-    final response = await _fetchGuide(
-      channelIds: ids,
-      from: _windowStart,
-      to: _windowEnd,
-    );
-    if (_disposed || generation != _programGeneration) return false;
-
-    final parsed = _parsePrograms(response);
-    for (final id in ids) {
-      final programs = parsed[id] ?? <GuideProgram>[];
-      final existing = _programsByChannel[id];
-      if (existing == null) {
-        _programsByChannel[id] = programs;
+    // Two requests out for one channel would append its programs twice, so a
+    // channel already asked for waits on that request instead.
+    final ids = <String>[];
+    final inFlight = <Future<void>>[];
+    for (final c in batch) {
+      if (_programsLoadedIds.contains(c.id)) continue;
+      final pending = _programsPending[c.id];
+      if (pending != null && pending.generation == generation) {
+        inFlight.add(pending.done);
       } else {
-        existing
-          ..addAll(programs)
-          ..sort((a, b) => a.startDate.compareTo(b.startDate));
+        ids.add(c.id);
       }
     }
+    if (ids.isNotEmpty) {
+      final done = Completer<void>();
+      for (final id in ids) {
+        _programsPending[id] = (generation: generation, done: done.future);
+      }
+      try {
+        final response = await _fetchGuide(
+          channelIds: ids,
+          from: _windowStart,
+          to: _windowEnd,
+        );
+        if (_disposed || generation != _programGeneration) return false;
 
-    // Mark every requested channel as loaded, even those with no programs, so
-    // their rows stop showing the placeholder.
-    _programsLoadedIds.addAll(ids);
+        final parsed = _parsePrograms(response);
+        for (final id in ids) {
+          final programs = parsed[id] ?? <GuideProgram>[];
+          final existing = _programsByChannel[id];
+          if (existing == null) {
+            _programsByChannel[id] = programs;
+          } else {
+            existing
+              ..addAll(programs)
+              ..sort((a, b) => a.startDate.compareTo(b.startDate));
+          }
+        }
+
+        // Mark every requested channel as loaded, even those with no
+        // programs, so their rows stop showing the placeholder.
+        _programsLoadedIds.addAll(ids);
+      } finally {
+        for (final id in ids) {
+          if (_programsPending[id]?.done == done.future) {
+            _programsPending.remove(id);
+          }
+        }
+        done.complete();
+      }
+    }
+    await Future.wait(inFlight);
     return true;
   }
 

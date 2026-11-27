@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../util/signed_in_server_features.dart';
+import '../services/moonbase_endpoint.dart';
+
 /// The kind of an episode, for the purpose of drawing a badge on its card.
 enum AnimeEpisodeKind { mangaCanon, animeCanon, mixed, filler }
 
@@ -22,6 +25,14 @@ AnimeMarkerPlacement parseAnimeMarkerPlacement(Object? raw) => switch (raw) {
   'beside' => AnimeMarkerPlacement.beside,
   'thumbnail' => AnimeMarkerPlacement.thumbnail,
   _ => AnimeMarkerPlacement.below,
+};
+
+/// Anime Markers audio style
+enum AnimeAudioLabelStyle { full, short }
+
+AnimeAudioLabelStyle parseAnimeAudioLabelStyle(Object? raw) => switch (raw) {
+  'short' => AnimeAudioLabelStyle.short,
+  _ => AnimeAudioLabelStyle.full,
 };
 
 /// The marker for a single episode.
@@ -80,6 +91,8 @@ class AnimeMarkerRepository {
   );
 
   AnimeMarkerPlacement placement = AnimeMarkerPlacement.below;
+
+  AnimeAudioLabelStyle labelStyle = AnimeAudioLabelStyle.full;
 
   /// Series the plugin matched but hasnt fetched a table for yet. Not a cache: it becomes
   /// a real verdict on its own once the nightly task reaches the show.
@@ -187,16 +200,13 @@ class AnimeMarkerRepository {
     }
 
     try {
-      final baseUrl = _client.baseUrl;
-      final token = _client.accessToken;
-      if (token == null || baseUrl.isEmpty) return completeWith(null);
+      final ep = await _endpoint();
+      if (ep == null) return completeWith(null);
 
       final response = await _dio.get(
-        '$baseUrl/Moonfin/AnimeMarkers/Series',
+        '${ep.base}/Moonfin/AnimeMarkers/Series',
         queryParameters: {'seriesId': seriesId},
-        options: Options(
-          headers: {'Authorization': 'MediaBrowser Token="$token"'},
-        ),
+        options: Options(headers: ep.headers),
       );
 
       final data = response.data;
@@ -244,6 +254,7 @@ class AnimeMarkerRepository {
       }
 
       placement = parseAnimeMarkerPlacement(data['placement']);
+      labelStyle = parseAnimeAudioLabelStyle(data['labelStyle']);
 
       final rawSeasons = data['seasons'];
       final seasons = <String, AnimeAudioKind>{};
@@ -345,21 +356,19 @@ class AnimeMarkerRepository {
     }
 
     try {
-      final token = _client.accessToken;
-      final baseUrl = _client.baseUrl;
-      if (token == null || baseUrl.isEmpty) return;
+      final ep = await _endpoint();
+      if (ep == null) return;
 
       final response = await _dio.get(
-        '$baseUrl/Moonfin/AnimeMarkers/Items',
+        '${ep.base}/Moonfin/AnimeMarkers/Items',
         queryParameters: {'ids': ids.join(',')},
-        options: Options(
-          headers: {'Authorization': 'MediaBrowser Token="$token"'},
-        ),
+        options: Options(headers: ep.headers),
       );
 
       final data = response.data;
       if (data is Map<String, dynamic>) {
         placement = parseAnimeMarkerPlacement(data['placement']);
+        labelStyle = parseAnimeAudioLabelStyle(data['labelStyle']);
 
         if (data['items'] is Map) {
           (data['items'] as Map).forEach((key, value) {
@@ -389,6 +398,13 @@ class AnimeMarkerRepository {
       release();
     }
   }
+
+  /// Jellyfin and Emby serve the markers from the plugin at the server root,
+  /// and Plex from Moonbase for Plex. Silo's Moonbase has none.
+  Future<MoonbaseEndpoint?> _endpoint() async =>
+      serverHasMoonfinPlugin(_client) || _client.serverType == ServerType.plex
+      ? moonbaseEndpoint(_client, _dio)
+      : null;
 
   void clearCache() {
     _cache.clear();

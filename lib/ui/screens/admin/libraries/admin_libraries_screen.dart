@@ -279,12 +279,14 @@ class AdminLibrariesScreen extends ConsumerWidget {
         showRenameLibraryDialog(
           context,
           currentName: lib.name,
+          libraryId: lib.itemId,
           onRenamed: () => ref.invalidate(adminLibrariesProvider),
         );
       case 'delete':
         showDeleteLibraryDialog(
           context,
           libraryName: lib.name,
+          libraryId: lib.itemId,
           locations: lib.locations,
           onDeleted: () => ref.invalidate(adminLibrariesProvider),
         );

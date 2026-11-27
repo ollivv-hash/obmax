@@ -65,6 +65,7 @@ void main() {
     final client = _MockMediaServerClient();
     when(() => client.itemsApi).thenReturn(items);
     when(() => client.adminItemsApi).thenReturn(admin);
+    when(() => client.serverType).thenReturn(ServerType.jellyfin);
     GetIt.instance.registerSingleton<MediaServerClient>(client);
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
   });

@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/auth/repositories/session_repository.dart';
+import 'package:moonfin/data/services/incomplete_recordings_service.dart';
 import 'package:moonfin/data/services/plugin_sync_service.dart';
 import 'package:moonfin/preference/seerr_preferences.dart';
 import 'package:moonfin/preference/user_preferences.dart';
@@ -31,6 +32,15 @@ class _RecordingAdapter implements HttpClientAdapter {
   /// Set when nothing is left to resolve after a delete.
   bool failResolved = false;
 
+  /// What the ping says about incomplete recordings.
+  bool incompleteRecordingsSupported = false;
+
+  /// The notification choices the server keeps for the user.
+  Map<String, dynamic> notificationPrefs = {};
+
+  /// Set when the server should refuse to save notification choices.
+  bool failNotificationPosts = false;
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -45,8 +55,17 @@ class _RecordingAdapter implements HttpClientAdapter {
     }
 
     Map<String, dynamic>? body;
-    if (path.endsWith('/Moonfin/Ping')) {
-      body = {'installed': true, 'settingsSyncEnabled': true};
+    if (path.endsWith('/Moonfin/Notifications/Prefs')) {
+      if (options.method == 'POST') {
+        return ResponseBody.fromString('', failNotificationPosts ? 500 : 204);
+      }
+      body = notificationPrefs;
+    } else if (path.endsWith('/Moonfin/Ping')) {
+      body = {
+        'installed': true,
+        'settingsSyncEnabled': true,
+        'incompleteRecordingsSupported': incompleteRecordingsSupported,
+      };
     } else if (path.contains('/Moonfin/Settings/Resolved/')) {
       body = failResolved ? null : resolvedProfile;
     } else if (path.contains('/Moonfin/Settings/Profile/')) {
@@ -100,6 +119,7 @@ void main() {
     client = _MockClient();
     when(() => client.baseUrl).thenReturn('http://plugin.test');
     when(() => client.accessToken).thenReturn('token');
+    when(() => client.serverType).thenReturn(ServerType.jellyfin);
     when(() => client.deviceInfo).thenReturn(
       const DeviceInfo(
         id: 'dev1',
@@ -200,5 +220,69 @@ void main() {
 
     expect(ok, isFalse);
     expect(prefs.get(UserPreferences.use24HourClock), isTrue);
+  });
+
+  test('a re-ping keeps the incomplete recordings it already has', () async {
+    final incomplete = IncompleteRecordingsService(
+      client: () => client,
+      dio: Dio()..httpClientAdapter = adapter,
+    );
+    GetIt.instance.registerSingleton<IncompleteRecordingsService>(incomplete);
+    int reads() => adapter.requests
+        .where((r) => r == 'GET /Moonfin/LiveTv/Recordings/Incomplete')
+        .length;
+
+    adapter.incompleteRecordingsSupported = true;
+    await service.refreshAvailability(client);
+    await pumpEventQueue();
+    await service.refreshAvailability(client);
+    await pumpEventQueue();
+
+    expect(incomplete.supported, isTrue);
+    expect(reads(), 1);
+
+    adapter.incompleteRecordingsSupported = false;
+    await service.refreshAvailability(client);
+
+    expect(incomplete.supported, isFalse);
+    incomplete.dispose();
+  });
+
+  test('signing in takes the notification choices the server keeps', () async {
+    final seerrPrefs = GetIt.instance<SeerrPreferences>();
+    adapter.notificationPrefs = {
+      'notifyOnNewMedia': true,
+      'notifyOnIssues': false,
+    };
+
+    await service.syncNotificationPrefs(client);
+
+    expect(seerrPrefs.notifyOnNewMedia, isTrue);
+    expect(seerrPrefs.notifyOnIssues, isFalse);
+    expect(
+      adapter.requests,
+      isNot(contains('POST /Moonfin/Notifications/Prefs')),
+    );
+  });
+
+  test('a change the server never got goes up at the next sign-in', () async {
+    final seerrPrefs = GetIt.instance<SeerrPreferences>();
+    adapter.failNotificationPosts = true;
+    await seerrPrefs.setNotifyOnNewMedia(true);
+    await service.pushNotificationPrefs(client);
+    expect(seerrPrefs.notificationPrefsUnsynced, isTrue);
+
+    adapter.failNotificationPosts = false;
+    adapter.notificationPrefs = {'notifyOnNewMedia': false};
+    adapter.requests.clear();
+    await service.syncNotificationPrefs(client);
+
+    expect(seerrPrefs.notifyOnNewMedia, isTrue);
+    expect(seerrPrefs.notificationPrefsUnsynced, isFalse);
+    expect(adapter.requests, contains('POST /Moonfin/Notifications/Prefs'));
+    expect(
+      adapter.requests,
+      isNot(contains('GET /Moonfin/Notifications/Prefs')),
+    );
   });
 }

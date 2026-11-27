@@ -169,7 +169,12 @@ class _AdminLibraryEditScreenState
     setState(() => _busy = true);
     try {
       await _client.adminLibraryApi
-          .addMediaPath(_library!.name, path, refreshLibrary: true);
+          .addMediaPath(
+            _library!.name,
+            path,
+            refreshLibrary: true,
+            libraryId: _library!.itemId,
+          );
       await _reloadAfterPathChange();
     } catch (e) {
       if (mounted) {
@@ -211,7 +216,12 @@ class _AdminLibraryEditScreenState
     setState(() => _busy = true);
     try {
       await _client.adminLibraryApi
-          .removeMediaPath(_library!.name, path, refreshLibrary: true);
+          .removeMediaPath(
+            _library!.name,
+            path,
+            refreshLibrary: true,
+            libraryId: _library!.itemId,
+          );
       await _reloadAfterPathChange();
     } catch (e) {
       if (mounted) {

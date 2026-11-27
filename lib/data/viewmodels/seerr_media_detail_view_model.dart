@@ -1,10 +1,14 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart' show DioException;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding;
+import 'package:get_it/get_it.dart';
 
 import '../../preference/seerr_preferences.dart';
 import '../repositories/seerr_repository.dart';
+import '../services/plugin_sync_service.dart';
+import '../services/seerr/arr_queue.dart';
 import '../services/seerr/seerr_api_models.dart';
 import '../services/seerr/seerr_download_progress.dart';
 import '../services/seerr/seerr_error.dart';
@@ -22,6 +26,15 @@ bool seerrPublicFlag(
   required bool fallback,
 }) => settings.containsKey(key) ? settings[key] == true : fallback;
 
+/// Where to look up a title's streaming services, in the order Seerr's own
+/// page uses: the user's region, then the server's, then the US.
+@visibleForTesting
+String seerrStreamingRegion(String? user, String? server) {
+  if (user != null && user.isNotEmpty) return user;
+  if (server != null && server.isNotEmpty) return server;
+  return 'US';
+}
+
 /// One quality track (HD or 4K) of a title: its media status, the requests
 /// for that track, and the flags the UI reads. Seerr stores the two
 /// qualities independently, as status vs status4k and SeerrRequest.is4k, so
@@ -34,6 +47,10 @@ class SeerrQualityStatus {
   final SeerrDownloadSummary? download;
   final bool canManageRequests;
   final int? currentUserId;
+
+  /// The arr's own queue for this track when Moonbase could read it. Only
+  /// ever set on the HD track, since Moonbase reads the default non-4K arr.
+  final ArrQueue? arrQueue;
 
   /// What Seerr reports per season, when it reports anything. Older servers and
   /// movie payloads leave this empty, which is why [seasonStatus] can fall back
@@ -48,6 +65,7 @@ class SeerrQualityStatus {
     required this.download,
     required this.canManageRequests,
     required this.currentUserId,
+    this.arrQueue,
     this.seasonAvailability = const [],
   });
 
@@ -56,7 +74,9 @@ class SeerrQualityStatus {
     required SeerrMediaInfo? mediaInfo,
     required bool canManageRequests,
     required int? currentUserId,
+    ArrQueue? arrQueue,
   }) {
+    final queue = is4k ? null : arrQueue;
     final status = (is4k ? mediaInfo?.status4k : mediaInfo?.status) ?? 0;
     final requests = (mediaInfo?.requests ?? const <SeerrRequest>[])
         .where((r) => r.is4k == is4k)
@@ -73,9 +93,11 @@ class SeerrQualityStatus {
       download: SeerrDownloadSummary.forMedia(
         status: status,
         items: is4k ? mediaInfo?.downloadStatus4k : mediaInfo?.downloadStatus,
+        arrQueue: queue,
       ),
       canManageRequests: canManageRequests,
       currentUserId: currentUserId,
+      arrQueue: queue,
       seasonAvailability:
           mediaInfo?.seasons ?? const <SeerrSeasonAvailability>[],
     );
@@ -94,6 +116,33 @@ class SeerrQualityStatus {
   bool get hasAnyState => status > 1 || requests.isNotEmpty;
 
   bool get hasExistingRequest => activeRequests.isNotEmpty;
+
+  /// What the arr is waiting on for the approved requests with nothing
+  /// grabbed yet, or null. Seerr calls all of it processing, so without the
+  /// arr's queue it looks the same as a download on its way. A series stays
+  /// partially available while a requested season airs, so that counts too.
+  ArrWait? get arrWait {
+    final queue = arrQueue;
+    if (queue == null) return null;
+    if (!isProcessing && !(isPartiallyAvailable && !queue.isRadarr)) {
+      return null;
+    }
+    final approved = requests
+        .where((r) => r.status == SeerrRequest.statusApproved)
+        .toList();
+    if (approved.isEmpty) return null;
+    return queue.forSeasons([
+      for (final r in approved) ...?r.seasons?.map((s) => s.seasonNumber),
+    ]).wait;
+  }
+
+  /// The stuck download an admin may swap for another release, or null.
+  SeerrDownloadSummary? get replaceableDownload {
+    final summary = download;
+    if (summary == null || !summary.isStuck) return null;
+    if (summary.stuckItemId == null) return null;
+    return (arrQueue?.canRemove ?? false) ? summary : null;
+  }
 
   /// Whether the title or one of its seasons is still on its way into the
   /// library on this track, waiting on approval, a download or the import.
@@ -208,6 +257,11 @@ class SeerrMediaDetailState {
   final bool isTogglingWatchlist;
   final bool onUserWatchlist;
   final String? watchlistError;
+  final String streamingRegion;
+
+  /// The HD track's Radarr/Sonarr queue from Moonbase, or null when the plugin
+  /// can't read it or the title isn't on its way.
+  final ArrQueue? arrQueue;
 
   const SeerrMediaDetailState({
     this.isLoading = false,
@@ -225,6 +279,8 @@ class SeerrMediaDetailState {
     this.isTogglingWatchlist = false,
     this.onUserWatchlist = false,
     this.watchlistError,
+    this.streamingRegion = 'US',
+    this.arrQueue,
   });
 
   bool get isMovie => movie != null;
@@ -268,6 +324,14 @@ class SeerrMediaDetailState {
   List<SeerrVideo> get relatedVideos =>
       movie?.relatedVideos ?? tv?.relatedVideos ?? const [];
 
+  List<SeerrWatchProvider> get streamingProviders {
+    final regions = movie?.watchProviders ?? tv?.watchProviders ?? const [];
+    for (final entry in regions) {
+      if (entry.region == streamingRegion) return entry.flatrate;
+    }
+    return const [];
+  }
+
   SeerrVideo? get bestTrailer {
     final videos = relatedVideos;
     if (videos.isEmpty) return null;
@@ -293,6 +357,7 @@ class SeerrMediaDetailState {
         mediaInfo: mediaInfo,
         canManageRequests: canManageRequests,
         currentUserId: currentUser?.id,
+        arrQueue: arrQueue,
       );
 
   SeerrQualityStatus get hd => quality(is4k: false);
@@ -334,6 +399,9 @@ class SeerrMediaDetailState {
     bool? isTogglingWatchlist,
     bool? onUserWatchlist,
     String? watchlistError,
+    String? streamingRegion,
+    ArrQueue? arrQueue,
+    bool clearArrQueue = false,
   }) =>
       SeerrMediaDetailState(
         isLoading: isLoading ?? this.isLoading,
@@ -351,6 +419,8 @@ class SeerrMediaDetailState {
         isTogglingWatchlist: isTogglingWatchlist ?? this.isTogglingWatchlist,
         onUserWatchlist: onUserWatchlist ?? this.onUserWatchlist,
         watchlistError: watchlistError,
+        streamingRegion: streamingRegion ?? this.streamingRegion,
+        arrQueue: clearArrQueue ? null : (arrQueue ?? this.arrQueue),
       );
 }
 
@@ -369,6 +439,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
   // alone rather than disappearing.
   bool _movie4kEnabled = true;
   bool _series4kEnabled = true;
+  String? _serverStreamingRegion;
 
   static const _downloadPollInterval = Duration(seconds: 15);
   static const _waitingPollInterval = Duration(seconds: 30);
@@ -376,6 +447,10 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
   Timer? _statusPollTimer;
   Duration? _statusPollInterval;
   bool _isDisposed = false;
+
+  /// Bumped by every queue read, a removal and a new load, so an answer that
+  /// set off before any of them is thrown away when it lands.
+  int _arrQueueGeneration = 0;
 
   SeerrMediaDetailViewModel(this._repo, this._prefs);
 
@@ -444,11 +519,100 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
       } else {
         return;
       }
+      await _refreshArrQueue();
       notifyListeners();
     } catch (_) {
       // Leave the details as-is and let the next tick retry.
     }
     _syncStatusPolling();
+  }
+
+  /// Reads the HD track's queue from the arr through Moonbase, while the
+  /// title is on its way. Anything but a clean answer drops it, which leaves
+  /// the page showing what Seerr reports, as before Moonbase could do this.
+  Future<void> _refreshArrQueue() async {
+    final generation = ++_arrQueueGeneration;
+    final tmdbId = _state.tmdbId;
+    final queue = await _fetchArrQueue(_state);
+    // A reply for a title the page has since moved off belongs to that one.
+    if (_isDisposed ||
+        generation != _arrQueueGeneration ||
+        tmdbId != _state.tmdbId) {
+      return;
+    }
+    // copyWith clears the feedback fields it isn't handed, so pass them on.
+    _state = _state.copyWith(
+      arrQueue: queue,
+      clearArrQueue: queue == null,
+      error: _state.error,
+      requestError: _state.requestError,
+      requestErrorKind: _state.requestErrorKind,
+      requestSuccess: _state.requestSuccess,
+      watchlistError: _state.watchlistError,
+    );
+  }
+
+  Future<ArrQueue?> _fetchArrQueue(SeerrMediaDetailState state) async {
+    if (!GetIt.instance.isRegistered<PluginSyncService>() ||
+        !GetIt.instance<PluginSyncService>().arrQueueAvailable) {
+      return null;
+    }
+    final status = state.mediaInfo?.status;
+    if (status != SeerrMediaStatus.processing &&
+        status != SeerrMediaStatus.partiallyAvailable) {
+      return null;
+    }
+    final tmdbId = state.movie?.id;
+    final tvdbId = state.mediaInfo?.tvdbId ?? state.externalIds?.tvdbId;
+    try {
+      if (state.isMovie && tmdbId != null) {
+        return await _repo.getArrQueue(tmdbId: tmdbId);
+      }
+      if (state.isTv && tvdbId != null) {
+        return await _repo.getArrQueue(tvdbId: tvdbId);
+      }
+    } catch (e) {
+      debugPrint('[SeerrDetail] Arr queue failed: $e');
+    }
+    return null;
+  }
+
+  /// Removes the HD track's stuck download and blocklists its release, so the
+  /// arr searches for another, then refreshes the page. Admins only, which
+  /// Moonbase checks too. False when the arr didn't take it.
+  ///
+  /// [queueId] is the download the viewer confirmed. If a refresh has since
+  /// picked a different stuck download, or none, nothing is removed.
+  Future<bool> getDifferentRelease({required int queueId}) async {
+    final queue = _state.arrQueue;
+    if (queue == null ||
+        _state.hd.replaceableDownload?.stuckItemId != queueId ||
+        _state.isRequesting) {
+      return false;
+    }
+
+    _state = _state.copyWith(
+      isRequesting: true,
+      requestError: null,
+      requestSuccess: null,
+    );
+    _arrQueueGeneration++;
+    notifyListeners();
+    try {
+      await _repo.removeArrQueueItem(
+        radarr: queue.isRadarr,
+        queueId: queueId,
+      );
+    } catch (e) {
+      debugPrint('[SeerrDetail] Removing queue item $queueId failed: $e');
+      _setRequestFailure(e);
+      notifyListeners();
+      return false;
+    }
+    await _refreshArrQueue();
+    await _reloadDetails('Different release requested');
+    notifyListeners();
+    return true;
   }
 
   void clearFeedback() {
@@ -474,11 +638,28 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
         'series4kEnabled',
         fallback: _series4kEnabled,
       );
+      final region = settings['streamingRegion'];
+      _serverStreamingRegion = region is String ? region : null;
+      final streamingRegion = _streamingRegionFor(_state.currentUser);
+      if (streamingRegion != _state.streamingRegion) {
+        // copyWith clears the error fields it isn't handed, so pass them on.
+        _state = _state.copyWith(
+          streamingRegion: streamingRegion,
+          error: _state.error,
+          requestError: _state.requestError,
+          requestErrorKind: _state.requestErrorKind,
+          requestSuccess: _state.requestSuccess,
+          watchlistError: _state.watchlistError,
+        );
+      }
       notifyListeners();
     } catch (_) {
       // Keep the permissive defaults.
     }
   }
+
+  String _streamingRegionFor(SeerrUser? user) =>
+      seerrStreamingRegion(user?.streamingRegion, _serverStreamingRegion);
 
   /// The search hit of the kind that was asked for.
   ///
@@ -497,6 +678,8 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
 
   Future<void> load(String itemId, String mediaType, {String? title}) async {
     _relatedLoadComplete = false;
+    // Drops a queue fetch still on its way for the previous title.
+    _arrQueueGeneration++;
 
     _state = const SeerrMediaDetailState(isLoading: true);
     notifyListeners();
@@ -555,6 +738,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
             tv: details,
             currentUser: user,
             onUserWatchlist: onWatchlist,
+            streamingRegion: _streamingRegionFor(user),
           );
           notifyListeners();
           _loadRelated(tmdbId, 'tv');
@@ -575,6 +759,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
             movie: details,
             currentUser: user,
             onUserWatchlist: onWatchlist,
+            streamingRegion: _streamingRegionFor(user),
           );
           notifyListeners();
           _loadRelated(tmdbId, 'movie');
@@ -593,6 +778,10 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
       _state = SeerrMediaDetailState(error: e);
     }
     notifyListeners();
+    if (_state.error == null) {
+      await _refreshArrQueue();
+      notifyListeners();
+    }
     _syncStatusPolling();
   }
 
@@ -619,6 +808,34 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
     }
   }
 
+  /// Whether a series request first needs the viewer to pick Sonarr's match.
+  /// Sonarr can't add a series without a TVDB id, and when TMDB has none for
+  /// it Seerr drops the request once it tries to send it on. Seerr's own
+  /// request modal asks for the match in that case, so this does too. A series
+  /// already on Seerr with a TVDB id from an earlier request has one to use.
+  bool get needsSeriesMatch =>
+      _state.isTv &&
+      _state.externalIds?.tvdbId == null &&
+      _state.mediaInfo?.tvdbId == null;
+
+  /// The series Sonarr offers for this title, empty when it has none.
+  ///
+  /// Null when there is no Sonarr to ask: a Seerr with none set up answers
+  /// 404, and Silo has none at all. Seerr only drops a series without a TVDB
+  /// id when it has a Sonarr to send it to, so the request can still go out
+  /// then. Any other failure is thrown, since Sonarr is there and would drop
+  /// a request sent without the match.
+  Future<List<SeerrSonarrSeries>?> lookupSeriesMatches() async {
+    try {
+      return await _repo.lookupSonarrSeries(_state.tmdbId);
+    } on UnsupportedError {
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
   Future<void> submitRequest({
     bool is4k = false,
     List<int>? seasons,
@@ -626,6 +843,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
     int? profileId,
     String? rootFolder,
     int? serverId,
+    int? tvdbId,
   }) async {
     if (_state.isRequesting) {
       return;
@@ -645,6 +863,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
         profileId: profileId,
         rootFolder: rootFolder,
         serverId: serverId,
+        tvdbId: tvdbId,
       );
 
       await _reloadDetails('Request submitted');

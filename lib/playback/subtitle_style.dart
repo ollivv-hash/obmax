@@ -2,6 +2,154 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:playback_core/playback_core.dart';
 
 import '../preference/user_preferences.dart';
+import 'aether_backend.dart';
+import 'native_apple_player_backend.dart';
+
+const double primarySubtitleMaxOffset = 0.36;
+const double secondarySubtitleMinOffset =
+    PlaybackManager.secondarySubtitleMinOffset;
+const double secondarySubtitleMaxOffset =
+    PlaybackManager.secondarySubtitleMaxOffset;
+
+
+/// Returns the stored primary offset for the active SDR/HDR profile without
+/// clamping or snapping it. Legacy values remain untouched until the user edits them.
+double storedPrimarySubtitleOffset(
+  UserPreferences prefs,
+  StreamResolutionResult? resolution,
+) {
+  final useHdr =
+      prefs.get(UserPreferences.subtitlesHdrSeparate) &&
+      isHdrSubtitleOutput(
+        videoRangeType: resolution?.videoRangeType,
+        isTranscoding: resolution?.playMethod == StreamPlayMethod.transcode,
+      );
+  return prefs.get(
+    useHdr
+        ? UserPreferences.subtitlesHdrOffsetPosition
+        : UserPreferences.subtitlesOffsetPosition,
+  );
+}
+
+/// Normalizes a user edit onto the current step grid. A legacy value outside
+/// the range first snaps to the nearest boundary. An in-range off-grid value
+/// snaps in the direction of the attempted edit.
+double normalizeSteppedSubtitleOffsetChange({
+  required double storedValue,
+  required double proposedValue,
+  required double min,
+  required double max,
+  required double step,
+}) {
+  double clean(double value) => ((value * 1000000).round() / 1000000)
+      .clamp(min, max)
+      .toDouble();
+
+  final clampedStored = storedValue.clamp(min, max).toDouble();
+  if (storedValue < min || storedValue > max || step <= 0) {
+    return clean(clampedStored);
+  }
+
+  final stepIndex = (storedValue - min) / step;
+  final nearest = stepIndex.roundToDouble();
+  if ((stepIndex - nearest).abs() > 0.000001) {
+    final direction = proposedValue.compareTo(storedValue);
+    if (direction > 0) {
+      return clean(min + stepIndex.ceil() * step);
+    }
+    if (direction < 0) {
+      return clean(min + stepIndex.floor() * step);
+    }
+    return clean(clampedStored);
+  }
+  return clean(proposedValue);
+}
+
+/// Saves the primary subtitle size for the active SDR or HDR settings and reapplies
+/// both subtitle styles.
+Future<void> setPrimarySubtitleSize(
+  PlaybackManager manager,
+  UserPreferences prefs,
+  double size,
+) => setPrimarySubtitleAppearance(manager, prefs, fontSize: size);
+
+Future<void> setPrimarySubtitleAppearance(
+  PlaybackManager manager,
+  UserPreferences prefs, {
+  double? fontSize,
+  double? verticalOffset,
+}) async {
+  if (fontSize?.isFinite == false || verticalOffset?.isFinite == false) return;
+  final resolution = manager.currentResolution;
+  final useHdr =
+      prefs.get(UserPreferences.subtitlesHdrSeparate) &&
+      isHdrSubtitleOutput(
+        videoRangeType: resolution?.videoRangeType,
+        isTranscoding: resolution?.playMethod == StreamPlayMethod.transcode,
+      );
+  if (fontSize != null) {
+    await prefs.set(
+      useHdr
+          ? UserPreferences.subtitlesHdrTextSize
+          : UserPreferences.subtitlesTextSize,
+      fontSize.clamp(12.0, 48.0),
+    );
+  }
+  if (verticalOffset != null) {
+    await prefs.set(
+      useHdr
+          ? UserPreferences.subtitlesHdrOffsetPosition
+          : UserPreferences.subtitlesOffsetPosition,
+      verticalOffset.clamp(0.0, primarySubtitleMaxOffset),
+    );
+  }
+  // Some backends default omitted colors, so send the full saved appearance.
+  final style = SubtitleStyle.forResolution(prefs, manager.currentResolution);
+  await manager.backend?.configureSubtitleStyle(
+    textColor: style.textColor,
+    backgroundColor: style.backgroundColor,
+    strokeColor: style.strokeColor,
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    verticalOffset: style.verticalOffset,
+    strokeScale: style.strokeScale,
+    shadowColor: style.shadowColor,
+    shadowOffset: style.shadowOffset,
+    shadowBlur: style.shadowBlur,
+    fontFamily: style.fontFamily,
+  );
+  await syncSecondarySubtitleStyle(manager, prefs);
+}
+
+/// Applies the saved secondary style. A zero size adjustment and the default color
+/// leave those overrides unset so they follow the primary style, including HDR changes.
+Future<void> syncSecondarySubtitleStyle(
+  PlaybackManager manager,
+  UserPreferences prefs,
+) {
+  final primarySize = SubtitleStyle.forResolution(
+    prefs,
+    manager.currentResolution,
+  ).fontSize;
+  final adjustment = prefs
+      .get(UserPreferences.secondarySubtitleSizeAdjustment)
+      .clamp(-50.0, 50.0);
+  final adjustedSize = primarySize * (1 + adjustment / 100);
+  final isApple =
+      manager.backend is AetherBackend || manager.backend is NativeApplePlayerBackend;
+  return manager.configureSecondarySubtitleStyle(
+    fontSize: adjustment == 0
+        ? null
+        : (isApple ? adjustedSize.clamp(12.0, 48.0).toDouble() : adjustedSize),
+    verticalOffset: PlaybackManager.clampSecondarySubtitleOffset(
+      prefs.get(UserPreferences.secondarySubtitleOffsetPosition),
+    ),
+    textColor: switch (prefs.get(UserPreferences.secondarySubtitleTextColor)) {
+      -1 => null,
+      final color => color,
+    },
+  );
+}
 
 /// Whether what reaches the screen is HDR. A transcode lands as SDR even when
 /// the source was HDR, so the subtitles have to follow the output rather than
@@ -26,6 +174,19 @@ class SubtitleStyle {
   final int fontWeight;
   final double verticalOffset;
 
+  /// The outline width as a multiple of each player's own.
+  final double strokeScale;
+
+  /// Zero for no shadow.
+  final int shadowColor;
+
+  /// Fractions of the text size.
+  final double shadowOffset;
+  final double shadowBlur;
+
+  /// Empty for the player's own font.
+  final String fontFamily;
+
   const SubtitleStyle({
     required this.textColor,
     required this.backgroundColor,
@@ -33,6 +194,11 @@ class SubtitleStyle {
     required this.fontSize,
     required this.fontWeight,
     required this.verticalOffset,
+    this.strokeScale = 1,
+    this.shadowColor = 0,
+    this.shadowOffset = 0,
+    this.shadowBlur = 0,
+    this.fontFamily = '',
   });
 
   /// Reads the appearance for whatever [resolution] is putting on screen.
@@ -47,10 +213,19 @@ class SubtitleStyle {
     ),
   );
 
-  factory SubtitleStyle.resolve(UserPreferences prefs, {required bool isHdr}) {
-    final useHdr = isHdr && prefs.get(UserPreferences.subtitlesHdrSeparate);
-    T pick<T>(Preference<T> base, Preference<T> hdr) =>
-        prefs.get(useHdr ? hdr : base);
+  factory SubtitleStyle.resolve(UserPreferences prefs, {required bool isHdr}) =>
+      SubtitleStyle.read(prefs.get, isHdr: isHdr);
+
+  /// Like [SubtitleStyle.resolve], with each value taken from [get], so the
+  /// settings preview can draw an option before it's saved.
+  factory SubtitleStyle.read(
+    T Function<T>(Preference<T> preference) get, {
+    required bool isHdr,
+  }) {
+    final useHdr = isHdr && get(UserPreferences.subtitlesHdrSeparate);
+    T pick<T>(Preference<T> base, Preference<T> hdr) => get(useHdr ? hdr : base);
+    final shadowAlpha =
+        get(UserPreferences.subtitlesShadowIntensity) * 255 ~/ 100;
 
     return SubtitleStyle(
       textColor: pick(
@@ -76,7 +251,12 @@ class SubtitleStyle {
       verticalOffset: pick(
         UserPreferences.subtitlesOffsetPosition,
         UserPreferences.subtitlesHdrOffsetPosition,
-      ),
+      ).clamp(0.0, primarySubtitleMaxOffset).toDouble(),
+      strokeScale: get(UserPreferences.subtitlesStrokeWidth) / 100,
+      shadowColor: get(UserPreferences.subtitlesShadow) ? shadowAlpha << 24 : 0,
+      shadowOffset: get(UserPreferences.subtitlesShadowOffset) * 0.02,
+      shadowBlur: get(UserPreferences.subtitlesShadowBlur) * 0.02,
+      fontFamily: get(UserPreferences.subtitlesFont),
     );
   }
 
@@ -88,7 +268,12 @@ class SubtitleStyle {
       other.strokeColor == strokeColor &&
       other.fontSize == fontSize &&
       other.fontWeight == fontWeight &&
-      other.verticalOffset == verticalOffset;
+      other.verticalOffset == verticalOffset &&
+      other.strokeScale == strokeScale &&
+      other.shadowColor == shadowColor &&
+      other.shadowOffset == shadowOffset &&
+      other.shadowBlur == shadowBlur &&
+      other.fontFamily == fontFamily;
 
   @override
   int get hashCode => Object.hash(
@@ -98,5 +283,10 @@ class SubtitleStyle {
     fontSize,
     fontWeight,
     verticalOffset,
+    strokeScale,
+    shadowColor,
+    shadowOffset,
+    shadowBlur,
+    fontFamily,
   );
 }

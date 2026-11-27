@@ -9,6 +9,7 @@ import 'package:moonfin_design/moonfin_design.dart';
 
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
+import '../../../data/services/seerr/arr_queue.dart';
 import '../../../data/services/seerr/seerr_download_progress.dart';
 import '../../../data/services/seerr/seerr_models.dart';
 import '../../../data/viewmodels/seerr_issues_view_model.dart';
@@ -109,6 +110,10 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen>
   bool _issuesLoaded = false;
   final _requestsScroll = ScrollController();
   final _issuesScroll = ScrollController();
+  // Never attached. As the initial focus target it keeps RequestInitialFocus
+  // from parking focus in the sidebar before the items load. Once items load
+  // the selected tab header automatically grabs focus at that time
+  final _initialFocusNode = FocusNode(debugLabel: 'seerrInitialContent');
   final _animatedRequestIds = <int>{};
   final _animatedIssueIds = <int>{};
 
@@ -179,6 +184,7 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen>
     _requestsVm?.dispose();
     _issuesVm?.removeListener(_onChanged);
     _issuesVm?.dispose();
+    _initialFocusNode.dispose();
     super.dispose();
   }
 
@@ -209,7 +215,10 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen>
 
   @override
   Widget build(BuildContext context) =>
-      RequestInitialFocus(child: _buildContent(context));
+      RequestInitialFocus(
+        targetNode: _initialFocusNode,
+        child: _buildContent(context),
+      );
 
   Widget _buildContent(BuildContext context) {
     return Scaffold(
@@ -429,6 +438,8 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen>
         child: _RequestCard(
           request: req,
           summary: s.summaryFor(req),
+          download: s.downloadFor(req),
+          wait: s.waitFor(req),
           canManage: s.canManageRequests,
           isActioning: s.actioningRequestId == req.id,
           onTap: () => _onRequestTap(req),
@@ -503,6 +514,8 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen>
               child: _RequestCard(
                 request: req,
                 summary: s.summaryFor(req),
+                download: s.downloadFor(req),
+                wait: s.waitFor(req),
                 canManage: s.canManageRequests,
                 isActioning: s.actioningRequestId == req.id,
                 onTap: () => _onRequestTap(req),
@@ -1017,6 +1030,7 @@ class _HubTabState extends State<_HubTab> with FocusStateMixin {
     final scale = _uiScale();
     return Focus(
       onFocusChange: setFocused,
+      autofocus: widget.selected && !PlatformDetection.useMobileUi,
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
           return KeyEventResult.ignored;
@@ -1040,10 +1054,10 @@ class _HubTabState extends State<_HubTab> with FocusStateMixin {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: widget.selected
-                      ? AppColorScheme.accent
-                      : showFocusBorder
+                  color: showFocusBorder
                       ? focusColor
+                      : widget.selected
+                      ? AppColorScheme.accent
                       : Colors.transparent,
                   width: 2,
                 ),
@@ -1435,6 +1449,14 @@ class _Badge extends StatelessWidget {
 class _RequestCard extends StatefulWidget {
   final SeerrRequest request;
   final SeerrMediaSummary? summary;
+
+  /// The download bar's summary, from the arr's queue when Moonbase could
+  /// read it, or null when nothing is downloading.
+  final SeerrDownloadSummary? download;
+
+  /// What the arr is waiting on for an approved request with nothing
+  /// grabbed yet, or null.
+  final ArrWait? wait;
   final bool canManage;
   final bool isActioning;
   final VoidCallback? onTap;
@@ -1452,6 +1474,8 @@ class _RequestCard extends StatefulWidget {
   const _RequestCard({
     required this.request,
     this.summary,
+    this.download,
+    this.wait,
     required this.canManage,
     required this.isActioning,
     this.onTap,
@@ -1552,7 +1576,7 @@ class _RequestCardState extends State<_RequestCard> with FocusStateMixin {
   ) {
     final scale = _uiScale();
     final onSurface = AppColorScheme.onSurface;
-    final downloadSummary = SeerrDownloadSummary.forRequest(request);
+    final downloadSummary = widget.download;
     final (statusLabel, statusColor) = _StatusChip.infoFor(request, l10n);
     final actions = _actions(l10n);
 
@@ -1626,12 +1650,21 @@ class _RequestCardState extends State<_RequestCard> with FocusStateMixin {
           date: date,
           scale: scale,
           marqueeTitle: showFocusBorder,
+          note: downloadSummary?.reason,
           status: downloadSummary != null
               ? SeerrDownloadProgressBar(
                   summary: downloadSummary,
                   // The tile's own scale, so the bar stays in proportion
                   // with the caption around it.
                   scale: scale,
+                  // The caption shows the reason in the requester's place.
+                  reasonMaxLines: 0,
+                )
+              : widget.wait != null
+              ? SeerrArrWaitLabel(
+                  wait: widget.wait!,
+                  scale: scale,
+                  showLastSearch: false,
                 )
               : _StatusPill(label: statusLabel, color: statusColor),
         ),
@@ -1648,7 +1681,7 @@ class _RequestCardState extends State<_RequestCard> with FocusStateMixin {
   ) {
     final scale = _uiScale();
     final onSurface = AppColorScheme.onSurface;
-    final downloadSummary = SeerrDownloadSummary.forRequest(request);
+    final downloadSummary = widget.download;
     return SizedBox(
       // Fixed on purpose. The list gives children an unbounded height, so
       // sizing to content here (stretch, IntrinsicHeight) throws.
@@ -1714,6 +1747,8 @@ class _RequestCardState extends State<_RequestCard> with FocusStateMixin {
                   // chip, and the two together contradict each other.
                   if (downloadSummary != null)
                     SeerrDownloadProgressBar(summary: downloadSummary)
+                  else if (widget.wait != null)
+                    SeerrArrWaitLabel(wait: widget.wait!)
                   else
                     _StatusChip(request: request),
                   // Pins the provenance to the foot so it lines up across the

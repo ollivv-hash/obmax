@@ -40,6 +40,8 @@ import java.util.regex.Pattern
 class MoonfinMatroskaExtractor(
     subtitleParserFactory: SubtitleParser.Factory,
     private val assHandler: AssHandler,
+    private val assDialogue: AssDialogueQueue,
+    private val onAssDialogueLoaded: (() -> Unit)? = null,
 ) : MatroskaExtractor(subtitleParserFactory) {
 
     /**
@@ -118,7 +120,9 @@ class MoonfinMatroskaExtractor(
                     if (currentOutput !is AssDialogueExtractorOutput) {
                         extractorOutputField.set(
                             this,
-                            AssDialogueExtractorOutput(currentOutput, assHandler, this),
+                            AssDialogueExtractorOutput(
+                                currentOutput, assDialogue, this, onAssDialogueLoaded,
+                            ),
                         )
                     }
                 }
@@ -217,13 +221,17 @@ class MoonfinMatroskaExtractor(
 fun ExtractorsFactory.withMoonfinMkvSupport(
     assSubtitleParserFactory: SubtitleParser.Factory,
     assHandler: AssHandler,
+    assDialogue: AssDialogueQueue,
+    onAssDialogueLoaded: (() -> Unit)? = null,
 ): ExtractorsFactory {
     return ExtractorsFactory {
         val extractors = createExtractors()
         extractors.forEachIndexed { index, extractor ->
             if (extractor is MatroskaExtractor) {
                 // Must keep the extractor order.
-                extractors[index] = MoonfinMatroskaExtractor(assSubtitleParserFactory, assHandler)
+                extractors[index] = MoonfinMatroskaExtractor(
+                    assSubtitleParserFactory, assHandler, assDialogue, onAssDialogueLoaded,
+                )
             }
         }
         extractors
@@ -231,21 +239,23 @@ fun ExtractorsFactory.withMoonfinMkvSupport(
 }
 
 /**
- * Feeds ASS dialogue lines to the overlay renderer as they are extracted.
- * Same behavior as ass-media's AssSubtitleExtractorOutput, retyped to the
- * extractor above.
+ * Wraps every subtitle track so its ASS dialogue reaches the overlay renderer.
+ * Mirrors ass-media's AssSubtitleExtractorOutput, retyped to the extractor above.
  */
 @UnstableApi
 private class AssDialogueExtractorOutput(
     private val delegate: ExtractorOutput,
-    private val assHandler: AssHandler,
+    private val assDialogue: AssDialogueQueue,
     private val extractor: MoonfinMatroskaExtractor,
+    private val onAssDialogueLoaded: (() -> Unit)?,
 ) : ExtractorOutput by delegate {
     override fun track(id: Int, type: Int): TrackOutput {
         return if (type == C.TRACK_TYPE_TEXT) {
             // Whether the subtitle track is ASS is unknown at this point, so
             // every subtitle track gets wrapped.
-            AssDialogueTrackOutput(delegate.track(id, type), assHandler, extractor)
+            AssDialogueTrackOutput(
+                delegate.track(id, type), assDialogue, extractor, onAssDialogueLoaded,
+            )
         } else {
             delegate.track(id, type)
         }
@@ -254,24 +264,28 @@ private class AssDialogueExtractorOutput(
 
 /**
  * Reads the timing and dialogue out of each ASS sample for the overlay
- * renderer. Same behavior as ass-media's AssTrackOutput, retyped to the
- * extractor above.
+ * renderer. Parses like ass-media's AssTrackOutput, but queues the line
+ * rather than waiting for the libass lock.
  */
 @UnstableApi
 private class AssDialogueTrackOutput(
     private val delegate: TrackOutput,
-    private val assHandler: AssHandler,
+    private val assDialogue: AssDialogueQueue,
     private val extractor: MoonfinMatroskaExtractor,
+    private val onAssDialogueLoaded: (() -> Unit)?,
 ) : TrackOutput by delegate {
 
     private var isAss = false
 
     private var trackId: String? = null
 
+    private var epoch = 0
+
     override fun format(format: Format) {
         if (format.sampleMimeType == MimeTypes.TEXT_SSA || format.codecs == MimeTypes.TEXT_SSA) {
             isAss = true
             trackId = format.id
+            epoch = assDialogue.epoch
         }
         delegate.format(format)
     }
@@ -291,18 +305,16 @@ private class AssDialogueTrackOutput(
             val rawDuration = sample.data.decodeToString(endIndex, lineIndex - 1)
             val durationUs = parseTimecodeUs(rawDuration)
 
-            // ass_process_chunk grows the track's event array while the
-            // render thread walks it, so both sides take the AssHandler monitor.
-            synchronized(assHandler) {
-                assHandler.readTrackDialogue(
-                    trackId = trackId,
-                    start = timeUs / 1000,
-                    duration = durationUs / 1000,
-                    data = sample.data,
-                    offset = lineIndex,
-                    length = sample.limit() - lineIndex,
-                )
-            }
+            assDialogue.add(
+                epoch = epoch,
+                trackId = trackId,
+                startMs = timeUs / 1000,
+                durationMs = durationUs / 1000,
+                data = sample.data,
+                offset = lineIndex,
+                length = sample.limit() - lineIndex,
+            )
+            onAssDialogueLoaded?.invoke()
         }
         delegate.sampleMetadata(timeUs, flags, size, offset, cryptoData)
     }

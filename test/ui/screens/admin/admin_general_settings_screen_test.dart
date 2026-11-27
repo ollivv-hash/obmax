@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/settings/admin_general_settings_screen.dart';
 import 'package:server_core/server_core.dart';
 
@@ -48,14 +49,46 @@ class _FakeSystemApi extends Fake implements AdminSystemApi {
   Future<List<Map<String, dynamic>>> getLocalizationOptions() async => const [];
 }
 
+class _FakeInfoApi extends Fake implements SystemApi {
+  Map<String, dynamic> info = {};
+
+  @override
+  Future<Map<String, dynamic>> getSystemInfo() async => info;
+}
+
+/// Emby 4.10's configuration leaves out null fields, here the cache path and
+/// the maintenance message, and has none of Jellyfin's keys.
+const _embyConfig = {
+  'UICulture': 'en-US',
+  'MetadataCountryCode': 'US',
+  'EnableAutomaticRestart': true,
+  'EnableAutoUpdate': true,
+  'IsInMaintenanceMode': false,
+  'RunAtStartup': true,
+  'AutoRunWebApp': true,
+};
+
+/// Emby in Docker: it can restart itself but not update itself, start at
+/// boot or open a browser.
+const _embyInfo = {
+  'Version': '4.10.1.0',
+  'CanSelfRestart': true,
+  'CanSelfUpdate': false,
+  'SupportsAutoRunAtStartup': false,
+  'CanLaunchWebBrowser': false,
+};
+
 void main() {
   late _FakeSystemApi api;
+  late _FakeInfoApi info;
   late AppLocalizations l10n;
 
   setUp(() async {
     api = _FakeSystemApi();
+    info = _FakeInfoApi();
     final client = _MockMediaServerClient();
     when(() => client.adminSystemApi).thenReturn(api);
+    when(() => client.systemApi).thenReturn(info);
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<MediaServerClient>(client);
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
@@ -66,7 +99,10 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    ServerType server = ServerType.jellyfin,
+  }) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -74,7 +110,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: AdminGeneralSettingsScreen()),
+        home: AdminServerScope(
+          serverType: server,
+          child: const Scaffold(body: AdminGeneralSettingsScreen()),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -165,6 +204,81 @@ void main() {
     expect(input.focusNode.hasFocus, isTrue);
     expect(AdminDraft.active.value!.targets['main']!.working['CachePath'],
         '/cache2');
+  });
+
+  testWidgets('Jellyfin shows none of the Emby rows', (tester) async {
+    await pump(tester);
+
+    expect(find.text(l10n.adminGeneralQuickConnect), findsOneWidget);
+    expect(find.text(l10n.adminGeneralMaintenanceMode), findsNothing);
+    expect(find.text(l10n.adminGeneralAutoRestart), findsNothing);
+    expect(find.text(l10n.adminGeneralBannerText), findsNothing);
+  });
+
+  group('on Emby', () {
+    setUp(() {
+      api.server = Map.of(_embyConfig);
+      info.info = Map.of(_embyInfo);
+    });
+
+    testWidgets('its rows show by key and platform, Jellyfin\'s hide', (
+      tester,
+    ) async {
+      await pump(tester, server: ServerType.emby);
+
+      expect(find.text(l10n.adminGeneralMaintenanceMode), findsOneWidget);
+      expect(find.text(l10n.adminGeneralAutoRestart), findsOneWidget);
+      expect(find.text(l10n.adminGeneralBannerText), findsOneWidget);
+      // Docker can't update itself, start at boot or open a browser.
+      expect(find.text(l10n.adminGeneralAutoUpdate), findsNothing);
+      expect(find.text(l10n.adminGeneralRunAtStartup), findsNothing);
+      expect(find.text(l10n.adminGeneralLaunchWebApp), findsNothing);
+      // The message only shows in maintenance mode.
+      expect(find.text(l10n.adminGeneralMaintenanceMessage), findsNothing);
+      for (final label in [
+        l10n.adminGeneralQuickConnect,
+        l10n.adminGeneralLibraryScanConcurrency,
+        l10n.adminGeneralImageEncodingLimit,
+        l10n.adminGeneralEnableSlowResponse,
+        l10n.adminGeneralSlowResponseThreshold,
+      ]) {
+        expect(find.text(label), findsNothing, reason: label);
+      }
+    });
+
+    testWidgets('the banner needs Emby 4.10.0.4', (tester) async {
+      info.info = {..._embyInfo, 'Version': '4.9.1.80'};
+      await pump(tester, server: ServerType.emby);
+      expect(find.text(l10n.adminGeneralBannerText), findsNothing);
+    });
+
+    testWidgets('maintenance mode saves without adding missing keys', (
+      tester,
+    ) async {
+      await pump(tester, server: ServerType.emby);
+      await tester.tap(find.text(l10n.adminGeneralMaintenanceMode));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        field(l10n.adminGeneralMaintenanceMessage),
+        'Back soon',
+      );
+      await tester.pump();
+
+      expect(await AdminDraft.active.value!.save(), isTrue);
+      expect(api.posted.single, {
+        ..._embyConfig,
+        'IsInMaintenanceMode': true,
+        'MaintenanceModeMessage': 'Back soon',
+      });
+
+      // A cleared message goes back to Emby's default.
+      await tester.pumpAndSettle();
+      await tester.enterText(field(l10n.adminGeneralMaintenanceMessage), '');
+      await tester.pump();
+      expect(await AdminDraft.active.value!.save(), isTrue);
+      expect(api.posted.last.containsKey('MaintenanceModeMessage'), isFalse);
+      expect(api.posted.last['IsInMaintenanceMode'], isTrue);
+    });
   });
 
   testWidgets('the page has no save button of its own', (tester) async {

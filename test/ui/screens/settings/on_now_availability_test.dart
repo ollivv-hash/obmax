@@ -93,6 +93,20 @@ void main() {
     expect(tile(tester, 'On Now').onTap, isNull);
   });
 
+  testWidgets('a server without Live TV channels hides every Live TV row', (
+    tester,
+  ) async {
+    when(
+      () => liveTv.getChannels(userId: 'user', limit: 1),
+    ).thenAnswer((_) async => {'Items': <dynamic>[]});
+
+    await pump(tester);
+
+    expect(find.text('Live TV'), findsNothing);
+    expect(find.text('On Now'), findsNothing);
+    expect(find.text('Active Recordings'), findsNothing);
+  });
+
   testWidgets('airing programs make standalone On Now available', (
     tester,
   ) async {

@@ -1,10 +1,14 @@
+import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../navigation/destinations.dart';
 import 'admin_user_providers.dart';
 
 class AdminMediaMetricDefinition {
@@ -92,17 +96,30 @@ class AdminLibraryMediaAnalytics {
   final Map<String, int> counts;
   final AdminLibraryInsights insights;
 
+  /// Counted but still reading its items, so [insights] is empty for now.
+  final bool insightsPending;
+
   const AdminLibraryMediaAnalytics({
     required this.name,
     required this.itemId,
     required this.collectionType,
     required this.counts,
     this.insights = const AdminLibraryInsights(),
+    this.insightsPending = false,
   });
 
   int countFor(String key) => counts[key] ?? 0;
 
   int get totalTrackedItems => counts.values.fold(0, (sum, count) => sum + count);
+
+  AdminLibraryMediaAnalytics withInsights(AdminLibraryInsights insights) =>
+      AdminLibraryMediaAnalytics(
+        name: name,
+        itemId: itemId,
+        collectionType: collectionType,
+        counts: counts,
+        insights: insights,
+      );
 }
 
 class AdminLibraryInsights {
@@ -125,16 +142,6 @@ class AdminLibraryInsights {
     this.videoCodecs = const {},
     this.audioCodecs = const {},
   });
-
-  bool get hasData =>
-      genres.isNotEmpty ||
-      contributors.isNotEmpty ||
-      years.isNotEmpty ||
-      ratings.isNotEmpty ||
-      runtimeBuckets.isNotEmpty ||
-      containers.isNotEmpty ||
-      videoCodecs.isNotEmpty ||
-      audioCodecs.isNotEmpty;
 }
 
 class AdminAnalyticsLoadingState {
@@ -145,38 +152,32 @@ class AdminAnalyticsLoadingState {
     required this.progress,
     this.data,
   });
+
+  /// False while [data] holds counts whose insights are still loading.
+  bool get isComplete => progress >= 1;
 }
 
 class AdminMediaAnalyticsDetail {
-  final AdminMediaCountSummary summary;
   final List<AdminLibraryMediaAnalytics> libraries;
   final AdminTechnicalProfile technicalProfile;
 
   const AdminMediaAnalyticsDetail({
-    required this.summary,
     required this.libraries,
     required this.technicalProfile,
   });
 }
 
+/// The codec and container counts of every library added together.
 class AdminTechnicalProfile {
-  final int sampledItems;
-  final int totalRecordCount;
-  final Duration sampledRuntime;
   final Map<String, int> containers;
   final Map<String, int> videoCodecs;
   final Map<String, int> audioCodecs;
 
   const AdminTechnicalProfile({
-    this.sampledItems = 0,
-    this.totalRecordCount = 0,
-    this.sampledRuntime = Duration.zero,
     this.containers = const {},
     this.videoCodecs = const {},
     this.audioCodecs = const {},
   });
-
-  bool get hasData => sampledItems > 0;
 }
 
 final adminMediaSummaryProvider = FutureProvider<AdminMediaCountSummary>((ref) async {
@@ -186,7 +187,7 @@ final adminMediaSummaryProvider = FutureProvider<AdminMediaCountSummary>((ref) a
 
 final adminMediaAnalyticsProvider = StreamProvider<AdminAnalyticsLoadingState>((ref) async* {
   final client = GetIt.instance<MediaServerClient>();
-  final cacheKey = 'admin_media_analytics_${client.baseUrl}_${client.userId}';
+  final cacheKey = _analyticsCacheKey(client);
 
   SharedPreferences? prefs;
   AdminMediaAnalyticsDetail? cachedData;
@@ -211,72 +212,40 @@ final adminMediaAnalyticsProvider = StreamProvider<AdminAnalyticsLoadingState>((
   }
 
   try {
-    final libraries = await ref.read(adminLibrariesProvider.future);
+    final libraries = (await ref.read(adminLibrariesProvider.future))
+        .where((library) => !adminAnalyticsSkipsLibrary(library.collectionType))
+        .toList();
+
+    // Counts are one cheap request each, so the page shows them while the
+    // item reads behind the charts are still running.
+    final libraryAnalytics = await Future.wait(
+      libraries.map((library) => _loadLibraryCounts(client, library)),
+    );
+    final reads = [
+      for (var i = 0; i < libraryAnalytics.length; i++)
+        if (libraryAnalytics[i].insightsPending)
+          _loadInsights(ref, libraryAnalytics[i]).then((insights) => (i, insights)),
+    ];
     if (cachedData == null) {
-      yield const AdminAnalyticsLoadingState(progress: 0.15);
+      yield AdminAnalyticsLoadingState(
+        progress: reads.isEmpty ? 1.0 : 0.2,
+        data: _detailOf(libraryAnalytics),
+      );
     }
 
-    final summary = await ref.read(adminMediaSummaryProvider.future);
-    if (cachedData == null) {
-      yield const AdminAnalyticsLoadingState(progress: 0.25);
-    }
-
-    final List<AdminLibraryMediaAnalytics> libraryAnalytics = [];
-    final double progressStep = 0.70 / (libraries.isEmpty ? 1 : libraries.length);
-
-    for (int i = 0; i < libraries.length; i++) {
-      final library = libraries[i];
-      final analytics = await _loadLibraryAnalytics(client, library);
-      libraryAnalytics.add(analytics);
-      if (cachedData == null) {
-        yield AdminAnalyticsLoadingState(progress: 0.25 + (i + 1) * progressStep);
+    var done = 0;
+    await for (final (index, insights) in Stream.fromFutures(reads)) {
+      libraryAnalytics[index] = libraryAnalytics[index].withInsights(insights);
+      done++;
+      if (cachedData == null && done < reads.length) {
+        yield AdminAnalyticsLoadingState(
+          progress: 0.2 + 0.8 * done / reads.length,
+          data: _detailOf(libraryAnalytics),
+        );
       }
     }
 
-    int totalSampled = 0;
-    int totalRecord = 0;
-    final aggregatedContainers = <String, int>{};
-    final aggregatedVideoCodecs = <String, int>{};
-    final aggregatedAudioCodecs = <String, int>{};
-
-    for (final lib in libraryAnalytics) {
-      final insights = lib.insights;
-      totalRecord += lib.totalTrackedItems;
-      totalSampled += insights.videoCodecs.values.fold(0, (sum, val) => sum + val);
-
-      insights.containers.forEach((key, val) {
-        aggregatedContainers[key] = (aggregatedContainers[key] ?? 0) + val;
-      });
-      insights.videoCodecs.forEach((key, val) {
-        aggregatedVideoCodecs[key] = (aggregatedVideoCodecs[key] ?? 0) + val;
-      });
-      insights.audioCodecs.forEach((key, val) {
-        aggregatedAudioCodecs[key] = (aggregatedAudioCodecs[key] ?? 0) + val;
-      });
-    }
-
-    final technicalProfile = AdminTechnicalProfile(
-      sampledItems: totalSampled,
-      totalRecordCount: totalRecord,
-      sampledRuntime: Duration.zero,
-      containers: aggregatedContainers,
-      videoCodecs: aggregatedVideoCodecs,
-      audioCodecs: aggregatedAudioCodecs,
-    );
-
-    libraryAnalytics.sort((a, b) {
-      final totalCompare = b.totalTrackedItems.compareTo(a.totalTrackedItems);
-      if (totalCompare != 0) {
-        return totalCompare;
-      }
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
-
-    final detail = AdminMediaAnalyticsDetail(
-      summary: summary,
-      libraries: libraryAnalytics,
-      technicalProfile: technicalProfile,
-    );
+    final detail = _detailOf(libraryAnalytics);
 
     if (prefs != null) {
       try {
@@ -295,6 +264,85 @@ final adminMediaAnalyticsProvider = StreamProvider<AdminAnalyticsLoadingState>((
     }
   }
 });
+
+/// Reads everything again with the progress showing, rather than putting the
+/// last result up first.
+Future<void> reloadAdminMediaAnalytics(WidgetRef ref) async {
+  final client = GetIt.instance<MediaServerClient>();
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_analyticsCacheKey(client));
+  } catch (_) {}
+  ref
+    ..invalidate(adminLibraryItemsProvider)
+    ..invalidate(adminMediaAnalyticsProvider);
+}
+
+String _analyticsCacheKey(MediaServerClient client) =>
+    'admin_media_analytics_${client.baseUrl}_${client.userId}';
+
+/// Live TV, collections and playlists hold no media of their own.
+bool adminAnalyticsSkipsLibrary(String? collectionType) {
+  final normalized = (collectionType ?? '').toLowerCase();
+  return normalized == 'livetv' ||
+      normalized == 'live tv' ||
+      normalized == 'boxsets' ||
+      normalized == 'collections' ||
+      normalized == 'playlists';
+}
+
+/// Libraries sorted largest first, with their codec counts added together.
+AdminMediaAnalyticsDetail _detailOf(
+  List<AdminLibraryMediaAnalytics> libraryAnalytics,
+) {
+  final containers = <String, int>{};
+  final videoCodecs = <String, int>{};
+  final audioCodecs = <String, int>{};
+  void addAll(Map<String, int> into, Map<String, int> counts) =>
+      counts.forEach((key, count) => into[key] = (into[key] ?? 0) + count);
+
+  for (final library in libraryAnalytics) {
+    addAll(containers, library.insights.containers);
+    addAll(videoCodecs, library.insights.videoCodecs);
+    addAll(audioCodecs, library.insights.audioCodecs);
+  }
+
+  final sorted = [...libraryAnalytics]..sort((a, b) {
+    final totalCompare = b.totalTrackedItems.compareTo(a.totalTrackedItems);
+    if (totalCompare != 0) {
+      return totalCompare;
+    }
+    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+  });
+
+  return AdminMediaAnalyticsDetail(
+    libraries: sorted,
+    technicalProfile: AdminTechnicalProfile(
+      containers: containers,
+      videoCodecs: videoCodecs,
+      audioCodecs: audioCodecs,
+    ),
+  );
+}
+
+/// A failed read leaves the library without insights rather than failing the
+/// whole page.
+Future<AdminLibraryInsights> _loadInsights(
+  Ref ref,
+  AdminLibraryMediaAnalytics library,
+) async {
+  try {
+    final items = await ref.read(
+      adminLibraryItemsProvider((
+        itemId: library.itemId,
+        collectionType: library.collectionType,
+      )).future,
+    );
+    return _insightsOf(items);
+  } catch (_) {
+    return const AdminLibraryInsights();
+  }
+}
 
 /// The ItemCounts field for a metric, null for the ones ItemCounts lacks
 /// (audiobooks, photos, videos), which need an /Items count.
@@ -363,7 +411,7 @@ Future<AdminMediaCountSummary> _loadSummary(
   }
 }
 
-Future<AdminLibraryMediaAnalytics> _loadLibraryAnalytics(
+Future<AdminLibraryMediaAnalytics> _loadLibraryCounts(
   MediaServerClient client,
   VirtualFolderInfo library,
 ) async {
@@ -375,7 +423,6 @@ Future<AdminLibraryMediaAnalytics> _loadLibraryAnalytics(
       counts: {
         for (final metric in adminMediaMetrics) metric.key: 0,
       },
-      insights: const AdminLibraryInsights(),
     );
   }
 
@@ -391,8 +438,6 @@ Future<AdminLibraryMediaAnalytics> _loadLibraryAnalytics(
     }),
   );
 
-  final insights = await _loadLibraryInsights(client, library);
-
   return AdminLibraryMediaAnalytics(
     name: library.name,
     itemId: library.itemId,
@@ -401,7 +446,7 @@ Future<AdminLibraryMediaAnalytics> _loadLibraryAnalytics(
       for (final metric in adminMediaMetrics) metric.key: 0,
       for (final entry in countEntries) entry.key: entry.value,
     },
-    insights: insights,
+    insightsPending: _itemTypesForInsights(library.collectionType) != null,
   );
 }
 
@@ -479,206 +524,545 @@ List<AdminMediaMetricDefinition> _metricsForKeys(List<String> keys) {
   return adminMediaMetrics.where((metric) => keys.contains(metric.key)).toList();
 }
 
-Future<AdminLibraryInsights> _loadLibraryInsights(
-  MediaServerClient client,
-  VirtualFolderInfo library,
-) async {
-  final collectionType = (library.collectionType ?? '').toLowerCase();
-  List<String> includeItemTypes;
-  String fields;
+typedef AdminAnalyticsLibraryRef = ({String itemId, String? collectionType});
 
-  // Only ItemFields names go in Fields. ProductionYear, OfficialRating,
-  // RunTimeTicks, Container, Artists and AlbumArtists come back without it.
-  const pageSize = 1000;
-  switch (collectionType) {
-    case 'movies':
-      includeItemTypes = const ['Movie'];
-      fields = 'Genres,MediaSources,MediaStreams';
-    case 'tvshows':
-      includeItemTypes = const ['Series', 'Episode'];
-      fields = 'Genres,MediaSources,MediaStreams';
-    case 'music':
-      includeItemTypes = const ['Audio', 'MusicAlbum'];
-      fields = 'Genres,MediaSources,MediaStreams';
-    case 'books':
-      includeItemTypes = const ['Book', 'AudioBook'];
-      fields = 'Genres,People,Path,MediaSources,MediaStreams';
-    default:
-      return const AdminLibraryInsights();
-  }
+/// Every item of a library that has insights, kept for the session so tapping
+/// a category lists its items without reading the library again.
+final adminLibraryItemsProvider =
+    FutureProvider.family<List<AdminAnalyticsItem>, AdminAnalyticsLibraryRef>(
+  (ref, library) => _loadLibraryItems(
+    GetIt.instance<MediaServerClient>(),
+    library,
+    cancelled: _disposedFlag(ref),
+  ),
+);
 
-  final List<Map<String, dynamic>> items = [];
-  int startIndex = 0;
+/// One item reduced to what the charts count.
+class AdminAnalyticsItem {
+  final String id;
+  final String name;
+  final String type;
 
-  try {
-    while (true) {
-      // GET /Items takes the user from the token, /Users/{id}/Items is obsolete.
-      final response = await client.itemsApi.getItems(
-        serverWide: true,
-        parentId: library.itemId,
-        includeItemTypes: includeItemTypes,
-        recursive: true,
-        fields: fields,
-        sortBy: 'SortName',
-        sortOrder: 'Ascending',
-        startIndex: startIndex,
-        limit: pageSize,
-        enableTotalRecordCount: true,
-      );
+  /// The series of an episode or the artist of a song.
+  final String? parentName;
+  final int? year;
+  final String? rating;
+  final String? runtimeBucket;
+  final List<String> genres;
+  final List<String> contributors;
 
-      final rawItems = response['Items'];
-      final fetchedItems = rawItems is List
-          ? rawItems.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
-          : const <Map<String, dynamic>>[];
+  /// One entry per media source, so a two version movie counts twice.
+  final List<String> containers;
 
-      items.addAll(fetchedItems);
+  /// One entry per stream, so every audio track counts.
+  final List<String> videoCodecs;
+  final List<String> audioCodecs;
+  final String? imageItemId;
+  final String? imageTag;
 
-      final totalCount = response['TotalRecordCount'] is num
-          ? (response['TotalRecordCount'] as num).toInt()
-          : 0;
+  const AdminAnalyticsItem({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.parentName,
+    this.year,
+    this.rating,
+    this.runtimeBucket,
+    this.genres = const [],
+    this.contributors = const [],
+    this.containers = const [],
+    this.videoCodecs = const [],
+    this.audioCodecs = const [],
+    this.imageItemId,
+    this.imageTag,
+  });
 
-      if (fetchedItems.length < pageSize || totalCount <= 0 || items.length >= totalCount) {
-        break;
-      }
-      startIndex += pageSize;
-    }
+  factory AdminAnalyticsItem.fromJson(
+    Map<String, dynamic> item,
+    String? collectionType,
+  ) {
+    final type = (collectionType ?? '').toLowerCase();
+    final containers = <String>[];
+    final videoCodecs = <String>[];
+    final audioCodecs = <String>[];
 
-    final genres = <String, int>{};
-    final contributors = <String, int>{};
-    final years = <String, int>{};
-    final ratings = <String, int>{};
-    final runtimeBuckets = <String, int>{};
-    final containers = <String, int>{};
-    final videoCodecs = <String, int>{};
-    final audioCodecs = <String, int>{};
-
-    for (final item in items) {
-      for (final genre in _extractStringList(item['Genres'])) {
-        _incrementDisplayCount(genres, genre);
-      }
-
-      final productionYear = item['ProductionYear'];
-      if (productionYear is num && productionYear > 0) {
-        _incrementDisplayCount(years, productionYear.toInt().toString());
-      }
-
-      var hasContainer = false;
-      final mediaSources = _mapList(item['MediaSources']);
-      for (final source in mediaSources) {
-        if (collectionType == 'books') {
-          final sourcePathFormat = _bookFormatFromPath(source['Path']);
-          if (sourcePathFormat != null) {
-            _incrementCount(containers, sourcePathFormat);
-            hasContainer = true;
-          }
-        }
-
-        final sourceContainer = _normalizeToken(source['Container']);
-        if (sourceContainer != null && !(collectionType == 'books' && hasContainer)) {
-          _incrementCount(containers, sourceContainer);
+    var hasContainer = false;
+    final mediaSources = _mapList(item['MediaSources']);
+    for (final source in mediaSources) {
+      if (type == 'books') {
+        final sourcePathFormat = _bookFormatFromPath(source['Path']);
+        if (sourcePathFormat != null) {
+          containers.add(sourcePathFormat);
           hasContainer = true;
         }
-
-        final mediaStreams = _mapList(source['MediaStreams']);
-        for (final stream in mediaStreams) {
-          final streamType = _normalizeToken(stream['Type']);
-          final streamCodec = _normalizeToken(stream['Codec']);
-          if (streamCodec == null) {
-            continue;
-          }
-
-          if (streamType == 'video') {
-            _incrementCount(videoCodecs, streamCodec);
-          } else if (streamType == 'audio') {
-            _incrementCount(audioCodecs, streamCodec);
-          }
-        }
       }
 
-      if (!hasContainer) {
-        if (collectionType == 'books') {
-          final itemPathFormat = _bookFormatFromPath(item['Path']);
-          if (itemPathFormat != null) {
-            _incrementCount(containers, itemPathFormat);
-            hasContainer = true;
-          }
-        }
-
-        final itemContainer = _normalizeToken(item['Container']);
-        if (itemContainer != null && !(collectionType == 'books' && hasContainer)) {
-          _incrementCount(containers, itemContainer);
-        }
+      final sourceContainer = _normalizeToken(source['Container']);
+      if (sourceContainer != null && !(type == 'books' && hasContainer)) {
+        containers.add(sourceContainer);
+        hasContainer = true;
       }
 
-      if (mediaSources.isEmpty) {
-        final itemStreams = _mapList(item['MediaStreams']);
-        for (final stream in itemStreams) {
-          final streamType = _normalizeToken(stream['Type']);
-          final streamCodec = _normalizeToken(stream['Codec']);
-          if (streamCodec == null) {
-            continue;
-          }
-
-          if (streamType == 'video') {
-            _incrementCount(videoCodecs, streamCodec);
-          } else if (streamType == 'audio') {
-            _incrementCount(audioCodecs, streamCodec);
-          }
+      for (final stream in _mapList(source['MediaStreams'])) {
+        final streamType = _normalizeToken(stream['Type']);
+        final streamCodec = _normalizeToken(stream['Codec']);
+        if (streamCodec == null) {
+          continue;
         }
-      }
-
-      if (collectionType == 'movies' || collectionType == 'tvshows') {
-        final officialRating = item['OfficialRating']?.toString().trim();
-        if (officialRating != null && officialRating.isNotEmpty) {
-          _incrementDisplayCount(ratings, officialRating.toUpperCase());
-        }
-
-        final runTimeTicks = item['RunTimeTicks'];
-        if (runTimeTicks is num && runTimeTicks > 0) {
-          final runtime = Duration(microseconds: runTimeTicks.toInt() ~/ 10);
-          _incrementDisplayCount(runtimeBuckets, _runtimeBucket(runtime));
-        }
-      }
-
-      if (collectionType == 'music') {
-        for (final artist in _extractStringList(item['Artists'])) {
-          _incrementDisplayCount(contributors, artist);
-        }
-        final albumArtists = _mapList(item['AlbumArtists']);
-        for (final albumArtist in albumArtists) {
-          final name = albumArtist['Name'];
-          if (name != null) {
-            _incrementDisplayCount(contributors, name.toString());
-          }
-        }
-      } else {
-        // BaseItemDto has no Authors, book writers come from People.
-        final people = _mapList(item['People']);
-        for (final person in people) {
-          final role = (person['Type'] ?? '').toString().toLowerCase();
-          if (role == 'writer' || role == 'author') {
-            final name = person['Name'];
-            if (name != null) {
-              _incrementDisplayCount(contributors, name.toString());
-            }
-          }
+        if (streamType == 'video') {
+          videoCodecs.add(streamCodec);
+        } else if (streamType == 'audio') {
+          audioCodecs.add(streamCodec);
         }
       }
     }
 
-    return AdminLibraryInsights(
-      genres: genres,
-      contributors: contributors,
-      years: years,
-      ratings: ratings,
-      runtimeBuckets: runtimeBuckets,
+    if (!hasContainer) {
+      if (type == 'books') {
+        final itemPathFormat = _bookFormatFromPath(item['Path']);
+        if (itemPathFormat != null) {
+          containers.add(itemPathFormat);
+          hasContainer = true;
+        }
+      }
+
+      final itemContainer = _normalizeToken(item['Container']);
+      if (itemContainer != null && !(type == 'books' && hasContainer)) {
+        containers.add(itemContainer);
+      }
+    }
+
+    String? rating;
+    String? runtimeBucket;
+    if (type == 'movies' || type == 'tvshows') {
+      final officialRating = item['OfficialRating']?.toString().trim();
+      if (officialRating != null && officialRating.isNotEmpty) {
+        rating = officialRating.toUpperCase();
+      }
+
+      final runTimeTicks = item['RunTimeTicks'];
+      if (runTimeTicks is num && runTimeTicks > 0) {
+        runtimeBucket = _runtimeBucket(
+          Duration(microseconds: runTimeTicks.toInt() ~/ 10),
+        );
+      }
+    }
+
+    final contributors = <String>[];
+    if (type == 'music') {
+      contributors.addAll(_extractStringList(item['Artists']));
+      for (final albumArtist in _mapList(item['AlbumArtists'])) {
+        final name = albumArtist['Name'];
+        if (name != null) {
+          contributors.add(name.toString());
+        }
+      }
+    } else {
+      // BaseItemDto has no Authors, book writers come from People.
+      for (final person in _mapList(item['People'])) {
+        final role = (person['Type'] ?? '').toString().toLowerCase();
+        final name = person['Name'];
+        if ((role == 'writer' || role == 'author') && name != null) {
+          contributors.add(name.toString());
+        }
+      }
+    }
+
+    final productionYear = item['ProductionYear'];
+    final (imageItemId, imageTag) = _primaryImageOf(item);
+    return AdminAnalyticsItem(
+      id: (item['Id'] ?? '').toString(),
+      name: (item['Name'] ?? '').toString(),
+      type: (item['Type'] ?? '').toString(),
+      parentName: (item['SeriesName'] ?? item['AlbumArtist'])?.toString(),
+      year: productionYear is num && productionYear > 0
+          ? productionYear.toInt()
+          : null,
+      rating: rating,
+      runtimeBucket: runtimeBucket,
+      genres: _distinct(_extractStringList(item['Genres'])),
+      // A song names its artist as both artist and album artist.
+      contributors: _distinct(contributors),
       containers: containers,
       videoCodecs: videoCodecs,
       audioCodecs: audioCodecs,
+      imageItemId: imageItemId,
+      imageTag: imageTag,
     );
-  } catch (_) {
-    return const AdminLibraryInsights();
   }
+}
+
+/// The item's own poster, else its series' or album's.
+(String?, String?) _primaryImageOf(Map<String, dynamic> item) {
+  final tags = item['ImageTags'];
+  final own = tags is Map ? tags['Primary'] : null;
+  if (own != null) return (item['Id']?.toString(), own.toString());
+  for (final (idKey, tagKey) in const [
+    ('SeriesId', 'SeriesPrimaryImageTag'),
+    ('AlbumId', 'AlbumPrimaryImageTag'),
+  ]) {
+    final id = item[idKey];
+    final tag = item[tagKey];
+    if (id != null && tag != null) return (id.toString(), tag.toString());
+  }
+  return (null, null);
+}
+
+List<String> _distinct(List<String> values) {
+  final seen = <String>{};
+  return [
+    for (final value in values)
+      if (seen.add(value.toLowerCase())) value,
+  ];
+}
+
+enum AdminAnalyticsDimension {
+  type,
+  genre,
+  contributor,
+  year,
+  rating,
+  runtime,
+  container,
+  videoCodec,
+  audioCodec,
+}
+
+/// A tapped category: its library (every library when null), the kind of
+/// value and the values it covers.
+class AdminAnalyticsQuery {
+  final String? libraryId;
+  final AdminAnalyticsDimension dimension;
+
+  /// Metric key for [AdminAnalyticsDimension.type], else the counted values.
+  /// An empty [AdminAnalyticsDimension.year] query is every dated item.
+  final List<String> values;
+  final String title;
+
+  const AdminAnalyticsQuery({
+    this.libraryId,
+    required this.dimension,
+    required this.values,
+    required this.title,
+  });
+
+  factory AdminAnalyticsQuery.fromUri(Uri uri) {
+    final params = uri.queryParameters;
+    return AdminAnalyticsQuery(
+      libraryId: params['library'],
+      dimension: AdminAnalyticsDimension.values.asNameMap()[params['dimension']] ??
+          AdminAnalyticsDimension.type,
+      values: uri.queryParametersAll['value'] ?? const [],
+      title: params['title'] ?? '',
+    );
+  }
+
+  String get location => Uri(
+    path: Destinations.adminAnalyticsItems,
+    queryParameters: {
+      'library': ?libraryId,
+      'dimension': dimension.name,
+      'value': values,
+      'title': title,
+    },
+  ).toString();
+
+  bool matches(AdminAnalyticsItem item) {
+    final wanted = {for (final value in values) value.toLowerCase()};
+    bool any(List<String> found) =>
+        found.any((value) => wanted.contains(value.toLowerCase()));
+    return switch (dimension) {
+      AdminAnalyticsDimension.type => adminMediaMetrics.any(
+        (metric) =>
+            values.contains(metric.key) &&
+            metric.includeItemTypes.contains(item.type),
+      ),
+      AdminAnalyticsDimension.genre => any(item.genres),
+      AdminAnalyticsDimension.contributor => any(item.contributors),
+      AdminAnalyticsDimension.year =>
+        item.year != null && (wanted.isEmpty || wanted.contains('${item.year}')),
+      AdminAnalyticsDimension.rating =>
+        item.rating != null && wanted.contains(item.rating!.toLowerCase()),
+      AdminAnalyticsDimension.runtime => item.runtimeBucket != null &&
+          wanted.contains(item.runtimeBucket!.toLowerCase()),
+      AdminAnalyticsDimension.container => any(item.containers),
+      AdminAnalyticsDimension.videoCodec => any(item.videoCodecs),
+      AdminAnalyticsDimension.audioCodec => any(item.audioCodecs),
+    };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is AdminAnalyticsQuery &&
+      other.libraryId == libraryId &&
+      other.dimension == dimension &&
+      other.title == title &&
+      listEquals(other.values, values);
+
+  @override
+  int get hashCode =>
+      Object.hash(libraryId, dimension, title, Object.hashAll(values));
+}
+
+/// The items behind a tapped category, filtered from the libraries' kept
+/// items. Libraries without them, like home videos, list a media type
+/// straight from the server.
+final adminAnalyticsItemsProvider = FutureProvider.autoDispose
+    .family<List<AdminAnalyticsItem>, AdminAnalyticsQuery>((ref, query) async {
+  final client = GetIt.instance<MediaServerClient>();
+  final cancelled = _disposedFlag(ref);
+  final libraries = (await ref.watch(adminLibrariesProvider.future)).where(
+    (library) =>
+        library.itemId.isNotEmpty &&
+        !adminAnalyticsSkipsLibrary(library.collectionType) &&
+        (query.libraryId == null || library.itemId == query.libraryId),
+  );
+
+  final lists = await Future.wait(libraries.map((library) async {
+    if (_itemTypesForInsights(library.collectionType) != null) {
+      final items = await ref.watch(
+        adminLibraryItemsProvider((
+          itemId: library.itemId,
+          collectionType: library.collectionType,
+        )).future,
+      );
+      return items.where(query.matches).toList();
+    }
+    final metric = query.dimension == AdminAnalyticsDimension.type
+        ? adminMetricsForCollectionType(library.collectionType)
+            .where((metric) => query.values.contains(metric.key))
+            .firstOrNull
+        : null;
+    if (metric == null) return const <AdminAnalyticsItem>[];
+    final raw = await _fetchAllItems(
+      client,
+      parentId: library.itemId,
+      includeItemTypes: metric.includeItemTypes,
+      cancelled: cancelled,
+    );
+    return [
+      for (final json in raw)
+        AdminAnalyticsItem.fromJson(json, library.collectionType),
+    ];
+  }));
+
+  // Episodes and songs group under their series or artist. Inside a group the
+  // server's sort order stands, which keeps episodes in order.
+  final byYear = query.dimension == AdminAnalyticsDimension.year;
+  final all = [for (final list in lists) ...list];
+  final sorted = [
+    for (var i = 0; i < all.length; i++)
+      (index: i, group: (all[i].parentName ?? '').toLowerCase(), item: all[i]),
+  ]..sort((a, b) {
+    if (byYear) {
+      final years = (b.item.year ?? 0).compareTo(a.item.year ?? 0);
+      if (years != 0) return years;
+    }
+    final groups = a.group.compareTo(b.group);
+    return groups != 0 ? groups : a.index.compareTo(b.index);
+  });
+  return [for (final entry in sorted) entry.item];
+});
+
+/// The item types a library's insights read, null when it has none.
+List<String>? _itemTypesForInsights(String? collectionType) {
+  switch ((collectionType ?? '').toLowerCase()) {
+    case 'movies':
+      return const ['Movie'];
+    case 'tvshows':
+      return const ['Series', 'Episode'];
+    case 'music':
+      return const ['Audio', 'MusicAlbum'];
+    case 'books':
+      return const ['Book', 'AudioBook'];
+    default:
+      return null;
+  }
+}
+
+Future<List<AdminAnalyticsItem>> _loadLibraryItems(
+  MediaServerClient client,
+  AdminAnalyticsLibraryRef library, {
+  required bool Function() cancelled,
+}) async {
+  final includeItemTypes = _itemTypesForInsights(library.collectionType);
+  if (includeItemTypes == null) {
+    return const [];
+  }
+
+  // Only ItemFields names go in Fields, and MediaSources already carry their
+  // streams. Jellyfin sends ProductionYear, OfficialRating, RunTimeTicks,
+  // Container, Artists and AlbumArtists unasked, Emby leaves the year and
+  // rating out unless Fields names them.
+  var fields = (library.collectionType ?? '').toLowerCase() == 'books'
+      ? 'Genres,People,Path,MediaSources'
+      : 'Genres,MediaSources';
+  if (client.serverType == ServerType.emby) {
+    fields += ',ProductionYear,OfficialRating';
+  }
+
+  final raw = await _fetchAllItems(
+    client,
+    parentId: library.itemId,
+    includeItemTypes: includeItemTypes,
+    fields: fields,
+    cancelled: cancelled,
+  );
+  return [
+    for (final json in raw)
+      AdminAnalyticsItem.fromJson(json, library.collectionType),
+  ];
+}
+
+/// Item pages read at once across every library. Jellyfin only starts its
+/// answer once a whole page of MediaSources is built. With every library
+/// reading big pages together, that start slipped past the client's 8s
+/// connect timeout, which on web aborts the request.
+const _maxItemPages = 4;
+final _itemPages = _Slots(_maxItemPages);
+
+/// True once [ref] is disposed, as when a reload invalidates it, so its reads
+/// stop taking page slots the fresh reads need.
+bool Function() _disposedFlag(Ref ref) {
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+  return () => disposed;
+}
+
+/// Runs tasks with at most [_free] of them in flight, the rest in order.
+class _Slots {
+  _Slots(this._free);
+
+  int _free;
+  final _waiting = Queue<Completer<void>>();
+
+  Future<T> run<T>(Future<T> Function() task) async {
+    if (_free > 0) {
+      _free--;
+    } else {
+      final turn = Completer<void>();
+      _waiting.add(turn);
+      await turn.future;
+    }
+    try {
+      return await task();
+    } finally {
+      if (_waiting.isEmpty) {
+        _free++;
+      } else {
+        _waiting.removeFirst().complete();
+      }
+    }
+  }
+}
+
+/// Every matching item, the first page alone to learn the total and the rest
+/// in batches behind the shared page limit.
+Future<List<Map<String, dynamic>>> _fetchAllItems(
+  MediaServerClient client, {
+  required String parentId,
+  required List<String> includeItemTypes,
+  required bool Function() cancelled,
+  String? fields,
+}) async {
+  const pageSize = 300;
+
+  // Checked once a page has its slot, so a read invalidated while its pages
+  // wait in line drops them instead of running them ahead of the fresh read.
+  Future<Map<String, dynamic>> page(int startIndex) => _itemPages.run(() {
+    if (cancelled()) {
+      throw StateError('Library read was invalidated');
+    }
+    // GET /Items takes the user from the token, /Users/{id}/Items is obsolete.
+    return client.itemsApi.getItems(
+      serverWide: true,
+      parentId: parentId,
+      includeItemTypes: includeItemTypes,
+      recursive: true,
+      fields: fields,
+      sortBy: 'SortName',
+      sortOrder: 'Ascending',
+      startIndex: startIndex,
+      limit: pageSize,
+      enableTotalRecordCount: true,
+      enableImageTypes: 'Primary',
+      imageTypeLimit: 1,
+    );
+  });
+
+  final first = await page(0);
+  final items = _mapList(first['Items']);
+  final total = first['TotalRecordCount'] is num
+      ? (first['TotalRecordCount'] as num).toInt()
+      : 0;
+  if (items.length < pageSize || total <= items.length) {
+    return items;
+  }
+
+  final starts = [
+    for (var start = pageSize; start < total; start += pageSize) start,
+  ];
+  // A batch at a time, so a failed read stops the library instead of leaving
+  // the rest of its pages queued in the shared slots.
+  for (var i = 0; i < starts.length; i += _maxItemPages) {
+    final pages = await Future.wait(
+      starts.skip(i).take(_maxItemPages).map(page),
+    );
+    for (final response in pages) {
+      items.addAll(_mapList(response['Items']));
+    }
+  }
+  return items;
+}
+
+AdminLibraryInsights _insightsOf(List<AdminAnalyticsItem> items) {
+  final genres = _DisplayCounter();
+  final contributors = _DisplayCounter();
+  final years = _DisplayCounter();
+  final ratings = _DisplayCounter();
+  final runtimeBuckets = _DisplayCounter();
+  final containers = _DisplayCounter();
+  final videoCodecs = _DisplayCounter();
+  final audioCodecs = _DisplayCounter();
+
+  for (final item in items) {
+    genres.addAll(item.genres);
+    contributors.addAll(item.contributors);
+    if (item.year != null) years.add('${item.year}');
+    if (item.rating != null) ratings.add(item.rating!);
+    if (item.runtimeBucket != null) runtimeBuckets.add(item.runtimeBucket!);
+    containers.addAll(item.containers);
+    videoCodecs.addAll(item.videoCodecs);
+    audioCodecs.addAll(item.audioCodecs);
+  }
+
+  return AdminLibraryInsights(
+    genres: genres.counts,
+    contributors: contributors.counts,
+    years: years.counts,
+    ratings: ratings.counts,
+    runtimeBuckets: runtimeBuckets.counts,
+    containers: containers.counts,
+    videoCodecs: videoCodecs.counts,
+    audioCodecs: audioCodecs.counts,
+  );
+}
+
+/// Counts values case-insensitively under the spelling seen first.
+class _DisplayCounter {
+  final counts = <String, int>{};
+  final _keys = <String, String>{};
+
+  void add(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    final key = _keys.putIfAbsent(normalized.toLowerCase(), () => normalized);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  void addAll(Iterable<String> values) => values.forEach(add);
 }
 
 String _runtimeBucket(Duration runtime) {
@@ -713,28 +1097,6 @@ List<Map<String, dynamic>> _mapList(dynamic value) {
       .whereType<Map>()
       .map((item) => Map<String, dynamic>.from(item))
       .toList();
-}
-
-void _incrementCount(Map<String, int> map, String key) {
-  map[key] = (map[key] ?? 0) + 1;
-}
-
-void _incrementDisplayCount(Map<String, int> map, String value) {
-  final normalized = value.trim();
-  if (normalized.isEmpty) {
-    return;
-  }
-
-  String? existingKey;
-  for (final key in map.keys) {
-    if (key.toLowerCase() == normalized.toLowerCase()) {
-      existingKey = key;
-      break;
-    }
-  }
-
-  final targetKey = existingKey ?? normalized;
-  map[targetKey] = (map[targetKey] ?? 0) + 1;
 }
 
 List<String> _extractStringList(dynamic value) {
@@ -817,39 +1179,6 @@ String? _fileExtensionFromPath(Object? pathValue) {
   return filename.substring(dot + 1);
 }
 
-Map<String, dynamic> _summaryToJson(AdminMediaCountSummary summary) {
-  return {'totals': summary.totals};
-}
-
-AdminMediaCountSummary _summaryFromJson(Map<String, dynamic> json) {
-  final totals = Map<String, dynamic>.from(json['totals'] ?? {});
-  return AdminMediaCountSummary(
-    totals: totals.map((k, v) => MapEntry(k, (v as num).toInt())),
-  );
-}
-
-Map<String, dynamic> _technicalToJson(AdminTechnicalProfile profile) {
-  return {
-    'sampledItems': profile.sampledItems,
-    'totalRecordCount': profile.totalRecordCount,
-    'sampledRuntime': profile.sampledRuntime.inMicroseconds,
-    'containers': profile.containers,
-    'videoCodecs': profile.videoCodecs,
-    'audioCodecs': profile.audioCodecs,
-  };
-}
-
-AdminTechnicalProfile _technicalFromJson(Map<String, dynamic> json) {
-  return AdminTechnicalProfile(
-    sampledItems: (json['sampledItems'] as num?)?.toInt() ?? 0,
-    totalRecordCount: (json['totalRecordCount'] as num?)?.toInt() ?? 0,
-    sampledRuntime: Duration(microseconds: (json['sampledRuntime'] as num?)?.toInt() ?? 0),
-    containers: Map<String, dynamic>.from(json['containers'] ?? {}).map((k, v) => MapEntry(k, (v as num).toInt())),
-    videoCodecs: Map<String, dynamic>.from(json['videoCodecs'] ?? {}).map((k, v) => MapEntry(k, (v as num).toInt())),
-    audioCodecs: Map<String, dynamic>.from(json['audioCodecs'] ?? {}).map((k, v) => MapEntry(k, (v as num).toInt())),
-  );
-}
-
 Map<String, dynamic> _insightsToJson(AdminLibraryInsights insights) {
   return {
     'genres': insights.genres,
@@ -898,18 +1227,16 @@ AdminLibraryMediaAnalytics _libraryFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _detailToJson(AdminMediaAnalyticsDetail detail) {
   return {
-    'summary': _summaryToJson(detail.summary),
     'libraries': detail.libraries.map(_libraryToJson).toList(),
-    'technicalProfile': _technicalToJson(detail.technicalProfile),
   };
 }
 
+/// Cached libraries go through the same skip as fresh ones.
 AdminMediaAnalyticsDetail _detailFromJson(Map<String, dynamic> json) {
-  return AdminMediaAnalyticsDetail(
-    summary: _summaryFromJson(Map<String, dynamic>.from(json['summary'] ?? {})),
-    libraries: (json['libraries'] as List? ?? [])
+  return _detailOf(
+    (json['libraries'] as List? ?? [])
         .map((e) => _libraryFromJson(Map<String, dynamic>.from(e)))
+        .where((library) => !adminAnalyticsSkipsLibrary(library.collectionType))
         .toList(),
-    technicalProfile: _technicalFromJson(Map<String, dynamic>.from(json['technicalProfile'] ?? {})),
   );
 }

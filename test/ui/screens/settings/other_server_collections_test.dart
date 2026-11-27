@@ -106,6 +106,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // The collection rows start disabled, inside the closed Collections group.
+    await tester.tap(find.text('Collections').first);
+    await tester.pumpAndSettle();
   }
 
   testWidgets('lists every server\'s collections, naming the other server', (

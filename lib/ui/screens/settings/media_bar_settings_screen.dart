@@ -6,8 +6,10 @@ import 'package:server_core/server_core.dart';
 
 import '../../../data/repositories/media_bar_repository.dart';
 import '../../../data/services/plugin_sync_service.dart';
+import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/device_performance.dart';
+import '../../../util/platform_detection.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/settings/settings_section_header.dart';
 import '../../widgets/adaptive/adaptive_list_section.dart';
@@ -15,6 +17,10 @@ import '../../widgets/settings/clean_settings_typography.dart';
 import '../../widgets/settings/preference_binding.dart';
 import '../../widgets/settings/multi_select_dialog.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../widgets/settings/settings_panel.dart';
+import '../../widgets/settings/settings_preview_scope.dart';
+import 'home_sections_screen.dart';
+import 'ratings_config_screen.dart';
 import 'settings_app_bar.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 
@@ -203,6 +209,79 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
     }
   }
 
+  Future<void> _showExternalListSelector() async {
+    if (_selectorOpen) return;
+    _selectorOpen = true;
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      final lists = mediaBarExternalLists(
+        _prefs.homeSectionsConfig,
+        tmdbAvailable: GetIt.instance<PluginSyncService>().tmdbAvailable,
+      );
+      await _pickSources(
+        pref: UserPreferences.mediaBarExternalLists,
+        title: l10n.homeRowsExternalLists,
+        options: {
+          for (final MapEntry(:key, value: config) in lists.entries)
+            key: switch (HomeSectionType.fromSerialized(key)) {
+              HomeSectionType.none => config.pluginDisplayText ?? key,
+              final chart => homeSectionTypeLabel(chart, l10n),
+            },
+        },
+      );
+    } finally {
+      _selectorOpen = false;
+    }
+  }
+
+  Map<String, String> _newReleaseKindNames(AppLocalizations l10n) => {
+    UserPreferences.mediaBarNewSeries: l10n.mediaBarNewSeries,
+    UserPreferences.mediaBarNewSeason: l10n.mediaBarNewSeason,
+    UserPreferences.mediaBarNewEpisodes: l10n.mediaBarNewEpisodes,
+    UserPreferences.mediaBarNewMovie: l10n.mediaBarNewMovie,
+  };
+
+  Future<void> _showNewReleaseKindSelector() async {
+    if (_selectorOpen) return;
+    _selectorOpen = true;
+    try {
+      final names = _newReleaseKindNames(AppLocalizations.of(context));
+      final result = await showMultiSelectDialog(
+        context: context,
+        title: AppLocalizations.of(context).mediaBarNewReleaseKinds,
+        items: names,
+        sortByLabel: false,
+        selected: _splitCsv(
+          UserPreferences.mediaBarNewReleaseKinds,
+        ).where(names.containsKey).toSet(),
+      );
+      // Kept in the dialog's order, so the stored list reads the same
+      // whatever order the boxes were ticked in.
+      if (result != null) {
+        _saveCsv(UserPreferences.mediaBarNewReleaseKinds, [
+          for (final kind in names.keys)
+            if (result.contains(kind)) kind,
+        ]);
+      }
+    } finally {
+      _selectorOpen = false;
+    }
+  }
+
+  String _newReleaseKindsSubtitle(AppLocalizations l10n) {
+    final names = _newReleaseKindNames(l10n);
+    final kinds = _splitCsv(UserPreferences.mediaBarNewReleaseKinds);
+    return kinds.isEmpty
+        ? l10n.noneSelected
+        : [for (final kind in kinds) ?names[kind]].join(', ');
+  }
+
+  void _pushSyncAndRebuild() {
+    _pushSync();
+    if (mounted) setState(() {});
+  }
+
   String _sourceSubtitle(
     Preference<String> pref,
     String noneLabel,
@@ -222,6 +301,9 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
     final trailersHeldBack =
         GetIt.instance<UserPreferences>().resolveDevicePerformanceTier() ==
         DevicePerformanceTier.reduced;
+    final mode = UserPreferences.normalizeMediaBarMode(
+      _prefs.get(UserPreferences.mediaBarMode),
+    );
     return withCleanSettingsTypography(
       context,
       Scaffold(
@@ -247,8 +329,22 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                     UserPreferences.mediaBarModeAya: l10n.mediaBarModeAya,
                     UserPreferences.mediaBarModeOff: l10n.mediaBarModeOff,
                   },
-                  onChanged: _pushSync,
+                  onChanged: () {
+                    _pushSync();
+                    setState(() {});
+                  },
                 ),
+                if (!PlatformDetection.useMobileUi &&
+                    UserPreferences.mediaBarModeAllowsRowPeek(
+                      _prefs.get(UserPreferences.mediaBarMode),
+                    ))
+                  SwitchPreferenceTile(
+                    preference: UserPreferences.mediaBarRowPeek,
+                    title: l10n.peekHomeRows,
+                    subtitle: l10n.peekHomeRowsDescription,
+                    icon: Icons.view_day_outlined,
+                    onChanged: _pushSync,
+                  ),
                 StringPickerPreferenceTile(
                   preference: UserPreferences.mediaBarContentType,
                   title: l10n.contentType,
@@ -271,6 +367,8 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                         l10n.recentlyAdded,
                     UserPreferences.mediaBarSourceRecentlyReleased:
                         l10n.recentlyReleased,
+                    UserPreferences.mediaBarSourceNewReleases:
+                        l10n.mediaBarSourceNewReleasesAll,
                   },
                   onChanged: _pushSync,
                 ),
@@ -290,6 +388,106 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                 ),
               ],
             ),
+
+            SettingsSectionHeader(l10n.mediaBarNewReleasesSection),
+            adaptiveListSection(
+              children: [
+                SwitchPreferenceTile(
+                  preference: UserPreferences.mediaBarNewReleaseBanner,
+                  title: l10n.mediaBarNewReleaseBanner,
+                  subtitle: l10n.mediaBarNewReleaseBannerAllDescription,
+                  icon: Icons.new_releases_outlined,
+                  onChanged: _pushSyncAndRebuild,
+                ),
+                if (_prefs.get(UserPreferences.mediaBarNewReleaseBanner))
+                  _MediaBarActionTile(
+                    icon: const Icon(Icons.label_outline),
+                    title: Text(l10n.mediaBarNewReleaseKinds),
+                    subtitle: Text(_newReleaseKindsSubtitle(l10n)),
+                    onTap: _showNewReleaseKindSelector,
+                  ),
+                IntPickerPreferenceTile(
+                  preference: UserPreferences.mediaBarNewReleaseDays,
+                  title: l10n.mediaBarNewEpisodeDays,
+                  description: l10n.mediaBarNewReleaseDaysDescription,
+                  icon: Icons.date_range,
+                  options: {
+                    for (final days in const [7, 14, 30, 60, 90])
+                      days: l10n.daysValue(days),
+                  },
+                  onChanged: _pushSync,
+                ),
+                IntPickerPreferenceTile(
+                  preference: UserPreferences.mediaBarNewMovieDays,
+                  title: l10n.mediaBarNewMovieDays,
+                  description: l10n.mediaBarNewMovieDaysDescription,
+                  icon: Icons.event_outlined,
+                  options: {
+                    for (final days in const [30, 60, 90, 120, 180, 365])
+                      days: l10n.daysValue(days),
+                  },
+                  onChanged: _pushSync,
+                ),
+                SwitchPreferenceTile(
+                  preference: UserPreferences.mediaBarNewMovieDetail,
+                  title: l10n.mediaBarNewMovieDetail,
+                  subtitle: l10n.mediaBarNewMovieDetailDescription,
+                  icon: Icons.format_quote_outlined,
+                  onChanged: _pushSync,
+                ),
+              ],
+            ),
+
+            if (UserPreferences.mediaBarModeDrawsRatings(mode)) ...[
+              SettingsSectionHeader(l10n.ratings),
+              adaptiveListSection(
+                children: [
+                  SwitchPreferenceTile(
+                    preference: UserPreferences.mediaBarEnableAdditionalRatings,
+                    title: l10n.additionalRatings,
+                    subtitle: l10n.showMdbListAndTmdbRatings,
+                    icon: Icons.star,
+                    onChanged: _pushSync,
+                  ),
+                  SettingsPreviewReporter(
+                    describe: () => SettingsPreviewEntry(
+                      prefKey: UserPreferences.mediaBarRatings.sources.key,
+                      title: l10n.ratingSources,
+                      description: l10n.ratingSourcesDescription,
+                    ),
+                    child: _MediaBarActionTile(
+                      icon: const Icon(Icons.reorder),
+                      title: Text(l10n.ratingSources),
+                      subtitle: Text(l10n.ratingSourcesDescription),
+                      onTap: () => context.pushSettingsScreen(
+                        RatingsConfigScreen(
+                          settings: UserPreferences.mediaBarRatings,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Banner draws its ratings bare and Gallery without badges,
+                  // so those switches would do nothing there.
+                  if (mode != UserPreferences.mediaBarModeBanner)
+                    SwitchPreferenceTile(
+                      preference: UserPreferences.mediaBarShowRatingLabels,
+                      title: l10n.ratingLabels,
+                      subtitle: l10n.showLabelsNextToIcons,
+                      icon: Icons.label,
+                      onChanged: _pushSync,
+                    ),
+                  if (mode != UserPreferences.mediaBarModeBanner &&
+                      mode != UserPreferences.mediaBarModeGallery)
+                    SwitchPreferenceTile(
+                      preference: UserPreferences.mediaBarShowRatingBadges,
+                      title: l10n.ratingBadges,
+                      subtitle: l10n.showDecorativeBadges,
+                      icon: Icons.style,
+                      onChanged: _pushSync,
+                    ),
+                ],
+              ),
+            ],
 
             SettingsSectionHeader(l10n.mediaSources),
             adaptiveListSection(
@@ -320,6 +518,21 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                   ),
                   onTap: _showCollectionSelector,
                 ),
+                // Outside lists come through Moonbase, the same as their
+                // Home rows.
+                if (GetIt.instance<PluginSyncService>().pluginAvailable)
+                  _MediaBarActionTile(
+                    icon: const Icon(Icons.public),
+                    title: Text(l10n.homeRowsExternalLists),
+                    subtitle: Text(
+                      _sourceSubtitle(
+                        UserPreferences.mediaBarExternalLists,
+                        l10n.noneSelected,
+                        l10n,
+                      ),
+                    ),
+                    onTap: _showExternalListSelector,
+                  ),
                 _MediaBarActionTile(
                   icon: const Icon(Icons.label_off),
                   title: Text(l10n.excludedGenres),
@@ -379,6 +592,17 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                   subtitle: l10n.enableTrailerAudio,
                   icon: Icons.volume_up,
                   onChanged: _pushSync,
+                ),
+                SliderPreferenceTile(
+                  preference: UserPreferences.trailerVolume,
+                  title: l10n.trailerVolume,
+                  description: l10n.trailerVolumeDescription,
+                  icon: Icons.volume_down,
+                  min: 0,
+                  max: 100,
+                  divisions: 20,
+                  labelOf: (v) => '$v%',
+                  onChangeEnd: _pushSync,
                 ),
                 SwitchPreferenceTile(
                   preference: UserPreferences.mediaBarTrailerCaptions,

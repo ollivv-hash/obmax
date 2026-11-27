@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/screens/admin/admin_draft.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/livetv/admin_live_tv_screen.dart';
 import 'package:moonfin/ui/screens/admin/providers/admin_user_providers.dart';
 import 'package:moonfin/ui/screens/admin/widgets/admin_settings_search.dart';
@@ -34,6 +35,9 @@ class _FakeLiveTvApi extends Fake implements AdminLiveTvApi {
   }
 
   late Map<String, dynamic> config;
+
+  /// Answers mapping calls the way Emby does.
+  bool emby = false;
   final configPosts = <Map<String, dynamic>>[];
   final tunerPosts = <Map<String, dynamic>>[];
   final providerPosts = <(Map<String, dynamic>, bool, bool)>[];
@@ -109,7 +113,8 @@ class _FakeLiveTvApi extends Fake implements AdminLiveTvApi {
   }
 
   @override
-  Future<Map<String, dynamic>> getChannelMappingOptions(String id) async => {
+  Future<Map<String, dynamic>> getChannelMappingOptions(String id) async =>
+      emby ? {'ProviderChannels': _providerChannels} : {
         'TunerChannels': [
           {
             'Name': '101 Verify One',
@@ -118,10 +123,7 @@ class _FakeLiveTvApi extends Fake implements AdminLiveTvApi {
             'Id': _tunerChannel,
           },
         ],
-        'ProviderChannels': [
-          {'Name': 'Verify Two', 'Id': 'verify.two'},
-          {'Name': 'Verify One', 'Id': 'verify.one'},
-        ],
+        'ProviderChannels': _providerChannels,
         'Mappings': [],
         'ProviderName': 'XmlTV',
       };
@@ -133,6 +135,7 @@ class _FakeLiveTvApi extends Fake implements AdminLiveTvApi {
     String providerChannelId,
   ) async {
     mappingPosts.add([providerId, tunerChannelId, providerChannelId]);
+    if (emby) return {'IsManualMapping': true};
     return {
       'Name': '101 Verify One',
       'ProviderChannelName': 'Verify Two',
@@ -142,8 +145,67 @@ class _FakeLiveTvApi extends Fake implements AdminLiveTvApi {
   }
 }
 
+const _providerChannels = [
+  {'Name': 'Verify Two', 'Id': 'verify.two'},
+  {'Name': 'Verify One', 'Id': 'verify.one'},
+];
+
+const _managementId = '533330de911a4c9b9fc21f1712a6f14b_hdhr_1';
+
+class _FakeEmbyApi extends Fake implements EmbyAdminApi {
+  @override
+  Future<PremiereStatus> getPremiereStatus() async =>
+      const PremiereStatus(isActive: false, hasKey: false);
+
+  @override
+  Future<List<Map<String, dynamic>>> getAvailableListingProviders({
+    String? country,
+  }) async => [
+        {
+          'Name': 'Emby Guide Data',
+          'Id': 'embygn',
+          'SetupUrl': 'configurationpage?name=embyguidedata',
+        },
+        {'Name': 'XmlTV', 'Id': 'xmltv', 'SetupUrl': 'configurationpage?name=xmltv'},
+      ];
+
+  @override
+  Future<Map<String, dynamic>> getManagedChannels({
+    int startIndex = 0,
+    int limit = 100,
+  }) async => {
+        'Items': [
+          {
+            'Id': '80854',
+            'Name': 'USA Disney Junior',
+            'ManagementId': _managementId,
+            'Disabled': false,
+            'SortIndexNumber': 0,
+            'ChannelNumber': '1',
+            'ListingsProviderId': _xmltvId,
+            'ListingsChannelId': 'verify.one',
+            'ListingsChannelName': 'Verify One',
+          },
+        ],
+        'TotalRecordCount': 1,
+      };
+}
+
+class _FakeSystemApi extends Fake implements AdminSystemApi {
+  @override
+  Future<List<Map<String, dynamic>>> getCountries() async => [
+        {
+          'Name': 'US',
+          'DisplayName': 'United States',
+          'TwoLetterISORegionName': 'US',
+          'ThreeLetterISORegionName': 'USA',
+        },
+      ];
+}
+
 void main() {
   late _FakeLiveTvApi api;
+  late _MockMediaServerClient client;
   late AppLocalizations l10n;
   // What the ScheduledTasksInfo feed holds.
   var tasks = <TaskInfo>[];
@@ -151,7 +213,7 @@ void main() {
   setUp(() async {
     tasks = [];
     api = _FakeLiveTvApi();
-    final client = _MockMediaServerClient();
+    client = _MockMediaServerClient();
     when(() => client.adminLiveTvApi).thenReturn(api);
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<MediaServerClient>(client);
@@ -168,6 +230,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(1200, 2400),
     bool settle = true,
+    bool onEmby = false,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -180,7 +243,14 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: AdminLiveTvScreen()),
+          home: Scaffold(
+            body: onEmby
+                ? const AdminServerScope(
+                    serverType: ServerType.emby,
+                    child: AdminLiveTvScreen(),
+                  )
+                : const AdminLiveTvScreen(),
+          ),
         ),
       ),
     );
@@ -511,6 +581,132 @@ void main() {
       await tester.tap(find.text(l10n.delete).last);
       await tester.pumpAndSettle();
       expect(api.deletedProviders, [_xmltvId]);
+    });
+  });
+
+  group('on Emby', () {
+    setUp(() {
+      api.emby = true;
+      // An Emby 4.9 server's livetv configuration.
+      api.config = {
+        'WakeServer': true,
+        'TunerHosts': [
+          {
+            'Id': _tunerId,
+            'Url': 'http://169.254.1.2:9124/playlist.m3u',
+            'Type': 'm3u',
+            'ImportFavoritesOnly': false,
+            'AllowHWTranscoding': true,
+            'TunerCount': 0,
+          },
+        ],
+        'ListingProviders': [
+          {
+            'Id': _xmltvId,
+            'Type': 'xmltv',
+            'Path': 'http://169.254.1.2:9124/guide.xml',
+            'EnabledTuners': [],
+            'EnableAllTuners': true,
+            'ChannelMappings': [],
+          },
+        ],
+        'ChannelOptions': [],
+        'PrePaddingSeconds': 0,
+        'PostPaddingSeconds': 0,
+        'RecordingPostProcessorArguments': '"{path}"',
+      };
+      when(() => client.embyAdminApi).thenReturn(_FakeEmbyApi());
+      when(() => client.adminSystemApi).thenReturn(_FakeSystemApi());
+    });
+
+    testWidgets('the guide menu offers Emby sources, with a Premiere note', (
+      tester,
+    ) async {
+      await pump(tester, onEmby: true);
+      expect(find.text(l10n.adminPremiereNoteLiveTv), findsOneWidget);
+
+      await tester.tap(find.text(l10n.adminLiveTvAddProvider));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.adminProviderEmbyGuide), findsOneWidget);
+      expect(find.text(l10n.adminProviderSchedulesDirect), findsNothing);
+    });
+
+    testWidgets('Emby Guide Data saves with a three letter country', (
+      tester,
+    ) async {
+      await pump(tester, onEmby: true);
+      await tester.tap(find.text(l10n.adminLiveTvAddProvider));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.adminProviderEmbyGuide));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.adminSdUsername), findsNothing);
+
+      await tester.tap(find.text(l10n.adminSdCountrySelect));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('United States').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(field(l10n.adminSdPostalCode), '90210');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(api.lineupCalls, ['']);
+
+      await tester.tap(find.text(l10n.adminLiveTvSdLineup));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Antenna').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, l10n.save));
+      await tester.pumpAndSettle();
+
+      final (body, validateLogin, validateListings) = api.providerPosts.single;
+      expect(body['Type'], 'embygn');
+      expect(body['Country'], 'USA');
+      expect(body['ZipCode'], '90210');
+      expect(body['ListingsId'], 'USA-OTA-12345');
+      expect(validateLogin, isFalse);
+      expect(validateListings, isTrue);
+    });
+
+    testWidgets('a mapping names the channel by its ManagementId', (
+      tester,
+    ) async {
+      await pump(tester, onEmby: true);
+      await tester.tap(find.byTooltip(l10n.adminLiveTvMapChannels));
+      await tester.pumpAndSettle();
+      expect(find.text('Verify One'), findsOneWidget);
+
+      await tester.tap(find.text('1 USA Disney Junior'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Verify Two'));
+      await tester.pumpAndSettle();
+
+      expect(api.mappingPosts, [
+        [_xmltvId, _managementId, 'verify.two'],
+      ]);
+      expect(find.text('Verify Two'), findsOneWidget);
+    });
+
+    testWidgets('the tuner form has only the switches Emby keeps', (
+      tester,
+    ) async {
+      await pump(tester, onEmby: true);
+      await tester.tap(find.text(l10n.adminTunerTypeM3u));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.adminTunerAllowHwTranscoding), findsOneWidget);
+      expect(find.text(l10n.adminTunerAllowFmp4), findsNothing);
+      expect(find.text(l10n.adminTunerFallbackBitrate), findsNothing);
+    });
+
+    testWidgets('recordings show Wake server and no NFO rows', (tester) async {
+      await pump(tester, onEmby: true);
+      await openRecordings(tester);
+      expect(find.text(l10n.adminSaveRecordingNfo), findsNothing);
+
+      await tester.tap(find.text(l10n.adminLiveTvWakeServer));
+      await tester.pump();
+      expect(await AdminDraft.active.value!.save(), isTrue);
+      expect(api.configPosts.single['WakeServer'], isFalse);
+      expect(api.configPosts.single.containsKey('SaveRecordingNFO'), isFalse);
     });
   });
 }

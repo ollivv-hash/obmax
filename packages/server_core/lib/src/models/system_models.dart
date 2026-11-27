@@ -39,6 +39,9 @@ class SystemInfo {
   final bool supportsLibraryMonitor;
   final bool canSelfRestart;
 
+  /// Emby on this platform only uses hardware acceleration with Premiere.
+  final bool hardwareAccelerationRequiresPremiere;
+
   const SystemInfo({
     required this.serverName,
     required this.version,
@@ -48,6 +51,7 @@ class SystemInfo {
     this.hasPendingRestart = false,
     this.supportsLibraryMonitor = false,
     this.canSelfRestart = false,
+    this.hardwareAccelerationRequiresPremiere = false,
   });
 
   factory SystemInfo.fromJson(Map<String, dynamic> json) => SystemInfo(
@@ -60,6 +64,8 @@ class SystemInfo {
         supportsLibraryMonitor:
             json['SupportsLibraryMonitor'] as bool? ?? false,
         canSelfRestart: json['CanSelfRestart'] as bool? ?? false,
+        hardwareAccelerationRequiresPremiere:
+            json['HardwareAccelerationRequiresPremiere'] as bool? ?? false,
       );
 }
 
@@ -212,6 +218,7 @@ class UserConfiguration {
     List<String>? orderedViews,
     List<String>? myMediaExcludes,
     List<String>? latestItemsExcludes,
+    bool? hidePlayedInLatest,
     String? subtitleMode,
   }) {
     return UserConfiguration(
@@ -219,7 +226,7 @@ class UserConfiguration {
       latestItemsExcludes: latestItemsExcludes ?? this.latestItemsExcludes,
       myMediaExcludes: myMediaExcludes ?? this.myMediaExcludes,
       groupedFolders: groupedFolders,
-      hidePlayedInLatest: hidePlayedInLatest,
+      hidePlayedInLatest: hidePlayedInLatest ?? this.hidePlayedInLatest,
       enableNextEpisodeAutoPlay: enableNextEpisodeAutoPlay,
       playDefaultAudioTrack: playDefaultAudioTrack,
       rememberAudioSelections: rememberAudioSelections,

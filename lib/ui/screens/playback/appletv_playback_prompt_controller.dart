@@ -76,7 +76,9 @@ abstract class AppleTvPromptCommands {
   /// controller never captures a target item, matching the Flutter player.
   Future<void> advanceNext();
 
-  Future<void> exitPlayback();
+  /// [finished] is for leaving by skipping the rest of the item: the stop
+  /// then reports its end, so the server counts it played.
+  Future<void> exitPlayback({bool finished = false});
 
   void setSuppressAutoNext(bool value);
 
@@ -109,6 +111,7 @@ class AppleTvPlaybackPromptController {
 
   bool _showNextUp = false;
   bool _nextUpDismissed = false;
+  bool _markedPlayed = false;
   bool _isNextUpAdvancing = false;
   int consecutiveEpisodes = 0;
   DateTime? _suppressSeekPromptsUntil;
@@ -119,10 +122,12 @@ class AppleTvPlaybackPromptController {
   MediaSegmentType? _skipSegmentType;
   Completer<bool>? _stillWatchingCompleter;
   bool _disposed = false;
+  Duration _duration = Duration.zero;
 
   void onPositionTick(Duration position, Duration duration) {
     if (_disposed) return;
-    _checkSegments(position);
+    _duration = duration;
+    _checkSegments(position, duration);
     _checkNextUp(position, duration);
   }
 
@@ -264,7 +269,8 @@ class AppleTvPlaybackPromptController {
     _showNextUp = false;
     _nextUpDismissed = true;
     unawaited(_commands.hideNextUp());
-    unawaited(_commands.exitPlayback());
+    _markCurrentPlayed();
+    unawaited(_commands.exitPlayback(finished: true));
   }
 
   /// A viewer reaching for the remote has answered the prompt's question.
@@ -278,6 +284,7 @@ class AppleTvPlaybackPromptController {
     if (behavior == StillWatchingBehavior.disabled) return true;
     if (consecutiveEpisodes < behavior.episodes) return true;
 
+    final pendingItemId = _queueSnapshot().currentId;
     _commands.pause();
     final presented = await _commands.showStillWatching();
     if (_disposed) return false;
@@ -295,12 +302,18 @@ class AppleTvPlaybackPromptController {
     _stillWatchingCompleter = null;
     if (_disposed) return false;
 
+    // A group or remote can move the queue while the prompt is up. Stop still
+    // stops, but only the episode it asked about counts as finished, and
+    // continue doesn't advance a second time.
+    final sameItem = _queueSnapshot().currentId == pendingItemId;
     if (shouldContinue) {
       consecutiveEpisodes = 0;
+      if (!sameItem) return false;
       _commands.resume();
       return true;
     }
-    unawaited(_commands.exitPlayback());
+    if (sameItem) _markCurrentPlayed();
+    unawaited(_commands.exitPlayback(finished: sameItem));
     return false;
   }
 
@@ -317,13 +330,14 @@ class AppleTvPlaybackPromptController {
     _commands.setSuppressAutoNext(false);
     consecutiveEpisodes++;
     _nextUpDismissed = false;
+    _markedPlayed = false;
     _nextUpTimer?.cancel();
     _showNextUp = false;
     unawaited(_commands.hideNextUp());
     _clearSkipSegment();
   }
 
-  void _checkSegments(Duration position) {
+  void _checkSegments(Duration position, Duration duration) {
     final service = _segmentService();
     if (service == null) return;
 
@@ -331,22 +345,28 @@ class AppleTvPlaybackPromptController {
     final replaceSkipOutroWithNextUp = _prefs.get(
       UserPreferences.replaceSkipOutroWithNextUp,
     );
+    final skipTo = result.skipTo == null
+        ? null
+        : skipLandingBeforeEnd(result.skipTo!, duration);
 
-    if (result.shouldSkip && result.skipTo != null) {
+    if (result.shouldSkip && skipTo != null) {
       final isOutro = result.segment?.type == MediaSegmentType.outro;
       if (replaceSkipOutroWithNextUp && isOutro && _showNextUp) {
         return;
       }
+      if (isOutro) _markCurrentPlayed();
       if (replaceSkipOutroWithNextUp && isOutro && _shouldShowNextUp()) {
-        unawaited(_commands.seekTo(result.skipTo!));
+        unawaited(_commands.seekTo(skipTo));
         _presentNextUp();
         return;
       }
-      if (isOutro && !_hasDistinctNext(_queueSnapshot())) {
-        unawaited(_commands.exitPlayback());
+      if (isOutro &&
+          !_hasDistinctNext(_queueSnapshot()) &&
+          outroRunsToEnd(result.skipTo, duration)) {
+        unawaited(_commands.exitPlayback(finished: true));
         return;
       }
-      unawaited(_commands.seekTo(result.skipTo!));
+      unawaited(_commands.seekTo(skipTo));
       _clearSkipSegment();
       return;
     }
@@ -365,7 +385,7 @@ class AppleTvPlaybackPromptController {
         return;
       }
       _skipSegmentVisible = true;
-      _skipTo = result.skipTo;
+      _skipTo = skipTo;
       _skipSegmentType = result.segment!.type;
       unawaited(
         _commands.showSkipSegment(
@@ -392,6 +412,17 @@ class AppleTvPlaybackPromptController {
     }
   }
 
+  // Skipping the credits counts as finishing, even when they start before the
+  // server's own played threshold.
+  void _markCurrentPlayed() {
+    if (_markedPlayed) return;
+    _markedPlayed = true;
+    final currentId = _queueSnapshot().currentId;
+    if (currentId != null && currentId.isNotEmpty) {
+      _commands.markPlayed(currentId);
+    }
+  }
+
   void handleSkipSegment() {
     if (_disposed) return;
     _noteViewerActivity();
@@ -403,12 +434,7 @@ class AppleTvPlaybackPromptController {
         _skipSegmentType == MediaSegmentType.outro ||
         _segmentService()?.activeSegment?.type == MediaSegmentType.outro;
 
-    if (isOutro) {
-      final currentId = _queueSnapshot().currentId;
-      if (currentId != null && currentId.isNotEmpty) {
-        _commands.markPlayed(currentId);
-      }
-    }
+    if (isOutro) _markCurrentPlayed();
 
     if (replaceSkipOutroWithNextUp && isOutro && _shouldShowNextUp()) {
       final skipTo = _skipTo;
@@ -419,8 +445,10 @@ class AppleTvPlaybackPromptController {
       return;
     }
 
-    if (isOutro && !_hasDistinctNext(_queueSnapshot())) {
-      unawaited(_commands.exitPlayback());
+    if (isOutro &&
+        !_hasDistinctNext(_queueSnapshot()) &&
+        outroRunsToEnd(_skipTo, _duration)) {
+      unawaited(_commands.exitPlayback(finished: true));
       return;
     }
 

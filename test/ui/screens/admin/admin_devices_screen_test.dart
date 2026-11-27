@@ -12,11 +12,12 @@ class _MockMediaServerClient extends Mock implements MediaServerClient {}
 class _FakeDevicesApi extends Fake implements AdminDevicesApi {
   final renamed = <(String, String?)>[];
   final deleted = <String>[];
+  List<DeviceInfoDto> devices = const [
+    DeviceInfoDto(id: 'tv', name: 'Living room', appName: 'Moonfin'),
+  ];
 
   @override
-  Future<List<DeviceInfoDto>> getDevices({String? userId}) async => const [
-        DeviceInfoDto(id: 'tv', name: 'Living room', appName: 'Moonfin'),
-      ];
+  Future<List<DeviceInfoDto>> getDevices({String? userId}) async => devices;
 
   @override
   Future<void> updateDeviceOptions(String id, DeviceOptionsDto options) async {
@@ -91,5 +92,22 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, l10n.delete));
     await tester.pumpAndSettle();
     expect(devices.deleted, ['tv']);
+  });
+
+  testWidgets('delete all spares this device by its Emby reported id', (
+    tester,
+  ) async {
+    devices.devices = const [
+      DeviceInfoDto(id: '1', name: 'Living room', reportedDeviceId: 'tv'),
+      DeviceInfoDto(id: '2', name: 'This app', reportedDeviceId: 'this-one'),
+    ];
+    await pump(tester);
+
+    await tester.tap(find.byTooltip(l10n.adminDeleteAllDevices));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.adminDeleteAllDevicesConfirm(1)), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.delete));
+    await tester.pumpAndSettle();
+    expect(devices.deleted, ['1']);
   });
 }

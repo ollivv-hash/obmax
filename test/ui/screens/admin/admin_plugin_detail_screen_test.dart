@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
+import 'package:moonfin/ui/screens/admin/admin_nav.dart';
 import 'package:moonfin/ui/screens/admin/plugins/admin_plugin_detail_screen.dart';
 import 'package:moonfin/ui/screens/admin/providers/admin_user_providers.dart';
 import 'package:server_core/server_core.dart';
@@ -39,6 +41,7 @@ class _FakePluginsApi extends Fake implements AdminPluginsApi {
     String? assemblyGuid,
     String? version,
     String? repositoryUrl,
+    String? updateClass,
   }) async {
     installs.add(version);
   }
@@ -57,6 +60,15 @@ const _moonbase = PluginInfo(
   canUninstall: true,
 );
 
+/// As Emby's GET /Plugins sends it, with no CanUninstall or Status.
+const _embyBackup = PluginInfo(
+  name: 'Backup & Restore',
+  id: 'e711475e-efad-431b-8527-033ba9873a34',
+  version: '1.8.7.0',
+  hasImage: true,
+  imageTag: '1',
+);
+
 void main() {
   late _FakePluginsApi api;
   late AppLocalizations l10n;
@@ -73,18 +85,25 @@ void main() {
 
   tearDown(() => GetIt.instance.reset());
 
-  Future<void> pump(WidgetTester tester, String pluginId) async {
+  Future<void> pump(
+    WidgetTester tester,
+    String pluginId, {
+    ServerType server = ServerType.jellyfin,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           adminInstalledPluginsProvider.overrideWith(
-            (ref) async => const [_tmdb, _moonbase],
+            (ref) async => const [_tmdb, _moonbase, _embyBackup],
           ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: AdminPluginDetailScreen(pluginId: pluginId)),
+          home: AdminServerScope(
+            serverType: server,
+            child: Scaffold(body: AdminPluginDetailScreen(pluginId: pluginId)),
+          ),
         ),
       ),
     );
@@ -132,6 +151,63 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, l10n.install));
     await tester.pumpAndSettle();
     expect(api.installs, ['2.5.0.0']);
+  });
+
+  group('on Emby', () {
+    final launched = <String>[];
+
+    setUp(() {
+      launched.clear();
+      api.pages = [
+        {
+          'Name': 'embybackup',
+          'EnableInMainMenu': true,
+          'PluginId': _embyBackup.id,
+        },
+      ];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.flutter.io/url_launcher'),
+            (call) async {
+              launched.add((call.arguments as Map)['url'] as String);
+              return true;
+            },
+          );
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.flutter.io/url_launcher'),
+            null,
+          );
+    });
+
+    testWidgets('a plugin uninstalls but has no switch or repository', (
+      tester,
+    ) async {
+      await pump(tester, _embyBackup.id, server: ServerType.emby);
+
+      expect(find.text(l10n.uninstall), findsOneWidget);
+      expect(find.text(l10n.adminPluginDetailEnablePlugin), findsNothing);
+      expect(find.text(l10n.adminPluginDetailRepository), findsNothing);
+      expect(find.text(l10n.adminPluginDetailDeveloper), findsNothing);
+      final image = tester.widget<Image>(find.byType(Image)).image;
+      expect(
+        (image as NetworkImage).url,
+        'http://jf.test/Plugins/${_embyBackup.id}/Thumb?tag=1',
+      );
+    });
+
+    testWidgets('Settings opens Emby\'s own page', (tester) async {
+      await pump(tester, _embyBackup.id, server: ServerType.emby);
+
+      await tester.tap(find.text(l10n.settings));
+      await tester.pumpAndSettle();
+      expect(launched, [
+        'http://jf.test/web/index.html#!/configurationpage?name=embybackup',
+      ]);
+    });
   });
 
   test('the main-menu page wins, else the first one', () {

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/offline/connectivity_aware_media_server_client.dart';
 import '../data/services/log_service.dart';
@@ -16,7 +18,11 @@ import '../data/services/media_server_client_factory.dart';
 /// smallest size it knows.
 ///
 /// Jellyfin and Emby both serve a throwaway body from BitrateTest, and the
-/// time it takes to arrive gives bits per second.
+/// time it takes to arrive gives bits per second. Plex has no such route, so
+/// the start of a file in its library is read instead, a probe's size at a
+/// time.
+///
+/// Each server address keeps its last measurement across launches.
 class AutoBitrateService {
   AutoBitrateService(this._clientFactory);
 
@@ -31,6 +37,7 @@ class AutoBitrateService {
   static const _requestTimeout = Duration(seconds: 8);
   static const _probeBudget = Duration(seconds: 5);
   static const _cacheLifetime = Duration(minutes: 15);
+  static const _storeKey = 'auto_bitrate_measurements';
 
   /// The ceiling the bitrate setting starts on, used when nothing could be
   /// measured.
@@ -46,21 +53,21 @@ class AutoBitrateService {
 
   final _cache = <String, ({int bps, DateTime measuredAt})>{};
   final _inFlight = <String, Future<int?>>{};
+  late final Future<void> _loaded = _load();
 
-  /// Bits per second to cap the active server's streams at, or null offline
-  /// or with no server, where there's nothing to cap.
-  Future<int?> measuredBpsForActiveServer() {
-    if (_clientFactory.clients.isEmpty) return Future.value(null);
-    // Offline playback would otherwise wait out the probe's timeout before
-    // the local file starts.
-    if (shouldUseOfflineCatalog()) return Future.value(null);
-    final client = _clientFactory.getActiveClient();
+  /// Bits per second to cap the active server's streams at, measured now
+  /// unless the saved measurement is recent, or null offline or with no
+  /// server, where there's nothing to cap.
+  Future<int?> measuredBpsForActiveServer() async {
+    final client = _measurableClient();
+    if (client == null) return null;
+    await _loaded;
 
     final key = client.baseUrl;
     final cached = _cache[key];
     if (cached != null &&
         DateTime.now().difference(cached.measuredAt) < _cacheLifetime) {
-      return Future.value(cached.bps);
+      return cached.bps;
     }
 
     // One measurement per server at a time, so a burst of plays does not
@@ -68,6 +75,54 @@ class AutoBitrateService {
     return _inFlight[key] ??= _measure(client).whenComplete(() {
       _inFlight.remove(key);
     });
+  }
+
+  /// The last measurement saved for the active server however old it is, or
+  /// the starting ceiling before the first one. Never runs a test.
+  Future<int?> savedBpsForActiveServer() async {
+    final client = _measurableClient();
+    if (client == null) return null;
+    await _loaded;
+    return _cache[client.baseUrl]?.bps ?? _fallbackBps;
+  }
+
+  MediaServerClient? _measurableClient() {
+    if (_clientFactory.clients.isEmpty) return null;
+    // Offline playback would otherwise wait out the probe's timeout before
+    // the local file starts.
+    if (shouldUseOfflineCatalog()) return null;
+    // The signed in server, since the newest client the factory made can be
+    // another saved server's.
+    final client = _clientFactory.clientForServerOrActive(null);
+    if (!client.features.supportsBandwidthTest) return null;
+    return client;
+  }
+
+  Future<void> _load() async {
+    try {
+      final raw = (await SharedPreferences.getInstance()).getString(_storeKey);
+      if (raw == null) return;
+      (jsonDecode(raw) as Map<String, dynamic>).forEach((url, entry) {
+        if (entry case [final int bps, final int measuredAt]) {
+          _cache[url] = (
+            bps: bps,
+            measuredAt: DateTime.fromMillisecondsSinceEpoch(measuredAt),
+          );
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    try {
+      await (await SharedPreferences.getInstance()).setString(
+        _storeKey,
+        jsonEncode({
+          for (final MapEntry(:key, :value) in _cache.entries)
+            key: [value.bps, value.measuredAt.millisecondsSinceEpoch],
+        }),
+      );
+    } catch (_) {}
   }
 
   /// Runs [sample] over the probe sizes and returns the last rate it got, or
@@ -88,6 +143,31 @@ class AutoBitrateService {
     return bps;
   }
 
+  /// The path of a movie or episode file to read, or null when the library
+  /// has none or can't be asked. Movies are asked for on their own first,
+  /// since listing episodes across every show takes Plex seconds.
+  @visibleForTesting
+  static Future<String?> plexSampleFile(ItemsApi itemsApi) async {
+    try {
+      for (final type in const ['Movie', 'Episode']) {
+        final result = await itemsApi.getItems(
+          includeItemTypes: [type],
+          limit: 1,
+          enableTotalRecordCount: false,
+        );
+        if (result case {
+          'Items': [
+            {'MediaSources': [{'DirectStreamUrl': final String path}, ...]},
+            ...,
+          ],
+        }) {
+          return path;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<int> _measure(MediaServerClient client) async {
     // The probe runs on its own client, so without these lines it is
     // invisible in the network log and a start waiting on it looks hung.
@@ -97,6 +177,16 @@ class AutoBitrateService {
         ? client.baseUrl.substring(0, client.baseUrl.length - 1)
         : client.baseUrl;
 
+    final plex = client.serverType == ServerType.plex;
+    final plexFile = plex ? await plexSampleFile(client.itemsApi) : null;
+    if (plex && plexFile == null) {
+      log.log(
+        LogCategory.playback,
+        'Auto bitrate: no Plex file to read, using ${_fallbackBps}bps',
+      );
+      return _fallbackBps;
+    }
+
     final dio = Dio(
       BaseOptions(
         responseType: ResponseType.stream,
@@ -104,21 +194,21 @@ class AutoBitrateService {
         connectTimeout: _requestTimeout,
         // Newer Jellyfin rejects a bare X-Emby-Token, so send the same
         // Authorization header the server clients use.
-        headers: {
-          'Authorization': buildServerAuthorizationHeader(
-            scheme: client.serverType == ServerType.emby
-                ? 'Emby'
-                : 'MediaBrowser',
-            deviceInfo: client.deviceInfo,
-            accessToken: client.accessToken,
-          ),
-        },
+        headers: serverAuthHeaders(client),
       ),
     );
 
     try {
       final measured = await stepThroughProbes(
-        (bytes) => _sample(dio, base, bytes, log),
+        (bytes) => plexFile == null
+            ? _sample(dio, '$base/Playback/BitrateTest?size=$bytes', bytes, log)
+            : _sample(
+                dio,
+                '$base$plexFile',
+                bytes,
+                log,
+                headers: {'Range': 'bytes=0-${bytes - 1}'},
+              ),
       );
       if (measured == null) {
         log.log(
@@ -129,6 +219,7 @@ class AutoBitrateService {
       }
       final bps = min((measured * _safetyFactor).round(), _maxBps);
       _cache[client.baseUrl] = (bps: bps, measuredAt: DateTime.now());
+      unawaited(_save());
       log.log(LogCategory.playback, 'Auto bitrate: measured ${bps}bps');
       return bps;
     } finally {
@@ -139,10 +230,17 @@ class AutoBitrateService {
   /// Times one body from the moment its headers arrive, so the connection
   /// setup and the server's own turnaround don't count against the link.
   /// Past [_probeBudget] it stops reading and times what came.
-  Future<int?> _sample(Dio dio, String base, int bytes, LogService log) async {
+  Future<int?> _sample(
+    Dio dio,
+    String url,
+    int bytes,
+    LogService log, {
+    Map<String, String>? headers,
+  }) async {
     try {
       final response = await dio.get<ResponseBody>(
-        '$base/Playback/BitrateTest?size=$bytes',
+        url,
+        options: Options(headers: headers),
       );
       final body = response.data;
       if (body == null) return null;

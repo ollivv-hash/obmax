@@ -11,10 +11,14 @@ import '../../../../../preference/user_preferences.dart';
 import '../../../../../util/artwork_request_size.dart';
 import '../../../../navigation/destinations.dart';
 import '../../../../widgets/focus/context_menu_sheet.dart';
+import '../../../../widgets/focus/hub_focus_memory.dart';
+import '../../../../../util/focus/scroll_utils.dart';
 import '../../../../widgets/focus/locked_focus_row.dart';
+import '../../../../widgets/scroll_edge_arrows.dart';
 import '../../../../widgets/sliding_pill_tabs.dart';
 import '../../detail_episode_images.dart';
 import '../../detail_layout_metrics.dart';
+import '../../play_item_on_screen.dart';
 import 'minimalist_episode_card.dart';
 
 /// The gap between the season tabs and the rail under them.
@@ -45,6 +49,10 @@ class MinimalistEpisodesSection extends StatefulWidget {
   /// Up out of the section, usually back to the play button.
   final bool Function(bool isUp)? onVerticalNavigation;
 
+  /// Left off the first tab or the first episode, for a layout that has
+  /// something to its left.
+  final VoidCallback? onLeftEdge;
+
   const MinimalistEpisodesSection({
     super.key,
     required this.viewModel,
@@ -53,6 +61,7 @@ class MinimalistEpisodesSection extends StatefulWidget {
     this.maxHeight,
     this.episodesFocusNode,
     this.onVerticalNavigation,
+    this.onLeftEdge,
   });
 
   @override
@@ -65,6 +74,10 @@ class _MinimalistEpisodesSectionState extends State<MinimalistEpisodesSection> {
   final _railController = ScrollController();
   int? _selectedSeason;
   bool _loadStarted = false;
+  bool _startedOnEpisode = false;
+
+  /// One card and the gap after it, from the last layout.
+  double _railStride = 0;
 
   ItemDetailViewModel get _vm => widget.viewModel;
   bool get _isSeries => _vm.item?.type == 'Series';
@@ -112,30 +125,71 @@ class _MinimalistEpisodesSectionState extends State<MinimalistEpisodesSection> {
   String _seasonLabel(AppLocalizations l10n, int number) =>
       number == 0 ? l10n.specials : l10n.seasonNumber(number);
 
+  /// Each season's rail remembers its own place.
+  String _hubKey(int? season) =>
+      'minimalist-episodes-${_vm.item?.id ?? ''}-$season';
+
   void _selectSeason(int number) {
     if (_selectedSeason == number) return;
     setState(() => _selectedSeason = number);
-    // Back to the start of the rail, but the tabs keep focus. Left and right
-    // change the season as you pass over it, so pulling focus down here would
-    // strand you on the first season you touched.
-    if (_railController.hasClients) _railController.jumpTo(0);
+    // The rail shows where Down from the tabs will land, its start unless the
+    // viewer left that season's rail somewhere else, but the tabs keep focus.
+    // Left and right change the season as you pass over it, so pulling focus
+    // down here would strand you on the first season you touched.
+    _showRememberedEpisode(number);
+  }
+
+  /// Scrolls the rail, once it's laid out, to the episode [season]'s rail
+  /// will focus.
+  void _showRememberedEpisode(int? season) {
+    final index = HubFocusMemory.peek(_hubKey(season)) ?? 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      scrollListToIndex(
+        _railController,
+        index,
+        itemExtent: _railStride,
+        animate: false,
+      );
+    });
+  }
+
+  /// On an episode, the rail opens on it rather than on the season's first,
+  /// both where it's scrolled to and where focus lands coming down into it.
+  /// Once only, and not over a place the viewer already left the rail at.
+  void _startOnEpisode(List<AggregatedItem> episodes, int? season) {
+    if (_startedOnEpisode || !_isEpisode) return;
+    final current = episodes.indexWhere((e) => e.id == _vm.item?.id);
+    // Not in this list yet, while the series' episodes are still arriving.
+    if (current < 0) return;
+    _startedOnEpisode = true;
+    final hubKey = _hubKey(season);
+    if (current > 0 && HubFocusMemory.peek(hubKey) == null) {
+      HubFocusMemory.set(hubKey, current);
+    }
+    _showRememberedEpisode(season);
   }
 
   void _showEpisodeMenu(BuildContext context, AggregatedItem episode) {
     showContextMenu(context, episode, onChanged: () => setState(() {}));
   }
 
+  // From an episode the one picked takes its page, so Back leaves the run of
+  // episodes in one press.
   void _openEpisode(BuildContext context, AggregatedItem episode) {
-    context.push(
-      Destinations.item(
-        episode.id,
-        serverId: episode.serverId,
-        seasonContext: seasonContextParam(
-          contextSeasonId: _isSeason ? _vm.item?.id : null,
-          episodeSeasonId: episode.seasonId,
-        ),
+    if (episode.id == _vm.item?.id) {
+      playItemOnScreen(context);
+      return;
+    }
+    final location = Destinations.item(
+      episode.id,
+      serverId: episode.serverId,
+      seasonContext: seasonContextParam(
+        contextSeasonId: _isSeason ? _vm.item?.id : null,
+        episodeSeasonId: episode.seasonId,
       ),
     );
+    _isEpisode ? context.pushReplacement(location) : context.push(location);
   }
 
   /// The room under the still. Measured rather than guessed, or a larger user
@@ -182,9 +236,13 @@ class _MinimalistEpisodesSectionState extends State<MinimalistEpisodesSection> {
         ? _selectedSeason!
         : fallback;
 
+    // The server lists specials where they aired among the seasons, so the
+    // Specials tab would come out of number order without this.
     final episodes = selected == null
         ? all
-        : all.where((e) => e.parentIndexNumber == selected).toList();
+        : (all.where((e) => e.parentIndexNumber == selected).toList()
+            ..sort(ItemDetailViewModel.compareEpisodes));
+    final hubKey = _hubKey(selected);
 
     // One season is no choice at all, so the strip only earns its space when
     // there's somewhere else to go, and the rail takes over as the way in.
@@ -201,6 +259,9 @@ class _MinimalistEpisodesSectionState extends State<MinimalistEpisodesSection> {
           prefs: widget.prefs,
         );
         final railHeight = _railHeight(context, cardWidth);
+        _railStride =
+            cardWidth + minimalistEpisodeRailGap(landscape: widget.landscape);
+        _startOnEpisode(episodes, selected);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,9 +274,10 @@ class _MinimalistEpisodesSectionState extends State<MinimalistEpisodesSection> {
                 selectedIndex: selected == null ? 0 : seasons.indexOf(selected),
                 onChanged: (index) => _selectSeason(seasons[index]),
                 focusNode: widget.episodesFocusNode,
+                onExitLeft: widget.onLeftEdge,
                 onVerticalNavigation: (isUp) {
                   if (!isUp) {
-                    _railKey.currentState?.requestFocusAt(0);
+                    _railKey.currentState?.requestFocusFromMemory();
                     return true;
                   }
                   return widget.onVerticalNavigation?.call(true) ?? false;
@@ -226,46 +288,54 @@ class _MinimalistEpisodesSectionState extends State<MinimalistEpisodesSection> {
             SizedBox(
               key: const ValueKey('minimalist-episode-rail'),
               height: railHeight,
-              child: LockedFocusRow<AggregatedItem>(
-                key: _railKey,
-                items: episodes,
-                itemKey: (item, _) => '${item.serverId}|${item.id}',
-                hubKey: 'minimalist-episodes-${_vm.item?.id ?? ''}-$selected',
-                itemExtent: cardWidth,
-                itemSpacing: minimalistEpisodeRailGap(
-                  landscape: widget.landscape,
-                ),
-                height: railHeight,
+              child: ScrollEdgeArrows(
                 controller: _railController,
-                focusNode: showTabs ? null : widget.episodesFocusNode,
-                clipBehavior: Clip.none,
-                // The row handles the remote's select and hold. The card below
-                // handles the pointer, so both have to agree.
-                onTap: (_, episode) => _openEpisode(context, episode),
-                onLongPress: (_, episode) => _showEpisodeMenu(context, episode),
-                onVerticalNavigation: (isUp) {
-                  if (isUp && showTabs) {
-                    widget.episodesFocusNode?.requestFocus();
-                    return true;
-                  }
-                  return widget.onVerticalNavigation?.call(isUp) ?? false;
-                },
-                itemBuilder: (context, episode, index, isFocused) {
-                  return MinimalistEpisodeCard(
-                    episode: episode,
-                    width: cardWidth,
-                    isFocused: isFocused,
-                    imageUrl: minimalistEpisodeImageUrl(
-                      episode,
-                      _vm,
-                      prefs: widget.prefs,
-                      cardWidth: cardWidth,
-                      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-                    ),
-                    onTap: () => _openEpisode(context, episode),
-                    onLongPress: () => _showEpisodeMenu(context, episode),
-                  );
-                },
+                child: LockedFocusRow<AggregatedItem>(
+                  key: _railKey,
+                  items: episodes,
+                  itemKey: (item, _) => '${item.serverId}|${item.id}',
+                  hubKey: hubKey,
+                  itemExtent: cardWidth,
+                  itemSpacing: minimalistEpisodeRailGap(
+                    landscape: widget.landscape,
+                  ),
+                  height: railHeight,
+                  controller: _railController,
+                  focusNode: showTabs ? null : widget.episodesFocusNode,
+                  onLeftEdge: widget.onLeftEdge,
+                  clipBehavior: Clip.none,
+                  // The row handles the remote's select and hold. The card
+                  // below handles the pointer, so both have to agree.
+                  onTap: (_, episode) => _openEpisode(context, episode),
+                  onLongPress: (_, episode) =>
+                      _showEpisodeMenu(context, episode),
+                  onVerticalNavigation: (isUp) {
+                    if (isUp && showTabs) {
+                      widget.episodesFocusNode?.requestFocus();
+                      return true;
+                    }
+                    return widget.onVerticalNavigation?.call(isUp) ?? false;
+                  },
+                  itemBuilder: (context, episode, index, isFocused) {
+                    return MinimalistEpisodeCard(
+                      episode: episode,
+                      width: cardWidth,
+                      isFocused: isFocused,
+                      isCurrent: _isEpisode && episode.id == _vm.item?.id,
+                      imageUrl: minimalistEpisodeImageUrl(
+                        episode,
+                        _vm,
+                        prefs: widget.prefs,
+                        cardWidth: cardWidth,
+                        devicePixelRatio: MediaQuery.devicePixelRatioOf(
+                          context,
+                        ),
+                      ),
+                      onTap: () => _openEpisode(context, episode),
+                      onLongPress: () => _showEpisodeMenu(context, episode),
+                    );
+                  },
+                ),
               ),
             ),
           ],
