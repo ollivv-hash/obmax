@@ -29,6 +29,7 @@ import '../../../data/viewmodels/media_bar_view_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/current_app_localizations.dart';
 import '../../../preference/home_section_config.dart';
+import '../../../obmax/obmax_defaults.dart'; // OBMAX
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../data/repositories/mdblist_repository.dart';
@@ -1588,7 +1589,11 @@ class HomeViewModel extends ChangeNotifier {
           HomeSectionType.tmdbAppleTv ||
           HomeSectionType.tmdbParamountPlus:
         final chart = externalCharts[section]!;
-        return _loadChartRow(section, chart.title, section.serializedName, {
+        return _loadChartRow(
+          section,
+          ObMaxDefaults.chartTitle(section, chart.title), // OBMAX
+          section.serializedName,
+          {
           'source': chart.source,
           'type': chart.type,
           'params': {
@@ -2187,7 +2192,8 @@ class HomeViewModel extends ChangeNotifier {
           HomeSectionType.tmdbParamountPlus:
         return HomeRow(
           id: section.serializedName,
-          title: externalCharts[section]!.title,
+          // OBMAX: French title.
+          title: ObMaxDefaults.chartTitle(section, externalCharts[section]!.title),
           rowType: HomeRowType.pluginDynamic,
           isLoading: true,
         );
