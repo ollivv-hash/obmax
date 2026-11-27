@@ -17,8 +17,7 @@ Les versions publiées sont sur **[ollivv-hash/obmax-releases](https://github.co
 
 | Appareil | Fichier |
 |---|---|
-| Téléphone ou tablette Android | `obmax-mobile-x.y.z.apk` |
-| Android TV, Google TV, Nvidia Shield | `obmax-tv-x.y.z.apk` |
+| Téléphone, tablette, Android TV, Google TV, Nvidia Shield | `obmax-android-x.y.z.apk` |
 | Mac (macOS 15 ou plus récent) | `obmax-macos-x.y.z.dmg` |
 | PC Windows 10 ou 11 (x64) | `obmax-windows-x.y.z.exe` |
 

@@ -61,8 +61,8 @@ gh auth login
 Le script :
 
 1. passe `pubspec.yaml` à `1.0.1+<versionCode précédent + 1>` (le `versionCode` est commun aux deux flavors, c'est lui que l'OTA compare) ;
-2. construit les APK release signés `mobile` et `androidTv`, chacun avec l'ARM 64 bits (`arm64-v8a`) **et** l'ARM 32 bits (`armeabi-v7a`) : certaines box TV (Xiaomi, Android 11) n'ont que le 32 bits et plantaient au lancement sur un APK arm64 seul (« Could not find 'libflutter.so' »). Le script ouvre ensuite chaque APK et vérifie le contenu de `lib/` : il s'arrête si une des deux ABI manque, si `libflutter.so` ou `libapp.so` n'y est pas, ou si un autre dossier (x86_64…) s'y trouve ; il signale dans le récapitulatif toute bibliothèque `.so` présente pour une seule ABI. Un seul APK par flavor, donc `version.json` et l'OTA ne changent pas ;
-3. copie `obmax-mobile-1.0.1.apk`, `obmax-tv-1.0.1.apk` et `version.json` (avec les SHA-256) dans `dist\v1.0.1\` ;
+2. construit l'APK release signé, unique depuis Moonfin 3.1 (téléphone et TV : l'app choisit l'interface TV au lancement), avec l'ARM 64 bits (`arm64-v8a`) **et** l'ARM 32 bits (`armeabi-v7a`) : certaines box TV (Xiaomi, Android 11) n'ont que le 32 bits et plantaient au lancement sur un APK arm64 seul (« Could not find 'libflutter.so' »). Le script ouvre ensuite chaque APK et vérifie le contenu de `lib/` : il s'arrête si une des deux ABI manque, si `libflutter.so` ou `libapp.so` n'y est pas, ou si un autre dossier (x86_64…) s'y trouve ; il signale dans le récapitulatif toute bibliothèque `.so` présente pour une seule ABI. `version.json` liste ce même APK sous `mobile` **et** `androidTv` : les installations TV jusqu'à la 2.2.1 cherchent leur mise à jour sous `androidTv` ;
+3. copie `obmax-android-1.0.1.apk` et `version.json` (avec les SHA-256) dans `dist\v1.0.1\` ;
 4. affiche le récapitulatif et **demande confirmation** avant `gh release create v1.0.1 … --repo ollivv-hash/obmax-releases`.
 
 Options : `-NoPublish` (build, empreintes et `version.json` seulement, `pubspec.yaml` restauré), `-VersionCode N` (forcer le versionCode, par exemple `1` pour la toute première release), `-Yes` (publier sans la question de confirmation, le récapitulatif reste affiché), `-Mandatory` (pas de bouton « Plus tard »), `-ReleasesRepo` (autre dépôt), `-AllowDebugSigning` (build de test uniquement, jamais publié).
@@ -77,8 +77,8 @@ git commit -am "release: OB Max 1.0.1"
 
 ## Première installation (sideload)
 
-- **Téléphone** : ouvrir le lien de l'APK `obmax-mobile-…` sur le téléphone et autoriser l'installation depuis le navigateur.
-- **Shield** : `adb connect <ip>:5555` puis `adb install obmax-tv-1.0.1.apk`, ou une app comme *Downloader*.
+- **Téléphone** : ouvrir le lien de l'APK `obmax-android-…` sur le téléphone et autoriser l'installation depuis le navigateur.
+- **Shield** : `adb connect <ip>:5555` puis `adb install obmax-android-1.0.1.apk`, ou une app comme *Downloader*.
 
 Les mises à jour suivantes arrivent par l'OTA. Au premier « Mettre à jour », Android demande d'autoriser OB Max à installer des applications.
 

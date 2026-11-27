@@ -1,11 +1,14 @@
 ﻿<#
 .SYNOPSIS
-  Builds and prepares an OB Max release (Android mobile + Android TV).
+  Builds and prepares an OB Max release (one Android APK for phones and TVs).
 
 .DESCRIPTION
-  1. Bumps the version in pubspec.yaml (versionCode = previous + 1, shared by both flavors).
-  2. Builds the signed release APKs, each holding both arm64-v8a and armeabi-v7a
+  1. Bumps the version in pubspec.yaml (versionCode = previous + 1).
+  2. Builds the signed release APK, holding both arm64-v8a and armeabi-v7a
      (32-bit TV boxes), and checks every native library exists for both.
+     Since Moonfin 3.1 one APK serves phones and TVs (the TV layout is picked
+     at runtime); version.json lists it under both assets.mobile and
+     assets.androidTv, the key that TV installs up to 2.2.1 look up.
      Once tools\rotate_signing_key.ps1 has run, re-signs them with the previous
      key, the new key and the rotation lineage, then checks both fingerprints.
   3. Renames them, computes their SHA-256 and writes version.json into dist\v<Version>\.
@@ -136,8 +139,6 @@ $previous = "$($m.Groups[1].Value)+$($m.Groups[2].Value)"
 $versionCode = if ($VersionCode -gt 0) { $VersionCode } else { [int]$m.Groups[2].Value + 1 }
 $originalPubspec = $pubspec
 $pubspec = [regex]::Replace($pubspec, '(?m)^version:.*$', "version: $Version+$versionCode")
-$pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_version:.*$', "`${1}android_tv_version: $Version")
-$pubspec = [regex]::Replace($pubspec, '(?m)^(\s*)android_tv_build_number:.*$', "`${1}android_tv_build_number: $versionCode")
 [System.IO.File]::WriteAllText($pubspecPath, $pubspec, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "Version : $previous -> $Version+$versionCode" -ForegroundColor Cyan
 
@@ -160,9 +161,10 @@ $platforms = 'android-arm,android-arm64'
 & $script:Flutter pub get
 if ($LASTEXITCODE -ne 0) { throw 'flutter pub get a échoué' }
 
+# One APK for phones and TVs. Installs up to 2.2.1 were built per flavor and
+# look up their own key (OBMAX_FLAVOR), so the APK is listed under both.
 $builds = @(
-    @{ Flavor = 'mobile';    Key = 'mobile';    Out = 'app-mobile-release.apk';    Name = "obmax-mobile-$Version.apk" },
-    @{ Flavor = 'androidTv'; Key = 'androidTv'; Out = 'app-androidtv-release.apk'; Name = "obmax-tv-$Version.apk" }
+    @{ Flavor = 'mobile'; Key = 'mobile'; AssetKeys = @('mobile', 'androidTv'); Out = 'app-mobile-release.apk'; Name = "obmax-android-$Version.apk" }
 )
 $dist = Join-Path $root "dist\v$Version"
 if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
@@ -170,8 +172,7 @@ New-Item -ItemType Directory -Force $dist | Out-Null
 
 foreach ($b in $builds) {
     Write-Host "Build $($b.Flavor) ($platforms)..." -ForegroundColor Cyan
-    & $script:Flutter build apk --release --flavor $b.Flavor --target-platform $platforms `
-        "--dart-define=OBMAX_FLAVOR=$($b.Key)"
+    & $script:Flutter build apk --release --flavor $b.Flavor --target-platform $platforms
     if ($LASTEXITCODE -ne 0) { throw "Build $($b.Flavor) en échec" }
     $apk = Join-Path $root "build\app\outputs\flutter-apk\$($b.Out)"
     if (-not (Test-Path $apk)) { throw "APK introuvable : $apk" }
@@ -201,7 +202,10 @@ foreach ($b in $builds) {
     $file = Join-Path $dist $b.Name
     $b.Sha = (Get-FileHash -Algorithm SHA256 $file).Hash.ToLowerInvariant()
     $b.Size = (Get-Item $file).Length
-    $assets[$b.Key] = [ordered]@{ url = "$base/$($b.Name)"; sha256 = $b.Sha }
+    $keys = if ($b.AssetKeys) { $b.AssetKeys } else { @($b.Key) }
+    foreach ($key in $keys) {
+        $assets[$key] = [ordered]@{ url = "$base/$($b.Name)"; sha256 = $b.Sha }
+    }
 }
 $versionJson = [ordered]@{
     versionName = $Version

@@ -79,7 +79,7 @@ Ensuite : traduire en français les nouvelles clés, chercher les nouveaux « Mo
 
 ## Ressources ajoutées (pas de conflit possible)
 
-- `android/app/src/mobile/res/`, `android/app/src/androidTv/res/` : icônes OB Max (mipmaps, adaptive icon sur fond `#080A23`). Elles remplacent celles de `main/res` pour les flavors `mobile` et `androidTv`. La bannière TV est copiée sous le nom upstream `drawable-nodpi/moonfin_tv_banner.png` : le manifest (`android:banner="@drawable/moonfin_tv_banner"`) reste inchangé.
+- `android/app/src/mobile/res/` : icônes OB Max (mipmaps, adaptive icon sur fond `#080A23`). Elles remplacent celles de `main/res` pour le flavor `mobile`, le seul depuis Moonfin 3.1 (un APK pour téléphones et TV ; le dossier `androidTv/res/` a été retiré). La bannière TV est copiée sous le nom upstream `drawable-nodpi/moonfin_tv_banner.png` : le manifest (`android:banner="@drawable/moonfin_tv_banner"`) reste inchangé.
 - Le splash natif Android 12+ (`values-v31/styles.xml`) utilise déjà `@color/ic_launcher_background` et `@mipmap/ic_launcher_foreground` : il passe automatiquement à `#080A23` + icône OB Max, sans modifier les styles.
 
 - `.github/README.md` : page d'accueil OB Max du dépôt. GitHub l'affiche à la place du `README.md` de Moonfin, qui reste inchangé.

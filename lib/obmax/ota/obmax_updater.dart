@@ -16,8 +16,10 @@ import '../../util/platform_detection.dart';
 import '../obmax_config.dart';
 import '../theme/obmax_colors.dart';
 
-/// Which APK of a release this build installs. `tools/release.ps1` passes it
-/// with --dart-define; a build without it guesses from the device.
+/// Which `version.json` key this build reads. Builds up to 2.2.1 had one APK
+/// per flavor and got it from `tools/release.ps1` (--dart-define); since
+/// Moonfin 3.1 the one APK leaves it unset and asks the device. Both keys
+/// point at the same APK.
 const _flavorDefine = String.fromEnvironment('OBMAX_FLAVOR');
 
 /// One release as described by the `version.json` asset of the releases repo.
