@@ -35,7 +35,7 @@ Spec : `docs/obmax/SON_SPLASH_SPEC.md`. Lecture par `audioplayers` (flux média,
 | J4 | Réglage désactivé : aucun son | ☐ | ☐ | ☐ | ☐ | ☐ | *Personnalisation > Son au démarrage* désactivé, tuer puis relancer. |
 | J5 | Téléphone en silencieux / vibreur : aucun son | ☐ | — | — | — | — | Tester les deux modes. |
 | J6 | Musique en cours dans une autre app : pas coupée | ☐ | — | — | — | — | Lancer Spotify/Deezer puis OB Max : la musique continue (aucun focus audio demandé, elle n'est même pas baissée). |
-| J7 | Box lente : pas de décalage audible, splash jamais bloqué | — | — | ☐ | — | — | Si le son n'est pas prêt en 300 ms, le splash part sans son : c'est voulu. `adb logcat \| grep "OB Max splash sound"` donne la raison. |
+| J7 | Box lente : pas de décalage audible, splash jamais bloqué | — | — | ☐ | — | — | Depuis la 2.2.1, un son prêt après 300 ms démarre quand même, calé sur l'animation, jusqu'à 700 ms de retard ; au-delà, le splash reste muet. `adb logcat \| grep "OB Max splash sound"` donne la raison. |
 | J8 | Build release : contrôle ABI de `release.ps1` OK, taille APK notée | ☐ | ☐ | ☐ | — | — | Comparer avec la 2.0.5 : ________ Ko de plus (attendu : moins de 100 Ko). |
 
 ## En cas d'échec
@@ -64,3 +64,23 @@ Voir les commandes `logcat` de `SPIKE_REPORT.md` §4. Côté serveur, une ligne 
 | S12 | Mac : mpv par défaut, choix utilisateur conservé | — | — | — | — | ☐ | Jamais touché → mpv ; désactivé à la main en 2.0.5 → reste désactivé. |
 | S13 | Dashboard Jellyfin : le client apparaît comme « OB Max », version 2.1.0 | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | S14 | *Personnalisation > Affichage* : la taille des visuels change les affiches de l'accueil ; type de rangée, espacement et taille de l'interface s'appliquent | ☐ | ☐ | ☐ | ☐ | ☐ | Moonfin 3.0 a réduit de moitié les affiches Modernes : « Très grande » ou « Grands-parents » s'approche de la 2.0.5. |
+
+# OB Max 2.3.0 — recette (rattrapage Moonfin 3.1.1)
+
+Rapport : [`SYNC_REPORT_3.1.1.md`](SYNC_REPORT_3.1.1.md). **Un seul APK** pour téléphones et TV (`obmax-android-x.y.z.apk`). Build release signé. Mettre à jour le plugin Moonbase sur Jellyfin avant.
+
+| # | Test | Android tél. | Shield | Box 32 bits | Windows | Mac | Comment vérifier |
+|---|---|---|---|---|---|---|---|
+| T1 | Build OK, contrôle ABI de `release.ps1`, signature avec lignage | ☐ | ☐ | ☐ | ☐ | ☐ | Récapitulatif du script : un APK, arm64-v8a + armeabi-v7a, `version.json` avec `mobile` et `androidTv` sur le même fichier. |
+| T2 | **OTA depuis la 2.2.1** : certificat et session conservés, pas de réactivation | ☐ | ☐ | ☐ | ☐ | ☐ | **Bloquant.** Sur TV, la 2.2.1 lit la clé `androidTv` et reçoit l'APK unique ; l'app redémarre en interface TV. |
+| T3 | Interface TV choisie au lancement (APK unique) | — | ☐ | ☐ | — | — | Navigation télécommande, bannière OB Max dans le lanceur, lecture 4K DV fluide. |
+| T4 | Installation neuve : activation par code, puis login | ☐ | ☐ | — | ☐ | ☐ | |
+| T5 | Lecture direct play, seek, reprise, sous-titres externes, pistes audio | ☐ | ☐ | ☐ | ☐ | ☐ | Sous mpv (Mac, Windows), changer d'épisode avec une autre disposition des pistes. |
+| T6 | Lecture à distance (4G / hors LAN) | ☐ | — | — | ☐ | ☐ | |
+| T7 | Contrôle à distance depuis le web Jellyfin (WebSocket) | ☐ | ☐ | ☐ | ☐ | ☐ | |
+| T8 | Seerr : demande depuis un compte non admin | ☐ | ☐ | — | ☐ | ☐ | |
+| T9 | Réglages : onglets OB Max (Compte et sécurité, Lecture, Demandes, Personnalisation, À propos, + Administration), pas de recherche, pas d'aperçu | ☐ | ☐ | ☐ | ☐ | ☐ | *Personnalisation > Affichage* : le style « Carrousel » est proposé. |
+| T10 | Interface 100 % en français, aucune mention « Moonfin » hors Licences ; Silo, mini-jeux, Live TV, multi-serveur absents | ☐ | ☐ | ☐ | ☐ | ☐ | Menu utilisateur et écran du serveur : pas de « Sélectionner un serveur ». |
+| T11 | Nouveautés gardées : calendrier, watch party, badges, media bar « Nouveautés » | ☐ | ☐ | ☐ | ☐ | ☐ | Watch party entre deux appareils, à travers le mTLS. |
+| T12 | Son au démarrage toujours là (J1) | ☐ | ☐ | ☐ | ☐ | ☐ | |
+| T13 | Dashboard Jellyfin : « OB Max », version 2.3.0 | ☐ | ☐ | ☐ | ☐ | ☐ | |
