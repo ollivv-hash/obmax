@@ -38,7 +38,7 @@ Corrections après le merge : `player_loading_overlay.dart` (variable renommée 
 
 | # | Zone | Constat |
 |---|---|---|
-| 1 | Stockage sécurisé | **Aucun changement upstream** (même bibliothèque, mêmes options, mêmes clés). L'avertissement « bad base-64 » apparaît aussi sur la Shield en 2.2.1 : voir §7. |
+| 1 | Stockage sécurisé | **Aucun changement upstream** (même bibliothèque, mêmes options, mêmes clés). OB Max passe `resetOnError: false` (validé le 27/11/2026, voir §7). |
 | 2 | Certificats / mTLS | `client_certificates_io.dart` : le réglage « certificats auto-signés » ne vaut plus que pour les serveurs de l'utilisateur (`acceptsUntrustedCertificate`). Sans effet sur le certificat client. |
 | 3 | OTA | Nos fichiers `lib/obmax/ota/` inchangés. **Un seul APK** : `release.ps1` le publie sous les clés `mobile` **et** `androidTv` de `version.json`, car les TV en 2.2.1 cherchent `androidTv` (valeur compilée `OBMAX_FLAVOR`). Le nouvel APK ne passe plus `OBMAX_FLAVOR` : l'app demande à l'appareil. |
 | 4 | Toolchain | Flutter 3.47.2, compileSdk 36, NDK 28.2 : inchangés. Flavor TV supprimé (voir §2). |
@@ -54,7 +54,7 @@ Corrections après le merge : `player_loading_overlay.dart` (variable renommée 
 - Nouveaux badges et étiquettes sur les affiches, media bar « Nouveautés ».
 - Correctifs du lecteur mpv (pistes audio par fichier), image dans l'image, recadrage des bandes noires.
 - **Watch parties** Moonbase (salons, invitations, chat, lecture synchronisée) : décision du 27/11/2026.
-- **Lignes MDBList, JustWatch et TMDB Discover** : décision du 27/11/2026. Voir §7, point 2.
+- **Lignes MDBList, JustWatch et TMDB Discover** : décision du 27/11/2026. Quatre lignes ajoutées aux rangées fixes de l'accueil, après les derniers ajouts : *Top films en streaming du jour* et *Top séries en streaming du jour* (JustWatch, pays de l'appareil), *Films les plus attendus* (MDBList), *Nouveautés en numérique* (TMDB). Titres traduits par OB Max. L'accueil n'affiche une ligne que si Moonbase peut la remplir (clé MDBList ou TMDB configurée dans le plugin).
 - Seerr : suivi des téléchargements, « Obtenir une autre version », notification de test.
 
 ### Masquer (sans code ajouté)
@@ -73,8 +73,8 @@ Corrections après le merge : `player_loading_overlay.dart` (variable renommée 
 - `flutter test` : **7 320 tests réussis, 23 échecs attendus**, tous dus à des choix OB Max antérieurs (aucun à la fusion) : Cast masqué (3 tests qui cherchent le bouton Cast), écran de chargement OB Max au lieu de « LOADING STREAM… » (4 + 3 dans l'aperçu en direct), nom « OB Max » dans le titre d'onglet (4), liens des personnes et critiques TMDB masqués (9). Moonfin a ajouté des tests sur ces zones ; en 3.0.0, 5 échecs du même type.
 
 ## 7. Points à valider
-1. **`resetOnError` du stockage sécurisé** (reporté depuis la 2.1) : l'avertissement « bad base-64 » est aussi sur la Shield. Correction proposée pour la 2.3.0 : `resetOnError: false` pour le stockage du certificat, afin qu'une valeur illisible ne fasse jamais effacer le certificat. Touche le stockage sécurisé : **en attente de ton accord**.
-2. **Lignes MDBList / JustWatch / TMDB** : gardées, mais les rangées de l'accueil OB Max sont fixes (`ObMaxDefaults.homeSections`, éditeur masqué). Sans changement, personne ne les verra. Les ajouter aux rangées par défaut ?
+1. **`resetOnError` du stockage sécurisé** : **validé et fait** (27/11/2026). `flutter_secure_storage` 10.3.4 a `resetOnError: true` par défaut : une lecture ratée efface l'entrée, et un `readAll` raté (utilisé pour lister les certificats) efface **tout** le stockage. Passé à `false` sur le store des certificats et sur celui des identifiants, qui partagent le même fichier. Seul le comportement en cas d'erreur change : ni l'emplacement ni le format du stockage. Une lecture ratée renvoie « rien » ; pour les certificats, `getAll()` se replie alors sur la lecture hôte par hôte.
+2. **Lignes MDBList / JustWatch / TMDB** : **validé et fait** (27/11/2026), quatre lignes ajoutées aux rangées par défaut (§4). Vérifier dans Moonbase qu'une clé MDBList et une clé TMDB sont renseignées, sinon ces lignes restent absentes.
 3. **Plugin Moonbase** : les watch parties passent par le plugin, et le calendrier par Seerr (un admin doit y être connecté). L'app n'exige aucune version minimale du plugin ; le mettre à jour sur Jellyfin avant la recette, comme pour 3.0.0.
 4. **Numéro de version** : 2.3.0 proposé.
 

@@ -84,3 +84,4 @@ Rapport : [`SYNC_REPORT_3.1.1.md`](SYNC_REPORT_3.1.1.md). **Un seul APK** pour t
 | T11 | Nouveautés gardées : calendrier, watch party, badges, media bar « Nouveautés » | ☐ | ☐ | ☐ | ☐ | ☐ | Watch party entre deux appareils, à travers le mTLS. |
 | T12 | Son au démarrage toujours là (J1) | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | T13 | Dashboard Jellyfin : « OB Max », version 2.3.0 | ☐ | ☐ | ☐ | ☐ | ☐ | |
+| T14 | Accueil : après les derniers ajouts, *Top films / Top séries en streaming du jour*, *Films les plus attendus*, *Nouveautés en numérique*, titres en français | ☐ | ☐ | ☐ | ☐ | ☐ | Clés MDBList et TMDB renseignées dans Moonbase. Sans elles, les lignes sont absentes, sans erreur. |
