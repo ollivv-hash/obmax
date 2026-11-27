@@ -70,7 +70,7 @@ Corrections après le merge : `player_loading_overlay.dart` (variable renommée 
 
 ## 6. Vérifications
 - `flutter analyze lib test/obmax` : **0 erreur** (avertissements dans du code Moonfin).
-- `flutter test` : résultat en §8.
+- `flutter test` : **7 320 tests réussis, 23 échecs attendus**, tous dus à des choix OB Max antérieurs (aucun à la fusion) : Cast masqué (3 tests qui cherchent le bouton Cast), écran de chargement OB Max au lieu de « LOADING STREAM… » (4 + 3 dans l'aperçu en direct), nom « OB Max » dans le titre d'onglet (4), liens des personnes et critiques TMDB masqués (9). Moonfin a ajouté des tests sur ces zones ; en 3.0.0, 5 échecs du même type.
 
 ## 7. Points à valider
 1. **`resetOnError` du stockage sécurisé** (reporté depuis la 2.1) : l'avertissement « bad base-64 » est aussi sur la Shield. Correction proposée pour la 2.3.0 : `resetOnError: false` pour le stockage du certificat, afin qu'une valeur illisible ne fasse jamais effacer le certificat. Touche le stockage sécurisé : **en attente de ton accord**.
@@ -78,5 +78,3 @@ Corrections après le merge : `player_loading_overlay.dart` (variable renommée 
 3. **Plugin Moonbase** : les watch parties passent par le plugin, et le calendrier par Seerr (un admin doit y être connecté). L'app n'exige aucune version minimale du plugin ; le mettre à jour sur Jellyfin avant la recette, comme pour 3.0.0.
 4. **Numéro de version** : 2.3.0 proposé.
 
-## 8. Tests
-À compléter.
