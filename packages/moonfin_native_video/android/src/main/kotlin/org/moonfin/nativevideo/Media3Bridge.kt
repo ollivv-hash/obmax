@@ -405,7 +405,12 @@ object Media3Bridge {
                     result.success(null)
                     return
                 }
-                Media3SlotPolicy.SourceRoute.TO_ACTIVE -> Unit
+                Media3SlotPolicy.SourceRoute.TO_ACTIVE -> {
+                    // appPaused releases the player but leaves the view in the
+                    // slot. The restart of a session stopped in the background
+                    // skips appResumed, so its source is what reaches it first.
+                    if (current != null && current.isReattachable()) current.ensurePlayerAlive()
+                }
             }
         }
 
@@ -453,6 +458,7 @@ object Media3Bridge {
             "disableTunnelingForSession",
             "addExternalSubtitle",
             "configureSubtitleStyle",
+            "updateRequestHeaders",
             -> {
                 queueCall(call.method, call.arguments)
                 result.success(null)

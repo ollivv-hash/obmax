@@ -20,6 +20,7 @@ import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/game_library.dart';
 import '../../../util/live_tv_library.dart';
+import '../../../util/signed_in_server_features.dart';
 import '../downloads_nav_slot.dart';
 import '../friends_nav_slot.dart';
 import 'bottom_nav_model.dart';
@@ -40,7 +41,7 @@ class BottomNavController extends ChangeNotifier {
       notifyListeners();
     });
     _signature = _prefsSignature();
-    _multiServer = _prefs.get(UserPreferences.enableMultiServerLibraries);
+    _librarySource = _librarySourceSignature();
     _loadUser();
     _loadLibraries();
   }
@@ -56,10 +57,23 @@ class BottomNavController extends ChangeNotifier {
   static T? _maybe<T extends Object>() =>
       GetIt.instance.isRegistered<T>() ? GetIt.instance<T>() : null;
 
+  /// Whether the active server approves other devices' sign-in codes
+  /// (Jellyfin's Quick Connect, Silo's device sign-in). No hub tile without
+  /// a server.
+  static bool get _activeServerHasQuickConnect {
+    final client = _maybe<MediaServerClient>();
+    return client != null && client.features.supportsQuickConnect;
+  }
+
+  /// Whether the active server is Silo, whose words for Quick Connect differ
+  /// ("Approve a sign-in").
+  static bool get activeServerIsSilo =>
+      _maybe<MediaServerClient>()?.serverType == ServerType.silo;
+
   StreamSubscription? _userSub;
   Timer? _librariesReloadDebounce;
   String _signature = '';
-  late bool _multiServer;
+  late String _librarySource;
   bool _disposed = false;
 
   List<AggregatedLibrary> _libraries = const [];
@@ -95,6 +109,7 @@ class BottomNavController extends ChangeNotifier {
   BottomNavTabGates get gates => BottomNavTabGates.fromPreferences(
         _prefs,
         seerrAvailable: _pluginSync?.seerrAvailable ?? false,
+        calendarAvailable: _pluginSync?.calendarAvailable ?? false,
       );
 
   bool get _hasLiveTvLibrary => _libraries.any(isLiveTvLibrary);
@@ -133,8 +148,8 @@ class BottomNavController extends ChangeNotifier {
           DownloadsNavSlot.isOffered() && DownloadsNavSlot.hasSavedMedia(),
       shuffle: _prefs.get(UserPreferences.showShuffleButton),
       syncPlay: syncPlay,
-      quickConnect:
-          _maybe<MediaServerClient>()?.serverType == ServerType.jellyfin,
+      quickConnect: _activeServerHasQuickConnect,
+      remoteControl: activeServerSupports((f) => f.supportsRemoteControl),
       alsoOnBar: style == BottomNavbarStyle.split
           ? const {BottomNavTab.search}
           : const {},
@@ -175,30 +190,36 @@ class BottomNavController extends ChangeNotifier {
         _prefs.get(UserPreferences.showGenresButton),
         _prefs.get(UserPreferences.showLiveTvButton),
         _prefs.get(UserPreferences.showSeerrButton),
+        _prefs.get(UserPreferences.showCalendarButton),
         _prefs.get(UserPreferences.showShuffleButton),
         _prefs.get(UserPreferences.syncPlayEnabled),
         _prefs.get(UserPreferences.showSyncPlayButton),
         _prefs.get(UserPreferences.showServerMessagesButton),
         _prefs.get(UserPreferences.showFriendsButton),
         _prefs.get(UserPreferences.showDownloadsButton),
-        _prefs.get(UserPreferences.enableMultiServerLibraries),
+        _librarySourceSignature(),
         _prefs.get(UserPreferences.navbarColor),
         _prefs.get(UserPreferences.navbarOpacity),
         _pluginSync?.seerrAvailable ?? false,
+        _pluginSync?.calendarAvailable ?? false,
       ].join('|');
 
   void _onPrefsChanged() {
     final next = _prefsSignature();
     if (next == _signature) return;
     _signature = next;
-    // Only the multi-server switch changes where the libraries come from.
-    final multiServer = _prefs.get(UserPreferences.enableMultiServerLibraries);
-    if (multiServer != _multiServer) {
-      _multiServer = multiServer;
+    final librarySource = _librarySourceSignature();
+    if (librarySource != _librarySource) {
+      _librarySource = librarySource;
       _scheduleLibrariesReload();
     }
     notifyListeners();
   }
+
+  // Only the multi-server and merge switches change which libraries show.
+  String _librarySourceSignature() =>
+      '${_prefs.get(UserPreferences.enableMultiServerLibraries)}|'
+      '${_prefs.effectiveMergeLibrariesByType}';
 
   // Collapses a burst of change notifications, like the settings sync
   // applying a whole profile, into a single library reload.

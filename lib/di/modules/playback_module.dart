@@ -9,7 +9,6 @@ import 'package:playback_plex/playback_plex.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../data/models/aggregated_item.dart';
-import '../../data/models/series_track_preference.dart';
 import '../../data/repositories/offline_repository.dart';
 import '../../data/services/audiobook_bookmarks_service.dart';
 import '../../data/services/audiobook_notes_service.dart';
@@ -42,16 +41,21 @@ import '../../playback/media_kit_player_backend.dart';
 import '../../playback/media3_player_backend.dart';
 import '../../playback/offline_stream_resolver.dart';
 import '../../playback/playback_profile_diagnostics.dart';
+import '../../playback/silo_playback_environment.dart';
+import '../../playback/server_shuffle_queue.dart';
+import '../../playback/silo_plugin_for.dart';
 import '../../playback/sleep_timer_controller.dart';
 import '../../platform/pip_service.dart';
 import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
 import '../../syncplay/syncplay_manager.dart';
+import '../../watch_party/silo_watch_party_manager.dart';
+import '../../watch_party/watch_party_rooms_service.dart';
 import '../../util/platform_detection.dart';
 import '../../util/episode_playability.dart';
 import '../../util/season_queue_context.dart';
-import '../../util/audio_track_logic.dart';
 import '../../util/subtitle_track_logic.dart';
+import '../../util/playback_track_selection.dart';
 import '../../util/secondary_subtitle_track_selection.dart';
 import '../../obmax/playback/obmax_mac_player.dart'; // OBMAX
 
@@ -78,6 +82,27 @@ bool _shouldUseHtmlVideoBackend(StreamResolutionResult resolution) {
 
   return true;
 }
+
+String? _currentSeriesId(PlaybackManager manager) {
+  final currentItem = manager.queueService.currentItem;
+  return currentItem is AggregatedItem ? currentItem.seriesId : null;
+}
+
+/// The audio picked for the item about to play only counts for its subtitles.
+/// The audio selector is handed that pick directly.
+SessionTrackChoices _sessionTrackChoices(
+  PlaybackManager manager, {
+  required bool includeExplicitAudio,
+}) => SessionTrackChoices(
+  explicitAudioIndex: includeExplicitAudio && manager.audioSelectionExplicit
+      ? manager.audioStreamIndex
+      : null,
+  audioLanguage: manager.lastExplicitAudioLanguage,
+  audioIndex: manager.lastExplicitAudioIndex,
+  audioTitle: manager.lastExplicitAudioTitle,
+  subtitleLanguage: manager.lastExplicitSubtitleLanguage,
+  subtitleEnabled: manager.lastExplicitSubtitleEnabled,
+);
 
 /// Why this client refuses to direct play [resolution], or null when it does
 /// not. Named rather than boolean because a client-side refusal leaves the
@@ -241,6 +266,9 @@ Future<List<dynamic>> _nextSeasonItemsProvider(
   int _,
 ) async {
   if (completedItem is! AggregatedItem) return const <dynamic>[];
+  // A server's shuffle grows by the item it picks next.
+  final shuffled = await ServerShuffleQueue.instance.extend(completedItem);
+  if (shuffled != null) return shuffled;
   if (!_isEpisodeQueueItem(completedItem)) return const <dynamic>[];
 
   final seriesId = completedItem.seriesId;
@@ -321,6 +349,37 @@ Future<List<dynamic>> _nextSeasonItemsProvider(
   } catch (_) {
     return const <dynamic>[];
   }
+}
+
+/// Writes a series' track choice through to a server that keeps one
+/// ([SeriesTrackPreferencesApi], Silo). Best effort: the device's
+/// own choice is already saved.
+void _rememberSeriesTrackOnServer(
+  dynamic item,
+  String seriesId,
+  int streamIndex, {
+  required bool subtitle,
+}) {
+  if (item is! AggregatedItem) return;
+  final Object? items;
+  try {
+    items = _resolveClientForServerId(item.serverId)?.itemsApi;
+  } catch (_) {
+    return;
+  }
+  if (items is! SeriesTrackPreferencesApi) return;
+  final write = subtitle
+      ? items.setSeriesSubtitleChoice(
+          seriesId,
+          itemId: item.id,
+          streamIndex: streamIndex,
+        )
+      : items.setSeriesAudioChoice(
+          seriesId,
+          itemId: item.id,
+          streamIndex: streamIndex,
+        );
+  write.catchError((Object _) {});
 }
 
 void registerPlaybackModule() {
@@ -407,9 +466,10 @@ void registerPlaybackModule() {
           : LogLevel.debug,
     );
   });
-  manager.autoBitrateProvider = AutoBitrateService(
-    _getIt<MediaServerClientFactory>(),
-  ).measuredBpsForActiveServer;
+  final autoBitrate = AutoBitrateService(_getIt<MediaServerClientFactory>());
+  manager
+    ..autoBitrateProvider = autoBitrate.measuredBpsForActiveServer
+    ..savedAutoBitrateProvider = autoBitrate.savedBpsForActiveServer;
 
   // The streams of one kind belonging to whatever is playing, or null when
   // that isn't an episode and so has no series to remember a choice for.
@@ -420,7 +480,11 @@ void registerPlaybackModule() {
     if (item is! AggregatedItem) return null;
     final seriesId = item.seriesId;
     if (seriesId == null || seriesId.isEmpty) return null;
-    final raw = item.rawData['MediaStreams'] as List? ?? const [];
+    // The picker's index points into the resolved streams; a queued or Next Up
+    // item often lists none of its own.
+    final raw = manager.currentResolution?.mediaStreams ??
+        item.rawData['MediaStreams'] as List? ??
+        const [];
     return (
       seriesId: seriesId,
       streams: raw
@@ -480,6 +544,12 @@ void registerPlaybackModule() {
     // leaves nothing to recognise it by later, so the last choice stays.
     if (pref.isEmpty) return;
     _getIt<UserPreferences>().setSeriesSubtitlePreference(series.seriesId, pref);
+    _rememberSeriesTrackOnServer(
+      manager.queueService.currentItem,
+      series.seriesId,
+      index,
+      subtitle: true,
+    );
   };
   manager.onAudioTrackSelected = (itemId, index) {
     final series = seriesStreams('audio');
@@ -490,6 +560,12 @@ void registerPlaybackModule() {
     );
     if (pref.isEmpty) return;
     _getIt<UserPreferences>().setSeriesAudioPreference(series.seriesId, pref);
+    _rememberSeriesTrackOnServer(
+      manager.queueService.currentItem,
+      series.seriesId,
+      index,
+      subtitle: false,
+    );
   };
 
   manager.setBackend(initialBackend);
@@ -615,38 +691,11 @@ void registerPlaybackModule() {
   manager.audioTrackSelector = (audioStreams, explicitIndex) {
     if (explicitIndex != null) return explicitIndex;
 
-    final currentItem = manager.queueService.currentItem;
-    if (currentItem is AggregatedItem &&
-        currentItem.seriesId != null &&
-        currentItem.seriesId!.isNotEmpty) {
-      final seriesAudioPref = prefs.getSeriesAudioPreference(
-        currentItem.seriesId!,
-      );
-      if (seriesAudioPref.isNotEmpty) {
-        final matchedIndex = matchSeriesTrackIndex(
-          streams: audioStreams,
-          pref: seriesAudioPref,
-        );
-        if (matchedIndex != null) return matchedIndex;
-      }
-    }
-
-    final preferredAudioLanguage =
-        manager.lastExplicitAudioLanguage ??
-        (prefs.get(UserPreferences.defaultAudioLanguage) as String? ?? 'auto');
-
-    return computeEffectiveAudioIndex(
+    return selectPlaybackAudioIndex(
       audioStreams: audioStreams,
-      preferredAudioLanguage: preferredAudioLanguage,
-      fallbackAudioLanguage:
-          prefs.get(UserPreferences.fallbackAudioLanguage) as String? ?? '',
-      preferDefaultAudioTrack:
-          prefs.get(UserPreferences.preferDefaultAudioTrack) as bool? ?? false,
-      preferAudioDescription:
-          prefs.get(UserPreferences.preferAudioDescription) as bool? ?? false,
-      explicitAudioIndex: explicitIndex,
-      lastExplicitAudioIndex: manager.lastExplicitAudioIndex,
-      lastExplicitAudioTitle: manager.lastExplicitAudioTitle,
+      prefs: prefs,
+      seriesId: _currentSeriesId(manager),
+      session: _sessionTrackChoices(manager, includeExplicitAudio: false),
     );
   };
 
@@ -654,88 +703,12 @@ void registerPlaybackModule() {
       .subtitleTrackSelector = (subtitleStreams, audioStreams, explicitIndex) {
     if (explicitIndex != null) return explicitIndex;
 
-    final currentItem = manager.queueService.currentItem;
-    String? seriesId;
-    if (currentItem is AggregatedItem) {
-      seriesId = currentItem.seriesId;
-    }
-
-    final seriesSubPref = seriesId != null && seriesId.isNotEmpty
-        ? prefs.getSeriesSubtitlePreference(seriesId)
-        : SeriesTrackPreference.empty;
-    if (seriesSubPref.isNone) return -1;
-    if (seriesSubPref.isNotEmpty) {
-      final matchedIndex = matchSeriesTrackIndex(
-        streams: subtitleStreams,
-        pref: seriesSubPref,
-      );
-      if (matchedIndex != null) return matchedIndex;
-    }
-
-    final effectiveAudioIndex = computeEffectiveAudioIndex(
-      audioStreams: audioStreams,
-      preferredAudioLanguage:
-          manager.lastExplicitAudioLanguage ??
-          (prefs.get(UserPreferences.defaultAudioLanguage) as String? ??
-              'auto'),
-      fallbackAudioLanguage:
-          prefs.get(UserPreferences.fallbackAudioLanguage) as String? ?? '',
-      preferDefaultAudioTrack:
-          prefs.get(UserPreferences.preferDefaultAudioTrack) as bool? ?? false,
-      preferAudioDescription:
-          prefs.get(UserPreferences.preferAudioDescription) as bool? ?? false,
-      explicitAudioIndex: manager.audioSelectionExplicit
-          ? manager.audioStreamIndex
-          : null,
-      lastExplicitAudioIndex: manager.lastExplicitAudioIndex,
-      lastExplicitAudioTitle: manager.lastExplicitAudioTitle,
-    );
-
-    final activeAudioStream = audioStreams.firstWhere(
-      (s) => s['Index'] == effectiveAudioIndex,
-      orElse: () => const <String, dynamic>{},
-    );
-    final activeAudioLanguage = activeAudioStream.isNotEmpty
-        ? activeAudioStream['Language'] as String?
-        : null;
-
-    var subtitleMode = manager.lastExplicitSubtitleEnabled == false
-        ? SubtitleMode.none
-        : prefs.get(UserPreferences.subtitleMode);
-
-    var preferredLanguage = manager.lastExplicitSubtitleLanguage;
-    // No track in this episode carries the remembered one, so fall back to its
-    // language and make sure subtitles are on to show it. A remembered track
-    // with no language tag has nothing to fall back to.
-    if (preferredLanguage == null && seriesSubPref.language.isNotEmpty) {
-      preferredLanguage = seriesSubPref.language;
-      if (subtitleMode == SubtitleMode.none) {
-        subtitleMode = SubtitleMode.always;
-      }
-    }
-
-    preferredLanguage ??=
-        (prefs.get(UserPreferences.defaultSubtitleLanguage) as String? ?? '');
-
-    return computeEffectiveSubtitleIndex(
+    return selectPlaybackSubtitleIndex(
       subtitleStreams: subtitleStreams,
-      selectedSubtitleIndex: null,
-      activePlaybackSubtitleIndex: null,
-      subtitleMode: subtitleMode,
-      preferredLanguage: preferredLanguage,
-      fallbackLanguage:
-          prefs.get(UserPreferences.fallbackSubtitleLanguage) as String? ?? '',
-      preferSdh:
-          prefs.get(UserPreferences.preferSdhSubtitles) as bool? ?? false,
-      preferTextSubtitles:
-          prefs.get(UserPreferences.preferTextSubtitles) as bool? ?? false,
-      preferExternalSubtitles:
-          prefs.get(UserPreferences.preferExternalSubtitles) as bool? ?? false,
-      pgsDirectPlay: prefs.get(UserPreferences.pgsDirectPlay) as bool? ?? false,
-      assDirectPlay: prefs.get(UserPreferences.assDirectPlay) as bool? ?? false,
-      preferredAudioLanguage:
-          prefs.get(UserPreferences.defaultAudioLanguage) as String? ?? 'auto',
-      activeAudioLanguage: activeAudioLanguage,
+      audioStreams: audioStreams,
+      prefs: prefs,
+      seriesId: _currentSeriesId(manager),
+      session: _sessionTrackChoices(manager, includeExplicitAudio: true),
     );
   };
 
@@ -750,6 +723,16 @@ void registerPlaybackModule() {
 
   _getIt.registerLazySingleton<SyncPlayManager>(
     () => SyncPlayManager(_getIt<PlaybackManager>(), _getIt<UserPreferences>()),
+  );
+  _getIt.registerLazySingleton<SiloWatchPartyManager>(
+    () => SiloWatchPartyManager(_getIt<PlaybackManager>()),
+  );
+  _getIt.registerLazySingleton<WatchPartyRoomsService>(
+    () => WatchPartyRoomsService(
+      _getIt<SiloWatchPartyManager>(),
+      _getIt<UserPreferences>(),
+      _getIt<SyncPlayManager>(),
+    ),
   );
 
   _getIt.registerLazySingleton<AudiobookBookmarksService>(
@@ -819,6 +802,10 @@ void setActiveStreamResolver(MediaServerClient client) {
       PlexMediaStreamResolver(client),
       PlexPlaySessionService(client),
     ),
+    ServerType.silo => () {
+      final p = siloPluginFor(client, environment: siloPlaybackEnvironment);
+      return (p.createStreamResolver(), p.createPlaySessionService());
+    }(),
   };
 
   // Local-first: completed downloads play from disk instead of streaming,
@@ -856,14 +843,22 @@ void setActiveStreamResolver(MediaServerClient client) {
 /// Smart downloads and the remove-watched rule react as soon as an item
 /// stops, rather than waiting for the server's debounced user data event or
 /// the next reconnect.
-void _onItemStopped(dynamic item) {
+void _onItemStopped(
+  dynamic item,
+  StreamResolutionResult resolution,
+  Duration position,
+) {
   if (item is! AggregatedItem) return;
   if (item.type == 'Episode' && _getIt.isRegistered<AutoDownloadService>()) {
     _getIt<AutoDownloadService>().onEpisodeStopped(item.serverId);
   }
   if (removeWatchedTypes.contains(item.type) &&
       _getIt.isRegistered<RemoveWatchedService>()) {
-    _getIt<RemoveWatchedService>().onItemStopped(item.id);
+    final removeWatched = _getIt<RemoveWatchedService>();
+    if (resolution.isLocalMedia) {
+      removeWatched.onDownloadStopped(item, position);
+    }
+    removeWatched.onItemStopped(item.id);
   }
   // Plex sends no user data events, so the new resume point and watched state
   // have to be asked for. Plex items don't name their server, so one without

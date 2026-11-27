@@ -11,6 +11,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/local_notification_bootstrap.dart';
 import '../../../data/services/plugin_sync_service.dart';
+import '../../../data/services/push_messaging_service.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/services/seerr/seerr_models.dart';
 import '../../../l10n/app_localizations.dart';
@@ -49,6 +50,12 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
   MoonfinStatusResponse? _seerrStatus;
   bool _statusLoading = false;
   bool _canManageRequests = false;
+  bool _sendingTestNotification = false;
+  final _push =
+      PlatformDetection.isMobile &&
+          GetIt.instance.isRegistered<PushMessagingService>()
+      ? GetIt.instance<PushMessagingService>()
+      : null;
   late List<SeerrRowConfig> _rows;
   final _focusNodes = <FocusNode>[];
 
@@ -77,6 +84,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
     }
     _rebuildFocusNodes();
     _syncService.addListener(_onSyncStateChanged);
+    _push?.addListener(_onPushStateChanged);
     _loadSeerrStatus(showLoading: true);
 
     _enableSeerrFocusNode.onKeyEvent = (node, event) {
@@ -115,6 +123,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
   @override
   void dispose() {
     _syncService.removeListener(_onSyncStateChanged);
+    _push?.removeListener(_onPushStateChanged);
     for (final n in _focusNodes) {
       n.dispose();
     }
@@ -122,6 +131,11 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
     _accountCardFocusNode.dispose();
     _refreshFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onPushStateChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _onSyncStateChanged() {
@@ -310,10 +324,33 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
   }
 
   Future<void> _pushNotificationPrefs() async {
-    if (!_syncService.pluginAvailable) return;
     if (!GetIt.instance.isRegistered<MediaServerClient>()) return;
     final client = GetIt.instance<MediaServerClient>();
     await _syncService.pushNotificationPrefs(client);
+  }
+
+  Future<void> _sendTestNotification() async {
+    if (_sendingTestNotification) return;
+    if (!GetIt.instance.isRegistered<MediaServerClient>()) return;
+    final client = GetIt.instance<MediaServerClient>();
+
+    setState(() => _sendingTestNotification = true);
+    try {
+      final result = await _syncService.sendTestNotification(client);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      final message = result == null || !result.success
+          ? l10n.seerrTestNotificationFailed
+          : result.pushEnabled
+          ? l10n.seerrTestNotificationSentBody(result.devicesCount)
+          : l10n.seerrTestNotificationPushDisabled;
+      ScaffoldMessenger.maybeOf(context)
+          ?.showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _sendingTestNotification = false);
+      }
+    }
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -476,7 +513,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
                 color: focused ? AppColors.black.withValues(alpha: 0.54) : null,
               ),
               title: Text(
-                l10n.enableSeerr,
+                seerrBrand(l10n.enableSeerr),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -486,7 +523,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
                 ),
               ),
               subtitle: Text(
-                l10n.showSeerrInNavigation,
+                seerrBrand(l10n.showSeerrInNavigation),
                 style: TextStyle(
                   fontSize: 12,
                   color: focused
@@ -501,13 +538,17 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
         else
           ListTile(
             leading: const Icon(Icons.movie_filter_outlined),
-            title: Text(l10n.enableSeerr),
-            subtitle: Text(l10n.seerrUnavailable),
+            title: Text(seerrBrand(l10n.enableSeerr)),
+            subtitle: Text(seerrBrand(l10n.seerrUnavailable)),
           ),
         if (showSeerrSettings)
           _SeerrLoginCard(
             status: _seerrStatus,
             statusLoading: _statusLoading,
+            plex:
+                GetIt.instance.isRegistered<MediaServerClient>() &&
+                GetIt.instance<MediaServerClient>().serverType ==
+                    ServerType.plex,
             onSignIn: _signInToSeerr,
             onSignOut: _signOutFromSeerr,
             firstFocusNode: _accountCardFocusNode,
@@ -582,7 +623,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
                 color: focused ? AppColors.black.withValues(alpha: 0.54) : null,
               ),
               title: Text(
-                l10n.showSeerrAvailabilityBadges,
+                seerrBrand(l10n.showSeerrAvailabilityBadges),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -606,6 +647,18 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
               onChanged: _setShowAvailabilityBadges,
             ),
           ),
+          if (_userPreferences.get(UserPreferences.showSeerrAvailabilityBadges))
+            EnumPreferenceTile<SeerrBadgeStyle>(
+              preference: UserPreferences.seerrBadgeStyle,
+              title: l10n.seerrBadgeStyle,
+              description: l10n.seerrBadgeStyleDescription,
+              icon: Icons.label_outline,
+              labelOf: (style) => switch (style) {
+                SeerrBadgeStyle.badge => l10n.seerrBadgeStyleBadge,
+                SeerrBadgeStyle.banner => l10n.bannerLabel,
+              },
+              onChanged: _pushSync,
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
             child: Align(
@@ -649,6 +702,70 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
             value: _seerrPrefs.notifyOnNewMedia,
             onChanged: _setNotifyOnNewMedia,
           ),
+          if (GetIt.instance.isRegistered<MediaServerClient>() &&
+              GetIt.instance<MediaServerClient>()
+                  .features
+                  .supportsPushNotifications) ...[
+            TvFocusHighlight(
+              builder: (context, focused) => ListTile(
+                leading: Icon(
+                  Icons.notification_add_outlined,
+                  color: focused
+                      ? AppColors.black.withValues(alpha: 0.54)
+                      : null,
+                ),
+                title: Text(
+                  l10n.seerrTestNotification,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: focused
+                        ? AppColors.black.withValues(alpha: 0.87)
+                        : AppColorScheme.onSurface,
+                  ),
+                ),
+                subtitle: Text(
+                  l10n.seerrTestNotificationDesc,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: focused
+                        ? AppColors.black.withValues(alpha: 0.54)
+                        : AppColorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                trailing: _sendingTestNotification
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                onTap: _sendingTestNotification ? null : _sendTestNotification,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 4,
+                children: [
+                  _buildPushStatus(
+                    l10n.seerrPushServerStatus,
+                    _syncService.pushSupported,
+                    l10n.enabled,
+                    l10n.unavailable,
+                  ),
+                  if (_push != null)
+                    _buildPushStatus(
+                      l10n.seerrPushDeviceStatus,
+                      _push.isRegistered,
+                      l10n.seerrPushDeviceRegistered,
+                      l10n.seerrPushDeviceNotRegistered,
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
         if (showSeerrSettings)
           Padding(
@@ -656,7 +773,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                l10n.discoverRows.toUpperCase(),
+                seerrBrand(l10n.discoverRows).toUpperCase(),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -672,13 +789,29 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 _syncService.pluginAvailable
-                    ? l10n.discoverRowsDescriptionPlugin
-                    : l10n.discoverRowsDescription,
+                    ? seerrBrand(l10n.discoverRowsDescriptionPlugin)
+                    : seerrBrand(l10n.discoverRowsDescription),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildPushStatus(
+    String label,
+    bool on,
+    String onText,
+    String offText,
+  ) {
+    final theme = Theme.of(context);
+    return Text(
+      '$label: ${on ? onText : offText}',
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: on ? theme.colorScheme.primary : theme.colorScheme.outline,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 
@@ -847,9 +980,14 @@ class _SeerrLoginCard extends StatefulWidget {
   final FocusNode firstFocusNode;
   final VoidCallback onMoveUp;
 
+  /// Signs in with the Plex account signed in to the app instead of a
+  /// Jellyfin username and password.
+  final bool plex;
+
   const _SeerrLoginCard({
     required this.status,
     required this.statusLoading,
+    this.plex = false,
     required this.onSignIn,
     required this.onSignOut,
     required this.firstFocusNode,
@@ -879,9 +1017,13 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
   final _usernameTvFieldKey = GlobalKey<CustomTVTextFieldState>();
   final _passwordTvFieldKey = GlobalKey<CustomTVTextFieldState>();
 
-  String _authType = 'jellyfin';
+  late String _authType = _firstAuthType;
   bool _submitting = false;
   String? _errorMessage;
+
+  String get _firstAuthType => widget.plex ? 'plex' : 'jellyfin';
+
+  bool get _needsCredentials => _authType != 'plex';
 
   BoxDecoration _boxDecoration(BuildContext context, {required bool focused}) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -917,7 +1059,8 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
   }
 
   bool get _canSignIn {
-    return !_submitting && _usernameController.text.trim().isNotEmpty;
+    return !_submitting &&
+        (!_needsCredentials || _usernameController.text.trim().isNotEmpty);
   }
 
   @override
@@ -1136,7 +1279,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       if (leftFocus != null) {
         leftFocus.requestFocus();
-        _setAuthType('jellyfin');
+        _setAuthType(_firstAuthType);
       }
       return KeyEventResult.handled;
     }
@@ -1153,7 +1296,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _usernameFocus.requestFocus();
+      (_needsCredentials ? _usernameFocus : _signInFocus).requestFocus();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -1166,7 +1309,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
   KeyEventResult _onJellyfinAuthKey(FocusNode node, KeyEvent event) {
     return _onAuthOptionKey(
       event,
-      currentAuthType: 'jellyfin',
+      currentAuthType: _firstAuthType,
       rightFocus: _localAuthFocus,
     );
   }
@@ -1207,7 +1350,8 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _passwordFocus.requestFocus();
+      (_needsCredentials ? _passwordFocus : widget.firstFocusNode)
+          .requestFocus();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -1408,8 +1552,8 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
           child: FocusTraversalOrder(
             order: const NumericFocusOrder(0),
             child: _buildAuthOption(
-              authType: 'jellyfin',
-              label: l10n.jellyfinAccount,
+              authType: _firstAuthType,
+              label: widget.plex ? l10n.signInWithPlex : l10n.jellyfinAccount,
               focusNode: widget.firstFocusNode,
               onKeyEvent: PlatformDetection.isTV ? _onJellyfinAuthKey : null,
             ),
@@ -1441,7 +1585,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
             height: 20,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          title: Text(l10n.seerrAccountType),
+          title: Text(seerrBrand(l10n.seerrAccountType)),
           subtitle: Text(l10n.signIn),
         ),
       ),
@@ -1454,8 +1598,8 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
       child: Card(
         child: ListTile(
           leading: const Icon(Icons.movie_filter_outlined),
-          title: Text(l10n.seerr),
-          subtitle: Text(l10n.seerrUnavailable),
+          title: Text(seerrBrand(l10n.seerr)),
+          subtitle: Text(seerrBrand(l10n.seerrUnavailable)),
         ),
       ),
     );
@@ -1469,7 +1613,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
     final displayName = status.displayName?.trim();
     final username = (displayName != null && displayName.isNotEmpty)
         ? displayName
-        : l10n.seerr;
+        : seerrBrand(l10n.seerr);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
@@ -1490,7 +1634,7 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            l10n.seerrAccountType,
+                            seerrBrand(l10n.seerrAccountType),
                             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                               color: colorScheme.onSurface.withValues(alpha: 0.82),
                               fontWeight: FontWeight.w600,
@@ -1624,51 +1768,53 @@ class _SeerrLoginCardState extends State<_SeerrLoginCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  l10n.seerrAccountType,
+                  seerrBrand(l10n.seerrAccountType),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 14),
                 _buildAuthTypeSelector(l10n),
-                const SizedBox(height: 12),
-                FocusTraversalOrder(
-                  order: const NumericFocusOrder(1),
-                  child: _buildCredentialsField(
-                    label: isLocalAuth ? l10n.email : l10n.username,
-                    controller: _usernameController,
-                    focusNode: _usernameFocus,
-                    tvFieldKey: _usernameTvFieldKey,
-                    tvType: TextFieldType.other,
-                    obscureText: false,
-                    textInputAction: TextInputAction.next,
-                    keyboardType: isLocalAuth
-                        ? TextInputType.emailAddress
-                        : TextInputType.text,
-                    autofillHints: [
-                      if (isLocalAuth)
-                        AutofillHints.email
-                      else
-                        AutofillHints.username,
-                    ],
-                    onSubmitted: () => _passwordFocus.requestFocus(),
-                    onTvKey: _onUsernameKey,
+                if (_needsCredentials) ...[
+                  const SizedBox(height: 12),
+                  FocusTraversalOrder(
+                    order: const NumericFocusOrder(1),
+                    child: _buildCredentialsField(
+                      label: isLocalAuth ? l10n.email : l10n.username,
+                      controller: _usernameController,
+                      focusNode: _usernameFocus,
+                      tvFieldKey: _usernameTvFieldKey,
+                      tvType: TextFieldType.other,
+                      obscureText: false,
+                      textInputAction: TextInputAction.next,
+                      keyboardType: isLocalAuth
+                          ? TextInputType.emailAddress
+                          : TextInputType.text,
+                      autofillHints: [
+                        if (isLocalAuth)
+                          AutofillHints.email
+                        else
+                          AutofillHints.username,
+                      ],
+                      onSubmitted: () => _passwordFocus.requestFocus(),
+                      onTvKey: _onUsernameKey,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                FocusTraversalOrder(
-                  order: const NumericFocusOrder(2),
-                  child: _buildCredentialsField(
-                    label: l10n.password,
-                    controller: _passwordController,
-                    focusNode: _passwordFocus,
-                    tvFieldKey: _passwordTvFieldKey,
-                    tvType: TextFieldType.password,
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                    keyboardType: TextInputType.visiblePassword,
-                    onSubmitted: _submitSignIn,
-                    onTvKey: _onPasswordKey,
+                  const SizedBox(height: 12),
+                  FocusTraversalOrder(
+                    order: const NumericFocusOrder(2),
+                    child: _buildCredentialsField(
+                      label: l10n.password,
+                      controller: _passwordController,
+                      focusNode: _passwordFocus,
+                      tvFieldKey: _passwordTvFieldKey,
+                      tvType: TextFieldType.password,
+                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      keyboardType: TextInputType.visiblePassword,
+                      onSubmitted: _submitSignIn,
+                      onTvKey: _onPasswordKey,
+                    ),
                   ),
-                ),
+                ],
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 10),
                   Text(

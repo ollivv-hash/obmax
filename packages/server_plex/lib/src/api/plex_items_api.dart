@@ -60,6 +60,10 @@ class PlexItemsApi implements ItemsApi {
     },
   };
 
+  // Plex leaves the TMDB, IMDb and TVDB ids out of a list unless asked.
+  static bool _wantsGuids(String? fields) =>
+      fields != null && fields.split(',').contains('ProviderIds');
+
   static String? _keyOf(String? id, String prefix) =>
       id != null && id.startsWith(prefix) ? id.substring(prefix.length) : null;
 
@@ -115,6 +119,7 @@ class PlexItemsApi implements ItemsApi {
     bool? isHd,
     bool? is4K,
     bool? is3D,
+    bool? enableUserData,
   }) async {
     // A filter Plex can't apply answers with nothing, since ignoring it
     // would show items the filter was meant to leave out.
@@ -126,7 +131,6 @@ class PlexItemsApi implements ItemsApi {
         [
           nameStartsWith,
           nameLessThan,
-          minPremiereDate,
           maxOfficialRating,
           hasParentalRating,
           anyProviderIdEquals,
@@ -148,6 +152,7 @@ class PlexItemsApi implements ItemsApi {
       final container = await plexContainer(
         _dio,
         '/library/metadata/${ids.join(',')}',
+        {if (_wantsGuids(fields)) 'includeGuids': 1},
       );
       return plexItemsResult(_items(container['Metadata']));
     }
@@ -181,6 +186,7 @@ class PlexItemsApi implements ItemsApi {
       final container = await plexContainer(_dio, '/hubs/search', {
         'query': searchTerm,
         'includeCollections': 1,
+        if (_wantsGuids(fields)) 'includeGuids': 1,
         'limit': ?limit,
       });
       final matches = _items([
@@ -213,6 +219,11 @@ class PlexItemsApi implements ItemsApi {
               types.contains(plexTypeNumbers['Audio']));
       path = '/library/metadata/$parent/${leaves ? 'allLeaves' : 'children'}';
     }
+
+    // Plex can't filter by premiere date, so the floor is applied to what it
+    // sends. A show's episodes come oldest first, so all of them are read
+    // before the page is cut, while a library is paged by Plex.
+    final pagedByPlex = minPremiereDate == null || path.endsWith('/all');
 
     // Later fields only break ties, so the sort stops at the first one Plex
     // can't do. With nothing left, Plex keeps its own order, which is disc
@@ -247,16 +258,36 @@ class PlexItemsApi implements ItemsApi {
       else if (isHd != null)
         'resolution': isHd ? '720,1080,4k' : 'sd,480,576',
       if (isFavorite == true) 'userRating': '$plexFavoriteRating',
-      ..._paging(startIndex, limit),
+      if (_wantsGuids(fields)) 'includeGuids': 1,
+      if (pagedByPlex) ..._paging(startIndex, limit),
     });
 
     // Children and leaves come back unfiltered, so the type check happens here.
-    final items = _ofTypes(_items(container['Metadata']), includeItemTypes);
+    final typed = _ofTypes(_items(container['Metadata']), includeItemTypes);
+    final items = minPremiereDate == null
+        ? typed
+        : [
+            for (final item in typed)
+              if (_premieredSince(item, minPremiereDate)) item,
+          ];
+    if (!pagedByPlex) {
+      final start = startIndex ?? 0;
+      return plexItemsResult(
+        items.skip(start).take(limit ?? items.length).toList(),
+        total: items.length,
+        startIndex: start,
+      );
+    }
     return plexItemsResult(
       items,
-      total: container['totalSize'] as int?,
+      total: minPremiereDate == null ? container['totalSize'] as int? : null,
       startIndex: startIndex ?? 0,
     );
+  }
+
+  static bool _premieredSince(Map<String, dynamic> item, DateTime floor) {
+    final premiered = DateTime.tryParse(item['PremiereDate'] as String? ?? '');
+    return premiered != null && !premiered.isBefore(floor);
   }
 
   /// The values a library's filter picker offers, read from Plex's own lists
@@ -496,7 +527,7 @@ class PlexItemsApi implements ItemsApi {
     final container = await plexContainer(
       _dio,
       '/library/sections/$sectionKey/recentlyAdded',
-      _paging(0, limit ?? 20),
+      {..._paging(0, limit ?? 20), if (_wantsGuids(fields)) 'includeGuids': 1},
     );
     return {'Items': _items(container['Metadata'])};
   }
@@ -510,9 +541,11 @@ class PlexItemsApi implements ItemsApi {
     String? enableImageTypes,
     int? imageTypeLimit,
     bool recursive = false,
+    bool? hideWatched,
   }) => getItems(
     parentId: parentId,
     includeItemTypes: includeItemTypes,
+    filters: hideWatched == true ? const ['IsUnplayed'] : null,
     sortBy: 'PremiereDate',
     sortOrder: 'Descending',
     limit: limit,
@@ -633,6 +666,7 @@ class PlexItemsApi implements ItemsApi {
     String playlistId, {
     int? startIndex,
     int? limit,
+    String? fields,
   }) async {
     final container = await plexContainer(
       _dio,

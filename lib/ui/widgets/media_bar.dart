@@ -23,6 +23,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../data/models/media_bar_slide_item.dart';
 import '../../data/models/media_bar_state.dart';
+import '../../data/repositories/item_mutation_repository.dart';
 import '../../data/services/background_service.dart';
 import '../../data/services/media_server_client_factory.dart';
 import '../../data/services/sponsorblock_service.dart';
@@ -44,14 +45,21 @@ import '../../playback/html_video_backend_profile.dart';
 import '../../playback/inline_preview_engine.dart';
 import '../../playback/media3_player_backend.dart';
 import '../../playback/mpv_client_certificate.dart';
+import '../../playback/mpv_player_registry.dart';
+import '../../playback/silo_plugin_for.dart';
 import 'bounded_network_image.dart';
 import 'fullscreen_backdrop_switcher.dart';
+import 'home_row_spacing.dart';
 import 'navigation_layout.dart';
 import 'mediabar/bookshelf_layout.dart';
 import 'mediabar/aya_media_bar.dart';
 import 'mediabar/gallery_coverflow.dart';
 import 'mediabar/gallery_layout.dart';
+import 'mediabar/media_bar_nav_arrow.dart';
 import 'mediabar/media_bar_status_focus.dart';
+import 'mediabar/media_bar_new_release_label.dart';
+import 'mediabar/makd_classic.dart';
+import 'mediabar/mobile_chrome_insets.dart';
 import 'mediabar/media_bar_title.dart';
 import 'rating_display.dart';
 import 'web_local_trailer.dart';
@@ -222,7 +230,12 @@ class _MediaBarState extends State<MediaBar>
   int _embedFailuresInARow = 0;
   bool _sponsorBlockSeekInFlight = false;
   int _sponsorBlockToken = 0;
-  String? _lastSyncedMakdBackdropUrl;
+  bool _makdFocused = false;
+  bool _makdHovered = false;
+  int _makdButton = 0;
+  double _makdDragDx = 0;
+  final Map<String, bool> _makdFavorites = {};
+  String? _dismissedTrailerItemId;
   int? _media3PlatformViewId;
   bool _bookshelfLoadingOverlay = false;
   bool _galleryLoadingOverlay = false;
@@ -233,10 +246,35 @@ class _MediaBarState extends State<MediaBar>
   late bool _lastHardwareDecodingEnabled;
   late bool _lastUseMedia3TrailerEngine;
 
-  bool get _hideLeftNavArrowForSidebar {
-    if (PlatformDetection.useMobileUi) return false;
-    return widget.prefs.get(UserPreferences.navbarPosition) ==
-        NavbarPosition.left;
+  // The left sidebar is drawn over the media bar, so content starts past it.
+  double get _sidebarInset =>
+      !PlatformDetection.useMobileUi &&
+          widget.prefs.get(UserPreferences.navbarPosition) ==
+              NavbarPosition.left
+      ? 56.0
+      : 0.0;
+
+  /// Fades the backdrop out toward the bar's bottom edge, so the rows below
+  /// it, or one peeking up into it, meet a soft fade instead of a hard line.
+  /// Desktop and web only, since the mask redraws with every frame of the
+  /// backdrop's slow zoom.
+  Widget _fadeBackdropBottom(Widget backdrop) {
+    if (!PlatformDetection.useDesktopUi) return backdrop;
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) {
+        final fade = widget.rowPeek > 0
+            ? widget.rowPeek * 1.5
+            : bounds.height * 0.2;
+        return LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [Colors.white, Colors.transparent],
+          stops: [(1 - fade / bounds.height).clamp(0.0, 1.0), 1.0],
+        ).createShader(bounds);
+      },
+      child: backdrop,
+    );
   }
 
   Color _mediaBarOverlayColor() {
@@ -326,9 +364,9 @@ class _MediaBarState extends State<MediaBar>
     try {
       await _appleTvTrailerPlayer?.stop();
     } catch (_) {}
-    try {
-      await _media3TrailerBackend?.release();
-    } catch (_) {}
+    // _cancelTrailerPreview released Media3 if the trailer owned it. The
+    // backend is shared with main playback, which is what revokes the
+    // trailer, so releasing it again here would stop that playback.
   }
 
   @override
@@ -527,6 +565,7 @@ class _MediaBarState extends State<MediaBar>
 
     if (state is MediaBarReady && !_readyHooksAppliedForCurrentLoad) {
       _readyHooksAppliedForCurrentLoad = true;
+      _makdFavorites.clear();
       _prefetchAround(state.items, _currentIndex);
       _prefetchAllInBackground(state.items, _currentIndex);
       if (_isGalleryMode()) {
@@ -541,10 +580,15 @@ class _MediaBarState extends State<MediaBar>
         state is MediaBarReady &&
         state.items.isNotEmpty) {
       _startAutoAdvance();
-      if (_activeTrailerItemId == null && _currentIndex < state.items.length) {
-        _scheduleTrailerPreview(state.items[_currentIndex]);
+      final current = state.items.elementAtOrNull(_currentIndex);
+      // A new set can put another title under a trailer that is still playing.
+      if (_activeTrailerItemId != null &&
+          _activeTrailerItemId != current?.itemId) {
+        _cancelTrailerPreview(retainYouTubePlayer: true);
       }
-      _syncMakdBackdropWithCurrentSlide();
+      if (_activeTrailerItemId == null && current != null) {
+        _scheduleTrailerPreview(current);
+      }
     }
   }
 
@@ -574,42 +618,13 @@ class _MediaBarState extends State<MediaBar>
     }
   }
 
-  void _syncMakdBackdropWithCurrentSlide() {
-    if (!_isHomeRouteActive) return;
+  bool _isMakdMode() =>
+      UserPreferences.normalizeMediaBarMode(
+        widget.prefs.get(UserPreferences.mediaBarMode),
+      ) ==
+      UserPreferences.mediaBarModeMakd;
 
-    final mode = UserPreferences.normalizeMediaBarMode(
-      widget.prefs.get(UserPreferences.mediaBarMode),
-    );
-    if (mode != UserPreferences.mediaBarModeMakd) {
-      _lastSyncedMakdBackdropUrl = null;
-      return;
-    }
-
-    final items = widget.viewModel.items;
-    if (_currentIndex >= items.length) return;
-
-    final backdropUrl = items[_currentIndex].backdropUrl;
-    if (backdropUrl == null || backdropUrl.isEmpty) return;
-
-    if (_lastSyncedMakdBackdropUrl == backdropUrl ||
-        _backgroundService.currentUrl == backdropUrl) {
-      return;
-    }
-
-    _backgroundService.setBackgroundUrl(
-      backdropUrl,
-      context: BlurContext.browsing,
-    );
-    _lastSyncedMakdBackdropUrl = backdropUrl;
-  }
-
-  bool _isMakdMobileMode() {
-    if (!PlatformDetection.useMobileUi) return false;
-    final mode = UserPreferences.normalizeMediaBarMode(
-      widget.prefs.get(UserPreferences.mediaBarMode),
-    );
-    return mode == UserPreferences.mediaBarModeMakd;
-  }
+  bool _isMakdMobileMode() => PlatformDetection.useMobileUi && _isMakdMode();
 
   bool _isAyaMobileMode() {
     if (!PlatformDetection.useMobileUi) return false;
@@ -751,7 +766,6 @@ class _MediaBarState extends State<MediaBar>
     if (!_isHomeRouteActive) {
       _autoAdvanceTimer?.cancel();
       _cancelTrailerPreview();
-      _lastSyncedMakdBackdropUrl = null;
       return;
     }
 
@@ -764,7 +778,6 @@ class _MediaBarState extends State<MediaBar>
     if (_currentIndex < items.length) {
       _scheduleTrailerPreview(items[_currentIndex]);
     }
-    _syncMakdBackdropWithCurrentSlide();
   }
 
   void _startAutoAdvance() {
@@ -813,39 +826,20 @@ class _MediaBarState extends State<MediaBar>
   List<Widget> _buildNavArrows(
     BuildContext context,
     int itemCount, {
-    double nextRightInset = 0,
-  }) {
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final prevArrow = _NavArrow(
-      icon: Icons.chevron_left,
-      onTap: _currentIndex > 0 ? () => _goToPage(_currentIndex - 1) : null,
-    );
-    final nextArrow = _NavArrow(
-      icon: Icons.chevron_right,
-      onTap: () => _goToPage((_currentIndex + 1) % itemCount),
-    );
-    final leftArrow = isRtl ? nextArrow : prevArrow;
-    final rightArrow = isRtl ? prevArrow : nextArrow;
-    return [
-      if (!_hideLeftNavArrowForSidebar)
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: widget.rowPeek,
-          child: Center(child: leftArrow),
-        ),
-      Positioned(
-        right: nextRightInset,
-        top: 0,
-        bottom: widget.rowPeek,
-        child: Center(child: rightArrow),
-      ),
-    ];
-  }
+    double leftInset = 0,
+    double rightInset = 0,
+  }) => mediaBarNavArrows(
+    context,
+    onPrevious: _currentIndex > 0 ? () => _goToPage(_currentIndex - 1) : null,
+    onNext: () => _goToPage((_currentIndex + 1) % itemCount),
+    leftInset: leftInset,
+    rightInset: rightInset,
+    bottomInset: widget.rowPeek,
+  );
 
   void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
-    _syncMakdBackdropWithCurrentSlide();
+    _dismissedTrailerItemId = null;
     _startAutoAdvance();
     // Keep the booted WebView across the slide change so the next YouTube
     // trailer starts fast.
@@ -965,7 +959,8 @@ class _MediaBarState extends State<MediaBar>
     if (_screensaverController.visible.value) {
       return;
     }
-    if (_isTrailerBlockedByFailure(item.itemId)) {
+    if (_isTrailerBlockedByFailure(item.itemId) ||
+        item.itemId == _dismissedTrailerItemId) {
       return;
     }
     if (_activeTrailerItemId == item.itemId && _trailerVideoOpacity > 0) {
@@ -1021,7 +1016,7 @@ class _MediaBarState extends State<MediaBar>
     // Media3 is a shared singleton (also drives row previews); only release it
     // when the trailer owned it.
     if (wasUsingMedia3) {
-      unawaited(_media3TrailerBackend?.release());
+      unawaited(_media3TrailerBackend?.release(previewOnly: true));
     }
     _activeTrailerItemId = null;
     _pendingTrailerItemId = null;
@@ -1106,7 +1101,7 @@ class _MediaBarState extends State<MediaBar>
     List<Map<String, dynamic>> remoteTrailers = item.remoteTrailers;
     // Plex items never carry trailer links, so there's nothing to fetch and
     // one is searched for instead.
-    if (client.serverType == ServerType.plex) {
+    if (!client.features.supportsRemoteTrailers) {
       if (streamUrl == null) {
         final url = await YouTubeStreamResolver.searchTrailer(
           item.title,
@@ -1557,7 +1552,7 @@ class _MediaBarState extends State<MediaBar>
     final existing = _trailerPlayer;
     if (existing != null) return existing;
 
-    final player = Player(
+    final player = MpvPlayerRegistry.instance.create(
       configuration: const PlayerConfiguration(libass: false),
     );
     _trailerPlayer = player;
@@ -1617,7 +1612,9 @@ class _MediaBarState extends State<MediaBar>
     _trailerPlayer = null;
     _trailerController = null;
     await player?.stop();
-    player?.dispose();
+    if (player != null) {
+      unawaited(MpvPlayerRegistry.instance.dispose(player));
+    }
   }
 
   void _clearSponsorBlockTracking() {
@@ -1846,6 +1843,7 @@ class _MediaBarState extends State<MediaBar>
       ServerType.jellyfin => JellyfinPlugin(client).createStreamResolver(),
       ServerType.emby => EmbyPlugin(client).createStreamResolver(),
       ServerType.plex => PlexMediaStreamResolver(client),
+      ServerType.silo => siloPluginFor(client).createStreamResolver(),
     };
   }
 
@@ -2036,9 +2034,8 @@ class _MediaBarState extends State<MediaBar>
         isMobile &&
         (widget.prefs.get(UserPreferences.navbarPosition) ==
             NavbarPosition.top);
-    final toolbarInset = navbarAtTop
-        ? MediaQuery.of(context).padding.top + 60.0
-        : 0.0;
+    final chrome = mobileChromeInsets(context, widget.prefs, widget.height);
+    final toolbarInset = navbarAtTop ? chrome.top : 0.0;
     final hasVisibleTrailerVideo =
         (_activeYouTubeVideoId != null ||
             _activeWebTrailerUrl != null ||
@@ -2069,15 +2066,14 @@ class _MediaBarState extends State<MediaBar>
                   AnimatedOpacity(
                     opacity: hasVisibleTrailerVideo ? 0 : 1,
                     duration: const Duration(milliseconds: 250),
-                    child: _BackdropLayer(
-                      items: items,
-                      currentIndex: _currentIndex,
+                    child: _fadeBackdropBottom(
+                      _BackdropLayer(items: items, currentIndex: _currentIndex),
                     ),
                   ),
                   ..._buildVideoOverlays(allowPersistentMedia3: true),
                   if (items.length > 1 && !_isTrailerPlaying)
                     Positioned(
-                      bottom: 8 + widget.rowPeek,
+                      bottom: 8 + widget.rowPeek + chrome.bottom,
                       left: 0,
                       right: 0,
                       child: _IndicatorDots(
@@ -2093,14 +2089,33 @@ class _MediaBarState extends State<MediaBar>
                       left: logoLeftInset,
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: SizedBox(
+                        child: Column(
                           key: ValueKey('logo_${currentItem.itemId}'),
-                          width: MediaBar.logoBoxWidth,
-                          height: 120,
-                          child: _buildLogoWithShadow(
-                            currentItem.logoUrl,
-                            currentItem.title,
-                          ),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: MediaBar.logoBoxWidth,
+                              height: 120,
+                              child: _buildLogoWithShadow(
+                                currentItem.logoUrl,
+                                currentItem.title,
+                              ),
+                            ),
+                            if (currentItem.newRelease case final release?) ...[
+                              const SizedBox(height: 8),
+                              // Wider than the logo, so the label still fits
+                              // on one row in a longer language.
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: MediaBar.logoBoxWidth * 1.6,
+                                ),
+                                child: MediaBarNewReleaseLine(
+                                  release: release,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
@@ -2113,7 +2128,7 @@ class _MediaBarState extends State<MediaBar>
                         duration: const Duration(milliseconds: 200),
                         bottom: NavigationLayout.trailerHidesChrome
                             ? 0
-                            : widget.rowPeek,
+                            : widget.rowPeek + chrome.bottom,
                         left: 0,
                         right: 0,
                         child: child!,
@@ -2160,6 +2175,8 @@ class _MediaBarState extends State<MediaBar>
                                 ),
                               _SlideInfo(
                                 item: currentItem,
+                                // Desktop and TV carry it under the logo.
+                                showRelease: isMobile && !isTablet,
                                 ratings: widget.viewModel.ratingsFor(
                                   currentItem.itemId,
                                 ),
@@ -2187,7 +2204,11 @@ class _MediaBarState extends State<MediaBar>
                       ),
                     ),
                   if (items.length > 1 && !PlatformDetection.useMobileUi)
-                    ..._buildNavArrows(context, items.length),
+                    ..._buildNavArrows(
+                      context,
+                      items.length,
+                      leftInset: _sidebarInset,
+                    ),
                 ],
               ),
             ),
@@ -2201,304 +2222,286 @@ class _MediaBarState extends State<MediaBar>
     BuildContext context,
     List<MediaBarSlideItem> items,
   ) {
-    final currentItem = items.elementAtOrNull(_currentIndex);
-    final currentRatings = currentItem == null
-        ? const <String, double>{}
-        : widget.viewModel.ratingsFor(currentItem.itemId);
-    final overlayColor = _mediaBarOverlayColor();
-    final overlayOpacity = _mediaBarOverlayOpacity();
-    final isMobile = PlatformDetection.useMobileUi;
-    final navbarAtTop =
-        isMobile &&
-        (widget.prefs.get(UserPreferences.navbarPosition) ==
-            NavbarPosition.top);
-    final toolbarInset = navbarAtTop
-        ? MediaQuery.of(context).padding.top + 60.0
-        : 0.0;
-    final effectiveTopInset = isMobile ? 0.0 : toolbarInset;
-    final visibleFraction =
-        1 - widget.rowPeek / (widget.height - effectiveTopInset);
-    final contentWidth = (MediaQuery.of(context).size.width * 0.42).clamp(
-      280.0,
-      560.0,
+    final m = MakdMetrics(
+      Size(MediaQuery.sizeOf(context).width, widget.height),
+      rowPeek: widget.rowPeek,
+      topInset: mobileChromeInsets(context, widget.prefs, widget.height).top,
     );
-    final hasVisibleTrailerVideo =
+    final item = items.elementAtOrNull(_currentIndex);
+    final trailerShown =
         (_activeYouTubeVideoId != null ||
             _activeWebTrailerUrl != null ||
             _trailerUsingMedia3 ||
             _trailerController != null) &&
         _trailerVideoOpacity > 0;
+    final buttons = item == null ? const <MakdButton>[] : makdButtonsFor(item);
+    final ring =
+        _makdFocused &&
+            buttons.isNotEmpty &&
+            FocusManager.instance.highlightMode ==
+                FocusHighlightMode.traditional
+        ? buttons[_makdButton.clamp(0, buttons.length - 1)]
+        : null;
+    final dots = MakdDots(count: items.length, current: _currentIndex, m: m);
 
     return MouseRegion(
-      onEnter: (_) => _setPaused(true),
-      onExit: (_) => _setPaused(false),
+      onEnter: (_) {
+        _setPaused(true);
+        setState(() => _makdHovered = true);
+      },
+      onExit: (_) {
+        _setPaused(false);
+        setState(() => _makdHovered = false);
+      },
       child: Focus(
         focusNode: widget.focusNode,
         autofocus: widget.focusNode == null && PlatformDetection.useLeanbackUi,
         skipTraversal: true,
-        onFocusChange: _handleFocusChange,
+        onFocusChange: (focused) {
+          _handleFocusChange(focused);
+          setState(() {
+            _makdFocused = focused;
+            if (focused) _makdButton = 0;
+          });
+        },
         onKeyEvent: (node, event) => _handleKeyEvent(event, items),
         child: GestureDetector(
           onTap: () => _navigateToItem(context, items),
-          onLongPress: () => _navigateToItemAndPlay(context, items),
-          onHorizontalDragEnd: isMobile
+          onLongPress: item == null || item.isExternal
+              ? null
+              : () => _navigateToItemAndPlay(context, items),
+          onHorizontalDragStart: PlatformDetection.useMobileUi
+              ? (_) => _makdDragDx = 0
+              : null,
+          onHorizontalDragUpdate: PlatformDetection.useMobileUi
+              ? (details) => _makdDragDx += details.delta.dx
+              : null,
+          // A fling or 50 px of travel turns the slide, as the original's
+          // swipe does.
+          onHorizontalDragEnd: PlatformDetection.useMobileUi
               ? (details) {
                   final velocity = details.primaryVelocity ?? 0;
-                  if (velocity < -300 && _currentIndex < items.length - 1) {
+                  if ((velocity < -300 || _makdDragDx < -50) &&
+                      _currentIndex < items.length - 1) {
                     _goToPage(_currentIndex + 1);
-                  } else if (velocity > 300 && _currentIndex > 0) {
+                  } else if ((velocity > 300 || _makdDragDx > 50) &&
+                      _currentIndex > 0) {
                     _goToPage(_currentIndex - 1);
                   }
                 }
               : null,
-          child: Padding(
-            padding: EdgeInsets.only(top: effectiveTopInset),
-            child: SizedBox(
-              height: widget.height - effectiveTopInset,
-              width: double.infinity,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (!isMobile)
-                    AnimatedOpacity(
-                      opacity: hasVisibleTrailerVideo ? 0 : 1,
+          child: SizedBox(
+            height: widget.height,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // A trailer plays full screen, with the art, the wash and the
+                // text all stepped aside.
+                AnimatedOpacity(
+                  opacity: trailerShown ? 0 : 1,
+                  duration: const Duration(milliseconds: 250),
+                  child: _BackdropLayer(
+                    items: items,
+                    currentIndex: _currentIndex,
+                    alignment: const Alignment(0, -0.6),
+                    crossfade: const Duration(milliseconds: 500),
+                    zoomDuration: const Duration(seconds: 12),
+                    decorate: (image) => MakdSlideIn(blur: !m.tv, child: image),
+                  ),
+                ),
+                ..._buildVideoOverlays(allowPersistentMedia3: true),
+                AnimatedOpacity(
+                  opacity: _isTrailerPlaying ? 0 : 1,
+                  duration: const Duration(milliseconds: 250),
+                  child: MakdWash(
+                    flat: m.touchPortrait,
+                    color: _mediaBarOverlayColor(),
+                    opacity: _mediaBarOverlayOpacity(),
+                  ),
+                ),
+                if (item != null)
+                  Positioned(
+                    left: m.touchPortrait
+                        ? (m.w - m.contentWidth) / 2
+                        : m.gutter + _sidebarInset,
+                    width: m.contentWidth,
+                    bottom: widget.height - m.contentBottom,
+                    child: AnimatedOpacity(
+                      opacity: _isTrailerPlaying ? 0 : 1,
                       duration: const Duration(milliseconds: 250),
-                      child: _BackdropLayer(
-                        items: items,
-                        currentIndex: _currentIndex,
-                        zoomDuration: Duration(
-                          milliseconds: widget.prefs.get(
-                            UserPreferences.mediaBarIntervalMs,
+                      child: IgnorePointer(
+                        ignoring: _isTrailerPlaying,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          layoutBuilder: (current, previous) => Stack(
+                            alignment: m.touchPortrait
+                                ? Alignment.bottomCenter
+                                : Alignment.bottomLeft,
+                            children: [...previous, ?current],
+                          ),
+                          child: MakdContent(
+                            key: ValueKey('makd_content_${item.itemId}'),
+                            item: item,
+                            m: m,
+                            ratings: widget.viewModel.ratingsFor(item.itemId),
+                            enableAdditionalRatings: widget.prefs.get(
+                              UserPreferences.mediaBarEnableAdditionalRatings,
+                            ),
+                            enabledRatings: widget.prefs.get(
+                              UserPreferences.mediaBarEnabledRatings,
+                            ),
+                            use24Hour: widget.prefs.get(
+                              UserPreferences.use24HourClock,
+                            ),
+                            isFavorite: _isMakdFavorite(item),
+                            focused: ring,
+                            onPressed: (button) =>
+                                _pressMakdButton(context, items, item, button),
                           ),
                         ),
                       ),
                     ),
-                  if (!isMobile)
-                    ..._buildVideoOverlays(allowPersistentMedia3: true),
-                  // Both gradients give way to a playing trailer together, and
-                  // they fade for the same reason the other layout's does.
-                  if (!isMobile)
-                    Positioned.fill(
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          end: _isTrailerPlaying ? 0.0 : 1.0,
+                  ),
+                if (items.length > 1 && !_isTrailerPlaying)
+                  m.touchPortrait
+                      ? Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: widget.height - m.dotsBottom,
+                          child: Center(child: dots),
+                        )
+                      : Positioned(
+                          right: 0.03 * m.w,
+                          bottom: widget.height - m.dotsBottom,
+                          child: dots,
                         ),
-                        duration: const Duration(milliseconds: 250),
-                        builder: (_, shown, _) => shown <= 0.0
-                            ? const SizedBox.shrink()
-                            : DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [
-                                      overlayColor.withValues(
-                                        alpha: overlayOpacity * shown * 0.78,
-                                      ),
-                                      overlayColor.withValues(
-                                        alpha: overlayOpacity * shown * 0.46,
-                                      ),
-                                      overlayColor.withValues(
-                                        alpha: overlayOpacity * shown * 0.06,
-                                      ),
-                                    ],
-                                    stops: const [0.0, 0.46, 1.0],
-                                  ),
-                                ),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        overlayColor.withValues(
-                                          alpha: overlayOpacity * shown * 0.12,
-                                        ),
-                                        overlayColor.withValues(
-                                          alpha: overlayOpacity * shown * 0.28,
-                                        ),
-                                        overlayColor.withValues(
-                                          alpha: overlayOpacity * shown * 0.78,
-                                        ),
-                                        overlayColor.withValues(
-                                          alpha: overlayOpacity * shown * 0.78,
-                                        ),
-                                      ],
-                                      stops: [
-                                        0.0,
-                                        0.48 * visibleFraction,
-                                        visibleFraction,
-                                        1.0,
-                                      ],
-                                    ),
-                                  ),
-                                  child: const SizedBox.expand(),
-                                ),
-                              ),
-                      ),
+                if (items.length > 1 && !_isTrailerPlaying)
+                  ...makdArrows(
+                    m,
+                    visible:
+                        !m.touchPortrait &&
+                        (PlatformDetection.isTV ? _makdFocused : _makdHovered),
+                    onPrevious: () => _goToPage(
+                      (_currentIndex - 1 + items.length) % items.length,
                     ),
-                  if (currentItem != null)
-                    Builder(
-                      builder: (context) {
-                        final contentHeight =
-                            widget.height - effectiveTopInset - widget.rowPeek;
-                        final screenWidth = MediaQuery.of(context).size.width;
-                        final logoTop = contentHeight * 0.22;
-                        final logoWidth = (screenWidth * 0.45).clamp(
-                          220.0,
-                          640.0,
-                        );
-                        final logoHeight = (contentHeight * 0.35).clamp(
-                          90.0,
-                          300.0,
-                        );
-                        final mobileLogoHeight = (contentHeight * 0.18).clamp(
-                          58.0,
-                          112.0,
-                        );
-                        final mobileLogoWidth = (screenWidth * 0.7).clamp(
-                          190.0,
-                          380.0,
-                        );
-                        final mobileLogoTop =
-                            (contentHeight * 0.5 - mobileLogoHeight / 2).clamp(
-                              8.0,
-                              contentHeight * 0.56,
-                            );
-                        return Positioned(
-                          left: isMobile ? null : 50,
-                          top: isMobile ? mobileLogoTop : logoTop,
-                          child: AnimatedOpacity(
-                            opacity: _isTrailerPlaying ? 0 : 1,
-                            duration: const Duration(milliseconds: 250),
-                            child: IgnorePointer(
-                              ignoring: _isTrailerPlaying,
-                              child: isMobile
-                                  ? SizedBox(
-                                      width: screenWidth,
-                                      child: Center(
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 300,
-                                          ),
-                                          child: SizedBox(
-                                            key: ValueKey(
-                                              'makd_logo_${currentItem.itemId}',
-                                            ),
-                                            width: mobileLogoWidth,
-                                            height: mobileLogoHeight,
-                                            child: _buildLogoWithShadow(
-                                              currentItem.logoUrl,
-                                              currentItem.title,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : AnimatedSwitcher(
-                                      duration: const Duration(
-                                        milliseconds: 300,
-                                      ),
-                                      child: SizedBox(
-                                        key: ValueKey(
-                                          'makd_logo_${currentItem.itemId}',
-                                        ),
-                                        width: logoWidth,
-                                        height: logoHeight,
-                                        child: _buildLogoWithShadow(
-                                          currentItem.logoUrl,
-                                          currentItem.title,
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  if (currentItem != null)
-                    Positioned(
-                      left: isMobile ? 0 : 50,
-                      right: isMobile ? 0 : null,
-                      bottom: isMobile ? 24 : 20 + widget.rowPeek,
-                      child: AnimatedOpacity(
-                        opacity: _isTrailerPlaying ? 0 : 1,
-                        duration: const Duration(milliseconds: 250),
-                        child: IgnorePointer(
-                          ignoring: _isTrailerPlaying,
-                          child: Padding(
-                            padding: isMobile
-                                ? const EdgeInsets.symmetric(horizontal: 20)
-                                : EdgeInsets.zero,
-                            child: SizedBox(
-                              width: isMobile ? null : contentWidth,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 320),
-                                child: _MakdContent(
-                                  key: ValueKey(
-                                    'makd_content_${currentItem.itemId}',
-                                  ),
-                                  item: currentItem,
-                                  ratings: currentRatings,
-                                  enableAdditionalRatings: widget.prefs.get(
-                                    UserPreferences.mediaBarEnableAdditionalRatings,
-                                  ),
-                                  enabledRatings: widget.prefs.get(
-                                    UserPreferences.mediaBarEnabledRatings,
-                                  ),
-                                  showLabels: widget.prefs.get(
-                                    UserPreferences.mediaBarShowRatingLabels,
-                                  ),
-                                  showBadges: widget.prefs.get(
-                                    UserPreferences.mediaBarShowRatingBadges,
-                                  ),
-                                  isMobile: isMobile,
-                                  onPlay: () =>
-                                      _navigateToItemAndPlay(context, items),
-                                  onInfo: () => _navigateToItem(context, items),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (items.length > 1 && !_isTrailerPlaying)
-                    isMobile
-                        ? Positioned(
-                            bottom: 14,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: _MakdDots(
-                                count: items.length,
-                                current: _currentIndex,
-                              ),
-                            ),
-                          )
-                        : Positioned(
-                            right: 20,
-                            bottom: 24 + widget.rowPeek,
-                            child: _MakdDots(
-                              count: items.length,
-                              current: _currentIndex,
-                            ),
-                          ),
-                  if (items.length > 1 &&
-                      !PlatformDetection.useMobileUi &&
-                      !_isTrailerPlaying)
-                    ..._buildNavArrows(
-                      context,
-                      items.length,
-                      nextRightInset: 44,
-                    ),
-                ],
-              ),
+                    onNext: () => _goToPage((_currentIndex + 1) % items.length),
+                  ),
+              ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  bool _isMakdFavorite(MediaBarSlideItem item) =>
+      _makdFavorites[item.itemId] ?? item.isFavorite;
+
+  void _pressMakdButton(
+    BuildContext context,
+    List<MediaBarSlideItem> items,
+    MediaBarSlideItem item,
+    MakdButton button,
+  ) {
+    switch (button) {
+      case MakdButton.info:
+        _navigateToItem(context, items);
+      case MakdButton.play:
+        _navigateToItemAndPlay(context, items);
+      case MakdButton.favorite:
+        unawaited(_toggleMakdFavorite(item));
+    }
+  }
+
+  Future<void> _toggleMakdFavorite(MediaBarSlideItem item) async {
+    final next = !_isMakdFavorite(item);
+    setState(() => _makdFavorites[item.itemId] = next);
+    try {
+      await GetIt.instance<ItemMutationRepository>().setFavorite(
+        item.itemId,
+        isFavorite: next,
+      );
+    } catch (_) {
+      if (mounted) setState(() => _makdFavorites[item.itemId] = !next);
+    }
+  }
+
+  /// Left and Right walk Info, Play and Favorite, and step the slide past
+  /// either end with the same button kept, as the original's keys do. A
+  /// docked left nav takes Left from Info on any slide, so it's never more
+  /// than three presses away.
+  KeyEventResult _handleMakdKey(
+    KeyEvent event,
+    List<MediaBarSlideItem> items,
+  ) {
+    final key = event.logicalKey;
+    final item = items.elementAtOrNull(_currentIndex);
+    final buttons = item == null ? const <MakdButton>[] : makdButtonsFor(item);
+    final index = buttons.isEmpty
+        ? 0
+        : _makdButton.clamp(0, buttons.length - 1);
+
+    if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
+      if (event is KeyDownEvent || event is KeyRepeatEvent) {
+        _keyDownTime ??= DateTime.now();
+        return KeyEventResult.handled;
+      }
+      if (event is KeyUpEvent) {
+        final downTime = _keyDownTime;
+        _keyDownTime = null;
+        final focusedAt = _lastFocusReceivedAt;
+        if (downTime == null &&
+            focusedAt != null &&
+            DateTime.now().difference(focusedAt) <
+                _focusActivationGuardDuration) {
+          return KeyEventResult.handled;
+        }
+        if (item != null) {
+          _pressMakdButton(context, items, item, buttons[index]);
+        }
+      }
+      return KeyEventResult.handled;
+    }
+
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight) {
+      // Over a full screen trailer the first press ends it and brings the bar
+      // back, and it stays off for this slide.
+      if (_isTrailerPlaying) {
+        _dismissedTrailerItemId = _activeTrailerItemId;
+        _cancelTrailerPreview(retainYouTubePlayer: true);
+        return KeyEventResult.handled;
+      }
+      final isRtl = Directionality.of(context) == TextDirection.rtl;
+      final forward = (key == LogicalKeyboardKey.arrowRight) != isRtl;
+      if (forward) {
+        if (index < buttons.length - 1) {
+          setState(() => _makdButton = index + 1);
+        } else {
+          _goToPage((_currentIndex + 1) % items.length);
+        }
+      } else if (index > 0) {
+        setState(() => _makdButton = index - 1);
+      } else if (key == LogicalKeyboardKey.arrowLeft &&
+          widget.onNavigateLeft != null) {
+        widget.onNavigateLeft!();
+      } else {
+        _goToPage((_currentIndex - 1 + items.length) % items.length);
+      }
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowDown && widget.onNavigateDown != null) {
+      unawaited(widget.onNavigateDown!());
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      widget.onNavigateUp?.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   Widget _buildBookshelfSlideshow(
@@ -2514,6 +2517,7 @@ class _MediaBarState extends State<MediaBar>
     if (widget.viewModel.bookshelfDetailFor(activeItem.itemId) == null) {
       unawaited(widget.viewModel.ensureBookshelfDetail(activeItem.itemId));
     }
+    final chrome = mobileChromeInsets(context, widget.prefs, widget.height);
 
     return MouseRegion(
       onEnter: (_) => _setPaused(true),
@@ -2537,6 +2541,8 @@ class _MediaBarState extends State<MediaBar>
                 onInfo: () => _navigateToItem(context, items),
                 onPlay: () => _playFromBookshelf(context, items),
                 detailFor: widget.viewModel.bookshelfDetailFor,
+                topInset: chrome.top,
+                bottomInset: chrome.bottom,
               ),
               if (_bookshelfLoadingOverlay)
                 const Positioned.fill(child: _TheaterLoadingOverlay()),
@@ -2624,6 +2630,7 @@ class _MediaBarState extends State<MediaBar>
         ? null
         : Stack(fit: StackFit.expand, children: trailerOverlays);
 
+    final chrome = mobileChromeInsets(context, widget.prefs, widget.height);
     final Widget gallery = useCoverflow
         ? GalleryCoverflow(
             items: items,
@@ -2637,6 +2644,7 @@ class _MediaBarState extends State<MediaBar>
             // Narrow web reaches the coverflow through useMobileUi too, so
             // keep the band on native mobile.
             fullWidthTrailer: PlatformDetection.isMobile,
+            topInset: chrome.top,
           )
         : GalleryLayout(
             items: items,
@@ -2647,6 +2655,9 @@ class _MediaBarState extends State<MediaBar>
             activeRatings: activeRatings,
             activeTrailer: activeTrailer,
             trailerActive: trailerVisible,
+            leftInset: _sidebarInset,
+            topInset: chrome.top,
+            bottomInset: chrome.bottom,
           );
 
     return MouseRegion(
@@ -2687,14 +2698,16 @@ class _MediaBarState extends State<MediaBar>
     const contentPadding = 32.0;
     const mobileHorizontalPadding = 16.0;
     const mobileBottomPadding = 16.0;
-    const tvTopNavbarHorizontalInset = 48.0;
     const desktopSidebarInset = 56.0;
     const desktopToolbarVerticalPadding = 10.0;
 
     if (isMobile) {
       final topInset =
-          safePadding.top +
-          (navbarIsTop ? TopToolbar.heightFor(context) + 12.0 : 16.0);
+          mobileChromeInsets(context, widget.prefs, widget.height).top +
+          (widget.prefs.get(UserPreferences.navbarPosition) ==
+                  NavbarPosition.bottom
+              ? 16.0
+              : 12.0);
 
       return EdgeInsets.fromLTRB(
         mobileHorizontalPadding + safePadding.left,
@@ -2705,13 +2718,13 @@ class _MediaBarState extends State<MediaBar>
     }
 
     final leftInset = isTvTopNavbar
-        ? tvTopNavbarHorizontalInset + contentPadding
+        ? tvTopNavbarRowInset + contentPadding
         : hasDesktopSidebar
         ? desktopSidebarInset + contentPadding
         : contentPadding;
 
     final rightInset = isTvTopNavbar
-        ? tvTopNavbarHorizontalInset + contentPadding
+        ? tvTopNavbarRowInset + contentPadding
         : contentPadding;
 
     final topInset = navbarIsTop
@@ -2784,6 +2797,9 @@ class _MediaBarState extends State<MediaBar>
             focusExpansionEnabled: widget.prefs.get(
               UserPreferences.cardFocusExpansion,
             ),
+            navArrows: items.length > 1 && PlatformDetection.useDesktopUi
+                ? _buildNavArrows(context, items.length)
+                : const <Widget>[],
             trailerOverlay: trailerOverlays.isEmpty
                 ? null
                 : Stack(fit: StackFit.expand, children: trailerOverlays),
@@ -2854,6 +2870,7 @@ class _MediaBarState extends State<MediaBar>
     KeyEvent event,
     List<MediaBarSlideItem> items,
   ) {
+    if (_isMakdMode()) return _handleMakdKey(event, items);
     final key = event.logicalKey;
 
     if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
@@ -3144,11 +3161,19 @@ class _BackdropLayer extends StatelessWidget {
 
   /// When set, the backdrop slowly zooms (Ken Burns) over this duration
   final Duration? zoomDuration;
+  final Alignment alignment;
+  final Duration crossfade;
+
+  /// Wraps each slide's image, for an entrance of its own.
+  final Widget Function(Widget image)? decorate;
 
   const _BackdropLayer({
     required this.items,
     required this.currentIndex,
     this.zoomDuration,
+    this.alignment = Alignment.center,
+    this.crossfade = const Duration(milliseconds: 600),
+    this.decorate,
   });
 
   @override
@@ -3159,18 +3184,21 @@ class _BackdropLayer extends StatelessWidget {
     return RepaintBoundary(
       child: FullscreenBackdropSwitcher(
         imageUrl: url,
-        duration: const Duration(milliseconds: 600),
+        duration: crossfade,
         imageBuilder: (imageUrl) {
-          final Widget image = BoundedNetworkImage(
+          Widget image = BoundedNetworkImage(
             imageUrl: imageUrl,
+            alignment: alignment,
             memCacheWidth: MediaBar.backdropDecodeWidth(context),
             priority: ImageFetchPriority.high,
             errorBuilder: (_, _, _) =>
                 ColoredBox(color: AppColorScheme.background),
           );
           final zoom = zoomDuration;
-          if (zoom == null) return image;
-          return _KenBurnsImage(duration: zoom, child: image);
+          if (zoom != null) {
+            image = _KenBurnsImage(duration: zoom, child: image);
+          }
+          return decorate?.call(image) ?? image;
         },
       ),
     );
@@ -3216,48 +3244,6 @@ class _KenBurnsImageState extends State<_KenBurnsImage>
   }
 }
 
-class _NavArrow extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _NavArrow({required this.icon, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          canRequestFocus: false,
-          customBorder: const CircleBorder(),
-          child: AnimatedOpacity(
-            opacity: onTap != null ? 1.0 : 0.3,
-            duration: const Duration(milliseconds: 200),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColorScheme.scrim.withValues(alpha: 0.4),
-                border: Border.fromBorderSide(
-                  ThemeRegistry.active.borders.cardBorder,
-                ),
-              ),
-              child: Icon(
-                icon,
-                color: AppColorScheme.onSurface.withValues(alpha: 0.9),
-                size: 28,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SlideInfo extends StatelessWidget {
   final MediaBarSlideItem item;
   final Map<String, double> ratings;
@@ -3271,8 +3257,12 @@ class _SlideInfo extends StatelessWidget {
   final double leftInset;
   final double rightInset;
 
+  /// The new release label, on its own first line of the card.
+  final bool showRelease;
+
   const _SlideInfo({
     required this.item,
+    this.showRelease = false,
     required this.ratings,
     required this.enableAdditionalRatings,
     required this.enabledRatings,
@@ -3308,6 +3298,11 @@ class _SlideInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (showRelease && !compact)
+            if (item.newRelease case final release?) ...[
+              MediaBarNewReleaseLine(release: release, showMessage: false),
+              const SizedBox(height: 6),
+            ],
           _MetadataRow(item: item),
           if (!compact &&
               (ratings.isNotEmpty ||
@@ -3513,187 +3508,6 @@ class _IndicatorDots extends StatelessWidget {
           }),
         ),
       ),
-    );
-  }
-}
-
-class _MakdDots extends StatelessWidget {
-  final int count;
-  final int current;
-
-  const _MakdDots({required this.count, required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(count, (i) {
-        final isActive = i == current;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          width: isActive ? 9 : 7,
-          height: isActive ? 9 : 7,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isActive
-                ? AppColorScheme.onSurface
-                : AppColorScheme.onSurface.withValues(alpha: 0.45),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _MakdContent extends StatelessWidget {
-  final MediaBarSlideItem item;
-  final Map<String, double> ratings;
-  final bool enableAdditionalRatings;
-  final String enabledRatings;
-  final bool showLabels;
-  final bool showBadges;
-  final bool isMobile;
-  final VoidCallback onPlay;
-  final VoidCallback onInfo;
-
-  const _MakdContent({
-    super.key,
-    required this.item,
-    required this.ratings,
-    required this.enableAdditionalRatings,
-    required this.enabledRatings,
-    required this.showLabels,
-    required this.showBadges,
-    required this.isMobile,
-    required this.onPlay,
-    required this.onInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final crossAxis = isMobile
-        ? CrossAxisAlignment.center
-        : CrossAxisAlignment.start;
-    return Column(
-      crossAxisAlignment: crossAxis,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _MetadataRow(item: item),
-        if (ratings.isNotEmpty ||
-            item.communityRating != null ||
-            item.criticRating != null) ...[
-          const SizedBox(height: 6),
-          RatingsRow(
-            ratings: ratings,
-            communityRating: item.communityRating,
-            criticRating: item.criticRating,
-            enableAdditionalRatings: enableAdditionalRatings,
-            enabledRatings: enabledRatings,
-            showLabels: showLabels,
-            showBadges: showBadges,
-          ),
-        ],
-        if (!isMobile && (item.overview?.isNotEmpty ?? false)) ...[
-          const SizedBox(height: 10),
-          Text(
-            cleanOverview(item.overview),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColorScheme.onSurface.withValues(alpha: 0.88),
-              height: 1.38,
-              shadows: _textShadows,
-            ),
-          ),
-        ],
-        const SizedBox(height: 14),
-        if (!PlatformDetection.isTV)
-          _MakdActionButtons(
-            onPlay: item.isExternal ? null : onPlay,
-            onInfo: onInfo,
-            isMobile: isMobile,
-          ),
-      ],
-    );
-  }
-}
-
-class _MakdActionButtons extends StatelessWidget {
-  final VoidCallback? onPlay;
-  final VoidCallback onInfo;
-  final bool isMobile;
-
-  const _MakdActionButtons({
-    required this.onPlay,
-    required this.onInfo,
-    required this.isMobile,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (onPlay != null) ...[
-          GestureDetector(
-            onTap: onPlay,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 14 : 18,
-                vertical: isMobile ? 7 : 10,
-              ),
-              decoration: BoxDecoration(
-                color: AppColorScheme.buttonFocused,
-                borderRadius: AppRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.play_arrow_rounded,
-                    color: AppColorScheme.onButtonFocused,
-                    size: isMobile ? 20 : 24,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.play,
-                    style: TextStyle(
-                      color: AppColorScheme.onButtonFocused,
-                      fontWeight: FontWeight.w700,
-                      fontSize: isMobile ? 14 : 17,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-        ],
-        GestureDetector(
-          onTap: onInfo,
-          child: Container(
-            width: isMobile ? 36 : 46,
-            height: isMobile ? 36 : 46,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColorScheme.onSurface.withValues(alpha: 0.18),
-              border: Border.all(
-                color: AppColorScheme.onSurface.withValues(alpha: 0.7),
-                width: 1.5,
-              ),
-            ),
-            child: Icon(
-              Icons.info_outline_rounded,
-              color: AppColorScheme.onSurface,
-              size: isMobile ? 18 : 22,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

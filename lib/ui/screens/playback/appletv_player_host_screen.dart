@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +11,14 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
+import 'package:server_silo/server_silo.dart';
 
 import '../../../playback/subtitle_style.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/utils/chapter_markers.dart';
+import '../../../data/utils/episode_cast_utils.dart';
+import '../../../data/utils/server_trickplay.dart';
+import '../../../data/utils/trickplay_headers.dart';
 import '../../../data/models/trickplay_info.dart';
 import '../../../data/services/log_service.dart';
 import '../../../data/services/media_segment_service.dart';
@@ -23,8 +29,12 @@ import '../../../playback/cinema_skip_controller.dart';
 import '../../../playback/apple_player_ui.dart';
 import '../../../playback/native_apple_player_backend.dart';
 import '../../../playback/appletv_subtitles.dart';
+import '../../../playback/subtitle_cue_loader.dart';
 import '../../../playback/playback_info_sections.dart';
 import '../../../syncplay/syncplay_manager.dart';
+import '../../../watch_party/silo_watch_party_manager.dart';
+import '../../widgets/watch_party/watch_party_player_overlay.dart';
+import '../watch_party/silo_watch_party_screen.dart';
 import '../../theme/app_theme_controller.dart';
 import '../../screensaver/screensaver_controller.dart';
 import '../../navigation/app_router.dart';
@@ -40,6 +50,7 @@ import '../../../util/platform_detection.dart';
 import 'appletv_playback_prompt_controller.dart';
 import 'episode_browser.dart';
 import 'osd_buttons.dart';
+import 'playback_ended_by_server.dart';
 
 class AppleTvPlayerHostScreen extends StatefulWidget {
   const AppleTvPlayerHostScreen({super.key});
@@ -53,9 +64,16 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   StreamSubscription<void>? _exitSub;
   StreamSubscription<void>? _queueSub;
   StreamSubscription<void>? _sessionEndedSub;
+  StreamSubscription<String>? _endedByServerSub;
+  StreamSubscription<dynamic>? _finishedItemStopSub;
+  String? _lastMarkedPlayedItemId;
   StreamSubscription<PlaybackBringupState>? _bringupSub;
+  StreamSubscription<bool>? _reconnectingSub;
   StreamSubscription<Map<String, dynamic>>? _actionSub;
   bool _exiting = false;
+  // The item an exit marked finished. A remote can move the queue before
+  // dispose stops it, and only this item should count as watched.
+  Object? _finishedExitItem;
   final Map<String, List<Map<String, dynamic>>> _castCache = {};
   String? _castResolving;
   AppleTvPlaybackPromptController? _prompts;
@@ -73,6 +91,14 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   int _trickplayLoadGeneration = 0;
   static const int _trickplayFrameWidth = 320;
   SyncPlayManager? _syncPlay;
+  SiloWatchPartyManager? _party;
+  StreamSubscription<WatchPartyToast>? _partyToastSub;
+  StreamSubscription<WatchPartyReaction>? _partyReactionSub;
+  bool _followingParty = false;
+  String? _lastPartyPayload;
+  bool _partyGlyphsSent = false;
+  Timer? _partyWaitTicker;
+  final Set<WatchPartyChatEntry> _partyChatSeen = {};
   AppThemeController? _themeController;
   ScreensaverController? _screensaverController;
   StreamSubscription<bool>? _screensaverPlayingSub;
@@ -172,9 +198,29 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       _queueSub = manager.queueService.queueChangedStream.listen(
         (_) => _onQueueChanged(),
       );
+      _endedByServerSub = manager.endedByServerStream.listen((message) {
+        if (mounted) showPlaybackEndedByServer(context, message);
+      });
       _sessionEndedSub = manager.sessionEndedStream.listen(
         (_) => _handleExit(),
       );
+      _finishedItemStopSub = manager.finishedItemStopStream.listen((item) {
+        final itemId = _itemIdForQueueItem(item);
+        if (itemId != null && itemId.isNotEmpty) {
+          _markPlayed(itemId, item: item);
+        }
+      });
+      _reconnectingSub = manager.reconnectingStream.listen((reconnecting) {
+        if (!mounted) return;
+        unawaited(
+          _backend?.setReconnecting(
+                reconnecting
+                    ? AppLocalizations.of(context).watchPartyReconnecting
+                    : null,
+              ) ??
+              Future<void>.value(),
+        );
+      });
       _bringupSub = manager.bringupStateStream.listen((state) {
         if (mounted) {
           setState(() => _bringupState = state);
@@ -193,7 +239,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         _syncCinemaSkip();
       });
       _positionSub = manager.state.positionStream.listen((position) {
-        if (!_isCinemaPreroll || !_cinemaSkip.enabled) {
+        if (!_exiting && (!_isCinemaPreroll || !_cinemaSkip.enabled)) {
           _prompts?.onPositionTick(position, manager.state.duration);
         }
         _syncCinemaSkip();
@@ -222,8 +268,24 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       _syncPlay = GetIt.instance<SyncPlayManager>();
       _syncPlay!.addListener(_onSyncPlayChanged);
     }
+    if (GetIt.instance.isRegistered<SiloWatchPartyManager>()) {
+      final party = _party = GetIt.instance<SiloWatchPartyManager>();
+      _followingParty = party.controlsPlayback;
+      // Only what arrives from now on shows over the video.
+      _partyChatSeen.addAll(party.chat);
+      party.addListener(_onPartyChanged);
+      _partyToastSub = party.toasts.listen(_onPartyToast);
+      _partyReactionSub = party.reactions.listen(
+        (r) => _sendPartyEvent({
+          'type': 'reaction',
+          'kind': r.reaction,
+          'name': r.name,
+        }),
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _pushParty();
       _loadSegmentsForCurrentItem();
       _pushMetadata();
       _pushSubtitleStyle();
@@ -285,6 +347,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         'stillWatchingContinue': l10n.stillWatchingContinue,
         'stillWatchingStop': l10n.stillWatchingStop,
         'fetchingSubtitles': l10n.fetchingSubtitles,
+        'paused': l10n.paused,
       }),
     );
   }
@@ -344,6 +407,11 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         fontSize: style.fontSize,
         fontWeight: style.fontWeight,
         verticalOffset: style.verticalOffset,
+        strokeScale: style.strokeScale,
+        shadowColor: style.shadowColor,
+        shadowOffset: style.shadowOffset,
+        shadowBlur: style.shadowBlur,
+        fontFamily: style.fontFamily,
       );
     } catch (_) {}
   }
@@ -441,40 +509,6 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     } catch (_) {
       return null;
     }
-  }
-
-  String _artworkUrlForItem(dynamic item) {
-    final raw = _rawDataForQueueItem(item);
-    final itemId = _itemIdForQueueItem(item);
-    final imageApi = _clientForQueueItem(item)?.imageApi;
-    if (raw == null || itemId == null || itemId.isEmpty || imageApi == null) {
-      return '';
-    }
-    final imageTags = raw['ImageTags'] as Map?;
-    final primaryTag = (imageTags?['Primary'] as String?)?.trim();
-    final thumbTag = (imageTags?['Thumb'] as String?)?.trim();
-    final backdropTags = raw['BackdropImageTags'] as List?;
-    final backdropTag = backdropTags?.isNotEmpty == true
-        ? backdropTags!.first.toString().trim()
-        : null;
-    if (primaryTag != null && primaryTag.isNotEmpty) {
-      return imageApi.getPrimaryImageUrl(
-        itemId,
-        maxHeight: 420,
-        tag: primaryTag,
-      );
-    }
-    if (thumbTag != null && thumbTag.isNotEmpty) {
-      return imageApi.getThumbImageUrl(itemId, maxWidth: 960, tag: thumbTag);
-    }
-    if (backdropTag != null && backdropTag.isNotEmpty) {
-      return imageApi.getBackdropImageUrl(
-        itemId,
-        maxWidth: 1280,
-        tag: backdropTag,
-      );
-    }
-    return '';
   }
 
   List<Map<String, dynamic>> _streamInfoSections(PlaybackManager manager) {
@@ -575,14 +609,10 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       );
       timestampsMs = const [];
     }
-    final token = client.accessToken;
     return {
       'urls': urls,
       if (timestampsMs.isNotEmpty) 'timestampsMs': timestampsMs,
-      'headers': {
-        if (token != null && token.isNotEmpty)
-          'Authorization': 'MediaBrowser Token="$token"',
-      },
+      'headers': trickplayImageHeaders(client, withUserAgent: false),
       'width': info.width,
       'height': info.height,
       'cols': info.tileWidth,
@@ -608,6 +638,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     prefs.get(UserPreferences.trickPlayVerticalPositionPercent),
     prefs.get(UserPreferences.trickPlayFollowScrubPosition),
     prefs.get(UserPreferences.trickPlayPauseWhileScrubbing),
+    prefs.get(UserPreferences.appleTvClickpadSeekMode).name,
   ].join('|');
 
   String _timeSlotsSnapshot(UserPreferences prefs) =>
@@ -672,8 +703,8 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     if (item is! AggregatedItem) return false;
     if (item.people.isNotEmpty) return true;
     return item.type == 'Episode' &&
-        item.seriesId != null &&
-        item.seriesId!.isNotEmpty;
+        ((item.seriesId != null && item.seriesId!.isNotEmpty) ||
+            (item.seasonId != null && item.seasonId!.isNotEmpty));
   }
 
   bool _canFavorite(dynamic item) {
@@ -713,6 +744,23 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         item.type != 'Photo' &&
         item.type != 'Book' &&
         !isAudio;
+  }
+
+  Future<void> _sendSubtitleCues(
+    PlaybackManager manager, {
+    required bool secondary,
+  }) async {
+    final item = manager.queueService.currentItem;
+    final cues = await SubtitleCueLoader.load(
+      manager,
+      secondary
+          ? manager.secondarySubtitleStreamIndex
+          : manager.subtitleStreamIndex,
+      client: item is AggregatedItem ? _clientForQueueItem(item) : null,
+      itemId: item is AggregatedItem ? item.id : null,
+    );
+    if (!mounted) return;
+    await _backend?.showSubtitleCues(cues ?? const [], secondary: secondary);
   }
 
   void _searchRemoteSubtitles() {
@@ -882,12 +930,18 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     }();
   }
 
-  List<Map<String, dynamic>> _castPeople(dynamic item) {
+  List<Map<String, dynamic>> _castPeople(
+    dynamic item, {
+    bool resolveCast = true,
+  }) {
     final imageApi = _clientForQueueItem(item)?.imageApi;
     if (imageApi == null) return const [];
     final itemId = _itemIdForQueueItem(item);
     if (itemId != null && _castCache.containsKey(itemId)) {
       return _castCache[itemId]!;
+    }
+    if (resolveCast && item is AggregatedItem && item.type == 'Episode') {
+      _resolveCastAsync(item);
     }
     final raw = _rawDataForQueueItem(item);
     final people = (raw?['People'] as List?)?.cast<Map<String, dynamic>>();
@@ -898,14 +952,12 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   void _resolveCastAsync(dynamic item) {
     if (item is! AggregatedItem) return;
     final itemId = item.id;
-    if (_castCache.containsKey(itemId) ||
-        _castResolving == itemId ||
-        item.people.isNotEmpty) {
+    if (_castCache.containsKey(itemId) || _castResolving == itemId) {
       return;
     }
     if (item.type != 'Episode' ||
-        item.seriesId == null ||
-        item.seriesId!.isEmpty) {
+        ((item.seriesId == null || item.seriesId!.isEmpty) &&
+            (item.seasonId == null || item.seasonId!.isEmpty))) {
       return;
     }
     final client = _clientForQueueItem(item);
@@ -913,17 +965,23 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     _castResolving = itemId;
     () async {
       try {
-        final seriesData = await client.itemsApi.getItem(item.seriesId!);
-        final people = (seriesData['People'] as List?)
-            ?.cast<Map<String, dynamic>>();
-        _castCache[itemId] = (people == null || people.isEmpty)
-            ? const []
-            : _mapPeople(people, client.imageApi);
+        final parentActors = await resolveParentCast(
+          client: client,
+          seasonId: item.seasonId,
+          seriesId: item.seriesId,
+        );
+        final merged = mergeEpisodePeople(
+          episodePeople: item.people,
+          parentActors: parentActors,
+        );
+        if (merged.isNotEmpty || item.people.isNotEmpty) {
+          _castCache[itemId] = _mapPeople(merged, client.imageApi);
+        }
       } catch (_) {
-        _castCache[itemId] = const [];
+        // Leave uncached on error so a subsequent playback event can retry
       } finally {
         _castResolving = null;
-        if (mounted) _pushMetadata();
+        if (mounted) _pushMetadata(skipCastResolutionForId: itemId);
       }
     }();
   }
@@ -931,7 +989,33 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   List<Map<String, dynamic>> _currentChapters() => chaptersForItem(
     _manager?.queueService.currentItem,
     _manager?.currentOfflineMetadata,
+    mediaSourceId: _manager?.currentResolution?.mediaSourceId,
   );
+
+  /// [chapters] with each one's frame for the native chapter row, or an
+  /// empty url where the server has none.
+  List<Map<String, dynamic>> _withChapterImages(
+    dynamic item,
+    List<Map<String, dynamic>> chapters,
+  ) {
+    final imageApi = _clientForQueueItem(item)?.imageApi;
+    if (item is! AggregatedItem || imageApi == null) return chapters;
+    final raw = itemChaptersForSource(
+      item,
+      _manager?.currentResolution?.mediaSourceId,
+    );
+    return [
+      for (var i = 0; i < chapters.length; i++)
+        {
+          ...chapters[i],
+          'imageUrl': switch (i < raw.length ? raw[i]['ImageTag'] : null) {
+            final String tag when tag.isNotEmpty => imageApi
+                .getChapterImageUrl(item.id, index: i, maxWidth: 480, tag: tag),
+            _ => '',
+          },
+        },
+    ];
+  }
 
   /// Hands the current item's chapter starts to the manager, which steps
   /// previous and next through them before it steps through the queue. Runs
@@ -979,7 +1063,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       final prefs = GetIt.instance<UserPreferences>();
       final service = MediaSegmentService(
         client,
-        FeatureDetector(serverType: client.serverType, serverVersion: ''),
+        client.features,
         prefs,
       );
       _segmentService = service;
@@ -1015,10 +1099,13 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     }
 
     final raw = _rawDataForQueueItem(item);
+    final client = _clientForQueueItem(item);
+    if (raw != null && client != null) {
+      await mergeServerTrickplay(client, itemId, raw, mediaSourceId);
+    }
     var info = raw == null
         ? null
         : TrickplayInfo.fromItemData(raw, mediaSourceId: mediaSourceId);
-    final client = _clientForQueueItem(item);
     if (info == null && client?.trickplayApi != null) {
       try {
         final thumbnailSet = await client!.trickplayApi!.getThumbnailSet(
@@ -1105,14 +1192,16 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     );
   }
 
-  void _markPlayed(String itemId) {
-    final item = _manager?.queueService.currentItem;
+  void _markPlayed(String itemId, {dynamic item}) {
+    if (_lastMarkedPlayedItemId == itemId) return;
+    _lastMarkedPlayedItemId = itemId;
+    final target = item ?? _manager?.queueService.currentItem;
     try {
-      final client = _clientForQueueItem(item);
+      final client = _clientForQueueItem(target);
       if (client == null) return;
       final mutations = ItemMutationRepository(client);
       unawaited(mutations.setPlayed(itemId, isPlayed: true).catchError((_) {}));
-      final raw = _rawDataForQueueItem(item);
+      final raw = _rawDataForQueueItem(target);
       if (raw != null) {
         final existingUserData = raw['UserData'];
         final userData = existingUserData is Map<String, dynamic>
@@ -1121,6 +1210,8 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
                   ? existingUserData.cast<String, dynamic>()
                   : <String, dynamic>{});
         userData['Played'] = true;
+        userData['PlaybackPositionTicks'] = 0;
+        userData['PlayedPercentage'] = null;
         raw['UserData'] = userData;
       }
     } catch (_) {}
@@ -1140,7 +1231,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         ((raw?['Taglines'] as List?)?.firstOrNull as String?)?.trim() ??
         '';
     if (overview.isEmpty) return null;
-    return {'overview': overview, 'imageUrl': _artworkUrlForItem(item)};
+    return {'overview': overview};
   }
 
   List<Map<String, dynamic>> _trackOptions(
@@ -1185,12 +1276,15 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     return options;
   }
 
-  void _pushMetadata() {
+  void _pushMetadata({String? skipCastResolutionForId}) {
     final manager = _manager;
     final backend = _backend;
     if (manager == null || backend == null) return;
 
     final item = manager.queueService.currentItem;
+    final resolveCast =
+        skipCastResolutionForId == null ||
+        _itemIdForQueueItem(item) != skipCastResolutionForId;
     final chapters = _currentChapters();
 
     String topTitle = '';
@@ -1271,7 +1365,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     backend.setUiMetadata(
       topTitle: topTitle,
       topSubtitle: topSubtitle,
-      chapters: chapters,
+      chapters: _withChapterImages(item, chapters),
       showChapterMarkers: _prefBool(
         UserPreferences.showChapterMarkers,
         defaultValue: false,
@@ -1280,6 +1374,9 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       hasNext: manager.queueService.hasNext,
       skipForwardMs: skipForwardMs,
       skipBackMs: skipBackMs,
+      clickpadSeekMode:
+          _prefsListened?.get(UserPreferences.appleTvClickpadSeekMode) ??
+          AppleTvClickpadSeekMode.always,
       audioTracks: _trackOptions(
         audioStreams,
         manager.audioStreamIndex,
@@ -1309,7 +1406,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       ).playbackInfoDroppedFrames,
       trickplay: _trickplayPayload(item, manager),
       hasCast: _hasCastCrew(item),
-      castPeople: _castPeople(item),
+      castPeople: _castPeople(item, resolveCast: resolveCast),
       pauseMeta: _pauseMetaPayload(item),
       selectedBitrateMbps: manager.maxBitrateOverrideMbps ?? -1,
       canFavorite: _canFavorite(item),
@@ -1321,7 +1418,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       transportDocked: _transportDocked(),
     );
 
-    _resolveCastAsync(item);
+    if (resolveCast) _resolveCastAsync(item);
   }
 
   int _prefInt(Preference<int> pref, {required int defaultValue}) {
@@ -1344,7 +1441,11 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   /// rather than reading an empty list as every button switched off.
   List<String>? _osdButtons() {
     try {
-      return visibleOsdButtonIds(GetIt.instance<UserPreferences>());
+      final ids = visibleOsdButtonIds(GetIt.instance<UserPreferences>());
+      // Everyone in a watch party hears the same track.
+      return _followingParty
+          ? ids.where((id) => id != OsdButton.audio.id).toList()
+          : ids;
     } catch (_) {
       return null;
     }
@@ -1365,7 +1466,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   bool _canBrowseEpisodes(dynamic item) => canBrowseEpisodes(
     item,
     offline: _manager?.isOfflinePlayback ?? false,
-    inSyncPlay: _syncPlay?.state.enabled == true,
+    inSyncPlay: _syncPlay?.state.enabled == true || _followingParty,
   );
 
   void _openEpisodeBrowser() {
@@ -1492,7 +1593,189 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     };
   }
 
+  /// The room the player follows, with every label the party UI shows, or
+  /// null outside a party.
+  Map<String, dynamic>? _watchPartyPayload() {
+    final party = _party;
+    final room = party?.room;
+    if (party == null || room == null || !party.controlsPlayback) return null;
+    final l10n = AppLocalizations.of(context);
+    final moonbase = party.isMoonbase;
+    final connected = room.members.where((m) => m.connected).toList();
+    final host = room.members.where((m) => m.isHost).firstOrNull;
+    final next = connected.where((m) => !m.isSelf).firstOrNull;
+    String initial(String name) =>
+        name.isEmpty ? '?' : name.characters.first.toUpperCase();
+    Map<String, dynamic> member(SiloRoomMember m) {
+      final status = m.connected ? m.status : 'not_watching';
+      return {
+        'name': [
+          m.isSelf ? l10n.syncPlayParticipantYou : m.displayName,
+          if (m.isHost) l10n.watchPartyHost,
+        ].join(' · '),
+        'initial': initial(m.displayName),
+        'status': watchPartyStatusLabel(l10n, status) ?? '',
+        'statusColor': watchPartyStatusColor(status).toARGB32(),
+      };
+    }
+
+    final countdownTo = moonbase ? party.countdownTo : null;
+    final waitingSince = moonbase && countdownTo == null
+        ? party.waitingSince
+        : null;
+    final waitingOn = connected.where((m) => m.status != 'ready').toList();
+    return {
+      'title': host == null
+          ? l10n.watchParty
+          : l10n.watchPartyHostsParty(host.displayName),
+      'subtitle': l10n.watchPartyWatchingCount(connected.length),
+      'chat': moonbase && room.chatEnabled,
+      'reactions': moonbase && room.reactionsEnabled,
+      'members': [for (final m in room.members) member(m)],
+      if (waitingSince != null) ...{
+        'waitingTitle': waitingOn.length == 1
+            ? l10n.watchPartyWaitingFor(waitingOn.single.displayName)
+            : l10n.watchPartyWaitingForCount(waitingOn.length),
+        'waitingDetail': l10n.watchPartyStartingAnyway(
+          math.max(0, 10 - DateTime.now().difference(waitingSince).inSeconds),
+        ),
+        'waitingFaces': [
+          for (final m in connected)
+            {'initial': initial(m.displayName), 'ready': m.status == 'ready'},
+        ],
+      },
+      'countdownTo': ?countdownTo?.millisecondsSinceEpoch,
+      'leaveLabel': room.isHost && next != null
+          ? l10n.watchPartyLeaveHandsOver(next.displayName)
+          : l10n.watchPartyLeave,
+      if (room.isHost) 'endLabel': l10n.watchPartyEnd,
+      'strings': {
+        'button': l10n.watchParty,
+        'type': l10n.watchPartyType,
+        'backToClose': l10n.watchPartyBackToClose,
+        'chatTitle': l10n.watchPartyChat,
+        'sendToParty': l10n.watchPartySendToParty,
+        'send': l10n.send,
+        'cancel': l10n.cancel,
+        'startingTogether': l10n.watchPartyStartingTogether,
+      },
+      'replies': [
+        l10n.watchPartyReplyHaha,
+        l10n.watchPartyReplyNoWay,
+        l10n.watchPartyReplyPausePlease,
+        l10n.watchPartyReplyBrb,
+        l10n.watchPartyReplyAgain,
+      ],
+      'reactionNames': {
+        for (final kind in WatchPartyReaction.kinds)
+          kind: watchPartyReactionName(l10n, kind),
+      },
+    };
+  }
+
+  /// Sends the room when it changed, ticking each second through the wait
+  /// for everyone's player so its countdown line stays current.
+  void _pushParty() {
+    final backend = _backend;
+    if (backend == null || !mounted) return;
+    final payload = _watchPartyPayload();
+    if (payload?['waitingTitle'] != null) {
+      _partyWaitTicker ??= Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _pushParty(),
+      );
+    } else {
+      _partyWaitTicker?.cancel();
+      _partyWaitTicker = null;
+    }
+    final key = jsonEncode(payload);
+    if (key == _lastPartyPayload) return;
+    _lastPartyPayload = key;
+    unawaited(backend.setWatchParty(payload));
+    if (payload != null && !_partyGlyphsSent) {
+      _partyGlyphsSent = true;
+      unawaited(_sendPartyGlyphs());
+    }
+  }
+
+  Future<void> _sendPartyGlyphs() async {
+    final glyphs = <String, Uint8List>{};
+    for (final kind in WatchPartyReaction.kinds) {
+      final png = await watchPartyReactionPng(kind, 128);
+      if (png != null) glyphs[kind] = png;
+    }
+    _sendPartyEvent({'type': 'glyphs', 'glyphs': glyphs});
+  }
+
+  void _sendPartyEvent(Map<String, dynamic> event) {
+    if (!mounted || _party?.isMoonbase != true) return;
+    unawaited(_backend?.showWatchPartyEvent(event) ?? Future<void>.value());
+  }
+
+  void _onPartyToast(WatchPartyToast toast) {
+    if (!mounted) return;
+    _sendPartyEvent({
+      'type': 'toast',
+      'text': watchPartyToastText(
+        AppLocalizations.of(context),
+        toast,
+        _party?.room,
+      ),
+      'icon': toast.kind.name,
+    });
+  }
+
+  void _sendNewPartyChat(SiloWatchPartyManager party) {
+    final room = party.room;
+    final fresh = party.chat.where(_partyChatSeen.add).toList();
+    if (fresh.isEmpty || room == null || !room.chatEnabled) return;
+    if (!GetIt.instance<UserPreferences>().get(
+      UserPreferences.watchPartyChatOverlay,
+    )) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    for (final entry in fresh) {
+      final notice = entry.notice;
+      _sendPartyEvent({
+        'type': 'chat',
+        'name': notice == null ? entry.name : '',
+        'text': notice == null
+            ? entry.text
+            : watchPartyToastText(l10n, notice, room),
+      });
+    }
+  }
+
+  /// A party that stops playing (the host went back to the lobby, the item
+  /// finished, the party ended) takes its members back to the room.
+  void _onPartyChanged() {
+    final party = _party;
+    if (party == null || !mounted) return;
+    _sendNewPartyChat(party);
+    _pushParty();
+    if (party.controlsPlayback == _followingParty) return;
+    _followingParty = party.controlsPlayback;
+    _pushMetadata();
+    if (_followingParty) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    _handleExit();
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 600), () {
+        if (party.roomScreensOpen > 0 || !navigator.mounted) return;
+        unawaited(
+          navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SiloWatchPartyScreen(),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
   void _onQueueChanged() {
+    _lastMarkedPlayedItemId = null;
     _closeEpisodeBrowser(hideNative: true);
     _prompts?.onQueueChanged();
     _syncCinemaSkip();
@@ -1573,7 +1856,7 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         return;
       case 'skipSegment':
         // Ignore regular Skip Segment events during Cinema Mode trailers.
-        if (!_isCinemaPreroll || !_cinemaSkip.enabled) {
+        if (!_exiting && (!_isCinemaPreroll || !_cinemaSkip.enabled)) {
           _prompts?.handleSkipSegment();
         }
       case 'next':
@@ -1624,9 +1907,27 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
         _prompts?.resolveStillWatching(shouldContinue: false);
       case 'searchSubtitles':
         _searchRemoteSubtitles();
+      case 'loadSubtitleCues':
+        unawaited(
+          _sendSubtitleCues(manager, secondary: action['secondary'] == true),
+        );
       case 'downloadSubtitle':
         final id = action['id']?.toString();
         if (id != null && id.isNotEmpty) _downloadSubtitle(id);
+      case 'partyReaction':
+        final kind = action['kind']?.toString();
+        if (kind != null) _party?.sendReaction(kind);
+        return;
+      case 'partyChat':
+        final text = action['text']?.toString().trim() ?? '';
+        if (text.isNotEmpty) _party?.sendChat(text);
+        return;
+      case 'partyLeave':
+        _party?.leave();
+        return;
+      case 'partyEnd':
+        unawaited(_party?.end() ?? Future<void>.value());
+        return;
       case 'syncplayLeave':
         unawaited(_syncPlay?.leaveGroup() ?? Future<void>.value());
       case 'syncplayIgnoreWait':
@@ -1652,9 +1953,10 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     Future<void>.delayed(const Duration(milliseconds: 300), _pushMetadata);
   }
 
-  void _handleExit() {
+  void _handleExit({bool finished = false}) {
     if (_exiting || !mounted) return;
     _exiting = true;
+    _finishedExitItem = finished ? _manager?.queueService.currentItem : null;
     unawaited(_backend?.dismissPlayer() ?? Future<void>.value());
     if (context.canPop()) {
       context.pop();
@@ -1669,7 +1971,10 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     _exitSub?.cancel();
     _queueSub?.cancel();
     _sessionEndedSub?.cancel();
+    _endedByServerSub?.cancel();
+    _finishedItemStopSub?.cancel();
     _bringupSub?.cancel();
+    _reconnectingSub?.cancel();
     _actionSub?.cancel();
     _screensaverPlayingSub?.cancel();
     _positionSub?.cancel();
@@ -1678,6 +1983,10 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     _screensaverController?.setPlaybackActive(false);
     _screensaverController?.setNativePlayerPresented(false);
     _syncPlay?.removeListener(_onSyncPlayChanged);
+    _party?.removeListener(_onPartyChanged);
+    _partyToastSub?.cancel();
+    _partyReactionSub?.cancel();
+    _partyWaitTicker?.cancel();
     _themeController?.removeListener(_onThemeChanged);
     _prefsListened?.removeListener(_onPrefsChanged);
     if (PlatformDetection.isIOS) {
@@ -1687,7 +1996,12 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     try {
       final manager = GetIt.instance<PlaybackManager>();
       if (!manager.playbackDeferredToExternalPlayer) {
-        manager.stop(userInitiated: true);
+        if (_finishedExitItem != null &&
+            identical(manager.queueService.currentItem, _finishedExitItem)) {
+          manager.stopAsFinished();
+        } else {
+          manager.stop(userInitiated: true);
+        }
       }
     } catch (_) {}
     super.dispose();
@@ -1798,10 +2112,11 @@ class _HostPromptCommands implements AppleTvPromptCommands {
   // The next item, not the next chapter, even when the card came up during
   // one.
   Future<void> advanceNext() =>
-      _host._manager?.nextInQueue() ?? Future<void>.value();
+      _host._manager?.nextInQueueAsFinished() ?? Future<void>.value();
 
   @override
-  Future<void> exitPlayback() async => _host._handleExit();
+  Future<void> exitPlayback({bool finished = false}) async =>
+      _host._handleExit(finished: finished);
 
   @override
   void setSuppressAutoNext(bool value) {

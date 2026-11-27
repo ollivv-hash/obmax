@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:playback_core/playback_core.dart';
@@ -12,17 +13,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:moonfin/data/models/aggregated_item.dart';
 import 'package:moonfin/data/services/log_service.dart';
+import 'package:moonfin/data/services/user_data_sync.dart';
 import 'package:moonfin/data/viewmodels/live_tv_guide_view_model.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/platform/pip_service.dart';
+import 'package:moonfin/preference/preference_constants.dart';
 import 'package:moonfin/preference/user_preferences.dart';
+import 'package:moonfin/ui/navigation/destinations.dart';
 import 'package:moonfin/ui/screens/livetv/live_tv_player_screen.dart';
 import 'package:moonfin/ui/screensaver/screensaver_controller.dart';
+import 'package:moonfin/ui/widgets/live_tv/channel_carousel.dart';
 import 'package:moonfin/util/platform_detection.dart';
 
 class _Client extends Mock implements MediaServerClient {}
 
 class _LiveTvApi extends Mock implements LiveTvApi {}
+
+class _UserLibraryApi extends Mock implements UserLibraryApi {}
 
 class _Log extends Fake implements LogService {
   @override
@@ -62,6 +69,11 @@ class _Backend extends Fake implements PlayerBackend {
     double? fontSize,
     int? fontWeight,
     double? verticalOffset,
+    double? strokeScale,
+    int? shadowColor,
+    double? shadowOffset,
+    double? shadowBlur,
+    String? fontFamily,
   }) async {}
 }
 
@@ -70,14 +82,23 @@ class _Manager extends PlaybackManager {
 
   final _Backend fakeBackend;
   final seeks = <Duration>[];
+  final playedChannelIds = <String>[];
   final resumes = <bool>[];
+  var stops = 0;
   final _bringup = StreamController<PlaybackBringupState>.broadcast();
 
   @override
   PlayerBackend? get backend => fakeBackend;
 
   @override
-  Stream<PlaybackBringupState> get bringupStateStream => _bringup.stream;
+  Stream<PlaybackBringupState> get bringupStateStream => Stream.multi((c) {
+    final sub = _bringup.stream.listen(c.add);
+    // A null cancel future completes outside the fake clock and stalls the tune.
+    c.onCancel = () {
+      sub.cancel();
+      return Future<void>.value();
+    };
+  }, isBroadcast: true);
 
   @override
   Future<void> playItems(
@@ -94,8 +115,10 @@ class _Manager extends PlaybackManager {
     bool enableTranscoding = true,
     bool autoPlay = true,
     bool carryTrackSelections = false,
+    bool stopCurrentAsFinished = false,
   }) async {
     final id = (items.first as AggregatedItem).id;
+    playedChannelIds.add(id);
     _bringup
       ..add(
         PlaybackBringupState(
@@ -130,7 +153,9 @@ class _Manager extends PlaybackManager {
   Future<void> pause() async => state.setPlaying(false);
 
   @override
-  Future<void> stop({bool userInitiated = true}) async {}
+  Future<void> stop({bool userInitiated = true}) async {
+    stops++;
+  }
 }
 
 // Issue #1189: a live stream that keeps a window, like an internet channel's
@@ -138,6 +163,7 @@ class _Manager extends PlaybackManager {
 void main() {
   late _Manager manager;
   late _Backend backend;
+  late _UserLibraryApi userLibrary;
   late AppLocalizations l10n;
 
   const twoHours = Duration(hours: 2);
@@ -148,6 +174,7 @@ void main() {
 
   setUp(() async {
     PlatformDetection.setTvMode(true);
+    userDataSync.reset();
     SharedPreferences.setMockInitialValues({});
     final store = PreferenceStore();
     await store.init();
@@ -161,7 +188,11 @@ void main() {
       ),
     ).thenAnswer((_) async => const <String, dynamic>{'Items': []});
     when(liveTv.getTimers).thenAnswer((_) async => const <String, dynamic>{});
+    userLibrary = _UserLibraryApi();
+    when(() => userLibrary.markFavorite(any())).thenAnswer((_) async {});
+    when(() => userLibrary.unmarkFavorite(any())).thenAnswer((_) async {});
     final client = _Client();
+    when(() => client.userLibraryApi).thenReturn(userLibrary);
     when(() => client.baseUrl).thenReturn('http://server');
     when(() => client.userId).thenReturn('user');
     when(() => client.liveTvApi).thenReturn(liveTv);
@@ -179,6 +210,7 @@ void main() {
 
   tearDown(() async {
     PlatformDetection.setTvMode(false);
+    userDataSync.reset();
     manager.dispose();
     await GetIt.instance.reset();
   });
@@ -194,6 +226,7 @@ void main() {
         home: const LiveTvPlayerScreen(
           channels: [
             GuideChannel(id: 'ard', name: 'Das Erste', rawData: {}),
+            GuideChannel(id: 'zdf', name: 'ZDF', rawData: {}),
           ],
           startIndex: 0,
         ),
@@ -212,6 +245,196 @@ void main() {
     await tester.sendKeyEvent(key);
     await tester.pump();
   }
+
+  testWidgets('favorite control toggles the channel and follows tuning', (
+    tester,
+  ) async {
+    await pumpPlayer(tester);
+    final favorite = find.byTooltip(l10n.favoriteChannel);
+    expect(favorite, findsOneWidget);
+    expect(tester.widget<Icon>(find.descendant(
+      of: favorite, matching: find.byIcon(Icons.favorite_border),
+    )).color, Colors.white);
+
+    await tester.tap(favorite);
+    await tester.pump();
+    verify(() => userLibrary.markFavorite('ard')).called(1);
+    final unfavorite = find.byTooltip(l10n.unfavoriteChannel);
+    expect(unfavorite, findsOneWidget);
+    expect(tester.widget<Icon>(find.descendant(
+      of: unfavorite, matching: find.byIcon(Icons.favorite),
+    )).color, Theme.of(tester.element(unfavorite)).colorScheme.error);
+
+    await press(tester, LogicalKeyboardKey.channelUp);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byTooltip(l10n.favoriteChannel), findsOneWidget);
+    // Two channels: Channel Up wraps back to the favorited first one.
+    await press(tester, LogicalKeyboardKey.channelUp);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byTooltip(l10n.unfavoriteChannel), findsOneWidget);
+    await tester.tap(find.byTooltip(l10n.unfavoriteChannel));
+    await tester.pump();
+    verify(() => userLibrary.unmarkFavorite('ard')).called(1);
+    expect(find.byTooltip(l10n.favoriteChannel), findsOneWidget);
+  });
+
+  testWidgets('Channel Up works off TV too', (tester) async {
+    PlatformDetection.setTvMode(false);
+    await pumpPlayer(tester);
+    await tester.tap(find.byTooltip(l10n.favoriteChannel));
+    await tester.pump();
+
+    await press(tester, LogicalKeyboardKey.channelUp);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byTooltip(l10n.favoriteChannel), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  /// The player pushed over [from], as the guide and Home open it.
+  Future<GoRouter> pumpRoutedPlayer(WidgetTester tester, String from) async {
+    // Leaving the player resets orientation, which waits on the platform.
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (_) async => null,
+    );
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final router = GoRouter(
+      initialLocation: from,
+      routes: [
+        for (final path in [Destinations.home, Destinations.liveTvGuide])
+          GoRoute(path: path, builder: (_, _) => Text('page $path')),
+        GoRoute(
+          path: Destinations.liveTvPlayer,
+          builder: (_, _) => const LiveTvPlayerScreen(
+            channels: [GuideChannel(id: 'ard', name: 'Das Erste', rawData: {})],
+            startIndex: 0,
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('en')],
+        routerConfig: router,
+      ),
+    );
+    unawaited(router.push(Destinations.liveTvPlayer));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    return router;
+  }
+
+  // The test key maps have no physical key for Guide or Audio.
+  Future<void> pressUnmapped(
+    WidgetTester tester,
+    LogicalKeyboardKey key,
+  ) async {
+    await tester.sendKeyEvent(key, physicalKey: PhysicalKeyboardKey.f12);
+    await tester.pump();
+  }
+
+  String topLocation(GoRouter router) =>
+      router.routerDelegate.currentConfiguration.matches.last.matchedLocation;
+
+  testWidgets("Guide opens the full guide in the player's place", (
+    tester,
+  ) async {
+    final router = await pumpRoutedPlayer(tester, Destinations.home);
+    await pressUnmapped(tester, LogicalKeyboardKey.guide);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(topLocation(router), Destinations.liveTvGuide);
+    router.pop();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(topLocation(router), Destinations.home);
+  });
+
+  testWidgets('Guide from a player the guide opened goes back to it', (
+    tester,
+  ) async {
+    final router = await pumpRoutedPlayer(tester, Destinations.liveTvGuide);
+    await pressUnmapped(tester, LogicalKeyboardKey.guide);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(topLocation(router), Destinations.liveTvGuide);
+    expect(router.canPop(), isFalse);
+  });
+
+  testWidgets('Stop ends the stream and goes back to the guide', (
+    tester,
+  ) async {
+    final router = await pumpRoutedPlayer(tester, Destinations.liveTvGuide);
+    expect(topLocation(router), Destinations.liveTvPlayer);
+
+    await pressUnmapped(tester, LogicalKeyboardKey.mediaStop);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(manager.stops, 1);
+    expect(topLocation(router), Destinations.liveTvGuide);
+  });
+
+  testWidgets('Stop leaves even with the channel list open', (tester) async {
+    final liveTv = GetIt.instance<MediaServerClient>().liveTvApi;
+    when(
+      () => liveTv.getChannels(
+        sortBy: any(named: 'sortBy'),
+        sortOrder: any(named: 'sortOrder'),
+        fields: any(named: 'fields'),
+        enableTotalRecordCount: any(named: 'enableTotalRecordCount'),
+        userId: any(named: 'userId'),
+      ),
+    ).thenAnswer(
+      (_) async => const <String, dynamic>{
+        'Items': [
+          {'Id': 'ard', 'Name': 'Das Erste'},
+        ],
+      },
+    );
+    final router = await pumpRoutedPlayer(tester, Destinations.liveTvGuide);
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(ChannelCarousel), findsOneWidget);
+
+    await pressUnmapped(tester, LogicalKeyboardKey.mediaStop);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(manager.stops, 1);
+    expect(topLocation(router), Destinations.liveTvGuide);
+  });
+
+  testWidgets('Audio with one track or none says so', (tester) async {
+    await pumpPlayer(tester);
+    await pressUnmapped(tester, LogicalKeyboardKey.mediaAudioTrack);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text(l10n.noOtherAudioTracks), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Record with nothing airing says so', (tester) async {
+    await pumpPlayer(tester);
+    await pressUnmapped(tester, LogicalKeyboardKey.mediaRecord);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text(l10n.noProgramData), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('failed favorite request leaves the channel unchanged', (
+    tester,
+  ) async {
+    when(() => userLibrary.markFavorite('ard')).thenThrow(Exception('failed'));
+    await pumpPlayer(tester);
+    await tester.tap(find.byTooltip(l10n.favoriteChannel));
+    await tester.pump();
+    expect(find.byTooltip(l10n.favoriteChannel), findsOneWidget);
+    expect(find.text(l10n.failedToUpdateFavoriteChannel), findsOneWidget);
+  });
 
   testWidgets('a long window shows the rewind controls at live', (
     tester,
@@ -274,6 +497,63 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
 
     expect(manager.seeks, [Duration.zero]);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('set to seek with the controls up, a press first shows them', (
+    tester,
+  ) async {
+    await GetIt.instance<UserPreferences>().set(
+      UserPreferences.appleTvClickpadSeekMode,
+      AppleTvClickpadSeekMode.controlsVisible,
+    );
+    backend.window = const LiveSeekWindow(start: Duration.zero, edge: twoHours);
+    manager.state.setPosition(twoHours);
+    await pumpPlayer(tester);
+    await hideControls(tester);
+
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(manager.seeks, isEmpty);
+    expect(find.byTooltip(l10n.liveTvJumpToLive), findsOneWidget);
+
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(manager.seeks, [twoHours - const Duration(seconds: 10)]);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('set to seek only while paused, playback never seeks', (
+    tester,
+  ) async {
+    await GetIt.instance<UserPreferences>().set(
+      UserPreferences.appleTvClickpadSeekMode,
+      AppleTvClickpadSeekMode.pausedOnly,
+    );
+    backend.window = const LiveSeekWindow(start: Duration.zero, edge: twoHours);
+    manager.state.setPosition(twoHours);
+    manager.state.setPlaying(true);
+    await pumpPlayer(tester);
+    await hideControls(tester);
+
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(manager.seeks, isEmpty);
+
+    await manager.pause();
+    await tester.pump();
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(manager.seeks, [twoHours - const Duration(seconds: 10)]);
+
+    // Resumed before the step lands, the next press drops it.
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    manager.state.setPlaying(true);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(manager.seeks, hasLength(1));
 
     await tester.pumpWidget(const SizedBox());
   });

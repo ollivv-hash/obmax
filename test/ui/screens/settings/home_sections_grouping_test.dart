@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +12,7 @@ import 'package:moonfin/preference/preference_constants.dart';
 import 'package:moonfin/preference/seerr_preferences.dart';
 import 'package:moonfin/preference/user_preferences.dart';
 import 'package:moonfin/ui/screens/settings/home_sections_screen.dart';
+import 'package:moonfin/ui/widgets/settings/settings_panel.dart';
 import 'package:moonfin/util/platform_detection.dart';
 import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +36,11 @@ String _idOf(String collection) =>
 void main() {
   late UserPreferences prefs;
   late _MockSyncService sync;
+  // Whether the plugin can fill the calendar rows. The other external rows
+  // stay unavailable, the way they are with no plugin.
+  var calendarsAvailable = false;
+  // Whether the plugin can fill the outside chart rows.
+  var chartsAvailable = false;
 
   setUpAll(() => registerFallbackValue(HomeSectionType.none));
 
@@ -71,6 +79,26 @@ void main() {
     sync = _MockSyncService();
     when(() => sync.pluginAvailable).thenReturn(false);
     when(() => sync.seerrAvailable).thenReturn(false);
+    calendarsAvailable = false;
+    chartsAvailable = false;
+    when(
+      () => sync.externalRowAvailable(
+        any(),
+        serverBuildsSeasonal: any(named: 'serverBuildsSeasonal'),
+      ),
+    ).thenAnswer((call) {
+      final type = call.positionalArguments.first as HomeSectionType;
+      if (type == HomeSectionType.radarrCalendar ||
+          type == HomeSectionType.sonarrCalendar) {
+        return calendarsAvailable;
+      }
+      final chart = imdbChartSections.contains(type) ||
+          UserPreferences.isTmdbSectionType(type) ||
+          externalCharts.containsKey(type) ||
+          type == HomeSectionType.mdblistWatchingNow;
+      if (chart) return chartsAvailable;
+      return type == HomeSectionType.seasonal ? false : null;
+    });
     GetIt.instance.registerSingleton<PluginSyncService>(sync);
   });
 
@@ -79,7 +107,11 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pump(WidgetTester tester, InterfaceLayout layout) async {
+  Future<void> pump(
+    WidgetTester tester,
+    InterfaceLayout layout, {
+    Widget home = const HomeSectionsScreen(),
+  }) async {
     PlatformDetection.setInterfaceLayout(layout);
     tester.view.physicalSize = const Size(1200, 6000);
     tester.view.devicePixelRatio = 1;
@@ -88,7 +120,7 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const HomeSectionsScreen(),
+        home: home,
       ),
     );
     await tester.pumpAndSettle();
@@ -145,6 +177,63 @@ void main() {
     }
   });
 
+  for (final layout in [InterfaceLayout.phone, InterfaceLayout.tv]) {
+    testWidgets('entering the editor on ${layout.name} opens no group', (
+      tester,
+    ) async {
+      // Opened the way Settings opens it, which focuses the first thing it
+      // finds before the rows have loaded.
+      await pump(
+        tester,
+        layout,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () =>
+                context.pushSettingsScreen(const HomeSectionsScreen()),
+            child: const Text('Rows'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Rows'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('General'), findsOneWidget);
+      expect(find.text('Collections'), findsOneWidget);
+      // General's rows and the collections stay folded away.
+      expect(find.text('Live TV'), findsNothing);
+      expect(find.text('Marvel'), findsNothing);
+      // A remote lands on the first row rather than the reset button above.
+      if (layout == InterfaceLayout.tv) {
+        expect(
+          FocusManager.instance.primaryFocus?.debugLabel,
+          'section_${enabledOrder().first}',
+        );
+      }
+    });
+  }
+
+  testWidgets('outside lists are grouped by where they come from', (
+    tester,
+  ) async {
+    chartsAvailable = true;
+    await pump(tester, InterfaceLayout.phone);
+
+    final headers = ['IMDb', 'TMDB', 'Streaming Services', 'MDBList', 'JustWatch'];
+    for (final header in headers) {
+      expect(find.text(header), findsOneWidget, reason: header);
+    }
+    final tops = [for (final header in headers) top(tester, header)];
+    expect(tops, orderedEquals([...tops]..sort()));
+
+    await tester.tap(find.text('IMDb'));
+    await tester.tap(find.text('Streaming Services'));
+    await tester.pumpAndSettle();
+    // Under its source's header a row drops the prefix.
+    expect(find.text('Top 250 Movies'), findsOneWidget);
+    expect(find.text('IMDb Top 250 Movies'), findsNothing);
+    expect(find.text('Popular on Netflix'), findsOneWidget);
+  });
+
   testWidgets('rows switched off where they live stay out of the editor', (
     tester,
   ) async {
@@ -158,13 +247,15 @@ void main() {
     tester,
   ) async {
     await prefs.set(UserPreferences.displayStudiosRows, true);
-    await prefs.set(UserPreferences.enableRadarrCalendar, true);
-    await prefs.set(UserPreferences.enableSonarrCalendar, true);
+    calendarsAvailable = true;
     when(() => sync.seerrAvailable).thenReturn(true);
     final seerrPrefs = _MockSeerrPreferences();
     when(() => seerrPrefs.isSeerrHomeRowEnabled(any())).thenAnswer(
       (call) =>
           call.positionalArguments.first == HomeSectionType.seerrShortcuts,
+    );
+    when(() => seerrPrefs.brand(any())).thenAnswer(
+      (i) => i.positionalArguments.first as String,
     );
     GetIt.instance.registerSingleton<SeerrPreferences>(seerrPrefs);
     await pump(tester, InterfaceLayout.phone);
@@ -206,6 +297,25 @@ void main() {
     expect(find.byIcon(Icons.drag_handle), findsNWidgets(handles));
   });
 
+  testWidgets('the rows open before the empty checks answer', (tester) async {
+    final items = GetIt.instance<MediaServerClient>().itemsApi;
+    when(
+      () => items.getItems(
+        parentId: any(named: 'parentId'),
+        limit: 1,
+        recursive: true,
+      ),
+    ).thenAnswer((_) => Completer<Map<String, dynamic>>().future);
+
+    await pump(tester, InterfaceLayout.phone);
+    await tester.tap(find.text('Collections').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pixar'));
+    await tester.pumpAndSettle();
+
+    expect(enabledInPrefs('Pixar'), isTrue);
+  });
+
   testWidgets('on a phone a long press drags an enabled row to a new place', (
     tester,
   ) async {
@@ -241,6 +351,8 @@ void main() {
     await pump(tester, InterfaceLayout.phone);
     await dragDown(tester, find.text('My Media'), 600, hold: longPress);
 
+    await tester.tap(find.text('General'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Live TV'));
     await tester.pumpAndSettle();
 

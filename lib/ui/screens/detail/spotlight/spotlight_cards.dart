@@ -37,6 +37,7 @@ import 'spotlight_images.dart';
 import 'widgets/spotlight_file_details_section.dart';
 import 'widgets/spotlight_modal_grids.dart';
 import 'widgets/spotlight_section_modal.dart';
+import '../../../../preference/seerr_preferences.dart';
 
 /// The item-level actions a Spotlight summary card's modal content can invoke.
 /// Every implementation closes the modal before navigating or starting
@@ -304,6 +305,9 @@ class _SpotlightCardsBuilder {
         'people': _boxSetPeopleCard,
         'playlist_order': _boxSetPlaylistOrderCard,
       },
+      'BookSeries' => {
+        'books': _booksCard,
+      },
       _ => {
         'people': _peopleCard,
         'chapters_extras': _chaptersExtrasCard,
@@ -389,11 +393,14 @@ class _SpotlightCardsBuilder {
       }
     }
 
+    final isEpisode = item.type == 'Episode';
+    final fallbackDirector = isEpisode ? l10n.episodeDirector : l10n.director;
+    final fallbackWriter = isEpisode ? l10n.episodeWriter : l10n.writer;
     for (final d in vm.directors) {
-      add(d, l10n.director);
+      add(d, fallbackDirector);
     }
     for (final w in vm.writers) {
-      add(w, l10n.writer);
+      add(w, fallbackWriter);
     }
     return merged.values
         .map(
@@ -665,9 +672,7 @@ class _SpotlightCardsBuilder {
     final seerrRecommendations = pieces.recommendations
         ? seerrState!.recommendations
         : const <SeerrDiscoverItem>[];
-    final seerrSimilar = pieces.similar
-        ? seerrState!.similar
-        : const <SeerrDiscoverItem>[];
+    final seerrSimilar = pieces.similarItems;
     if (similar.isEmpty &&
         seerrRecommendations.isEmpty &&
         seerrSimilar.isEmpty) {
@@ -729,12 +734,12 @@ class _SpotlightCardsBuilder {
         if (similar.isNotEmpty) _mediaSection(librarySectionTitle, similar),
         if (seerrRecommendations.isNotEmpty)
           _seerrSection(
-            l10n.spotlightRecommendationsSeerr,
+            seerrBrand(l10n.spotlightRecommendationsSeerr),
             seerrRecommendations,
           ),
         if (seerrSimilar.isNotEmpty)
           _seerrSection(
-            similar.isEmpty ? l10n.similar : l10n.spotlightSimilarSeerr,
+            similar.isEmpty ? l10n.similar : seerrBrand(l10n.spotlightSimilarSeerr),
             seerrSimilar,
           ),
       ],
@@ -1080,13 +1085,13 @@ class _SpotlightCardsBuilder {
 
     return SpotlightCardSpec(
       id: 'appearances',
-      title: l10n.appearancesSeerr,
+      title: seerrBrand(l10n.appearancesSeerr),
       subtitle: l10n.spotlightItemsCount(items.length),
       imageUrl: imageUrl,
       icon: Icons.star_outline,
       sections: [
         _seerrSection(
-          l10n.appearancesSeerr,
+          seerrBrand(l10n.appearancesSeerr),
           items,
           showCredit: true,
         ),
@@ -1105,13 +1110,13 @@ class _SpotlightCardsBuilder {
 
     return SpotlightCardSpec(
       id: 'crew',
-      title: l10n.crewContributionsSeerr,
+      title: seerrBrand(l10n.crewContributionsSeerr),
       subtitle: l10n.spotlightItemsCount(items.length),
       imageUrl: imageUrl,
       icon: Icons.movie_creation_outlined,
       sections: [
         _seerrSection(
-          l10n.crewContributionsSeerr,
+          seerrBrand(l10n.crewContributionsSeerr),
           items,
           showCredit: true,
         ),
@@ -1125,6 +1130,33 @@ class _SpotlightCardsBuilder {
       if (url != null) return url;
     }
     return null;
+  }
+
+  SpotlightCardSpec? _booksCard() {
+    final books = vm.seriesBooks;
+    if (books.isEmpty) return null;
+    return SpotlightCardSpec(
+      id: 'books',
+      title: l10n.books,
+      subtitle: l10n.spotlightTitlesCount(books.length),
+      imageUrl:
+          spotlightLandscapeImageUrl(
+            _imageApi,
+            item,
+            fallbackUrl: fallbackImageUrl,
+          ) ??
+          spotlightLandscapeImageUrl(
+            _imageApi,
+            books[0],
+            fallbackUrl: fallbackImageUrl,
+          ) ??
+          fallbackImageUrl ??
+          _firstItemLandscape(books),
+      icon: Icons.book,
+      sections: [
+        _mediaSection(l10n.books, books),
+      ],
+    );
   }
 
   SpotlightCardSpec? _boxSetItemsCard() {

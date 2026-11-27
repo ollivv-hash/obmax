@@ -86,7 +86,8 @@ class _FakeCommands implements AppleTvPromptCommands {
   Future<void> advanceNext() async => calls.add('advanceNext');
 
   @override
-  Future<void> exitPlayback() async => calls.add('exitPlayback');
+  Future<void> exitPlayback({bool finished = false}) async =>
+      calls.add(finished ? 'exitPlayback:finished' : 'exitPlayback');
 
   @override
   void setSuppressAutoNext(bool value) {
@@ -299,7 +300,9 @@ void main() {
         async.elapse(const Duration(milliseconds: 7000));
         async.flushMicrotasks();
         expect(h.commands.count('advanceNext'), 0);
-        expect(h.commands.count('exitPlayback'), 1);
+        expect(h.commands.count('markPlayed'), 1);
+        expect(h.commands.count('exitPlayback:finished'), 1);
+        expect(h.commands.count('exitPlayback'), 0);
       });
     });
 
@@ -337,7 +340,9 @@ void main() {
       await h.controller.handleNextUpPlay();
 
       expect(h.commands.count('advanceNext'), 0);
-      expect(h.commands.count('exitPlayback'), 1);
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.count('exitPlayback:finished'), 1);
+      expect(h.commands.count('exitPlayback'), 0);
     });
 
     test('rapid double play advances once', () async {
@@ -359,13 +364,16 @@ void main() {
       expect(h.commands.count('advanceNext'), 1);
     });
 
-    test('cancel exits playback', () async {
+    test('cancel marks played and exits playback as finished', () async {
       final h = _Harness(await testPrefs());
 
       h.tick(remainingMs: 900);
       h.controller.handleNextUpCancel();
 
-      expect(h.commands.count('exitPlayback'), 1);
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.lastMarkedPlayedId, 'ep1');
+      expect(h.commands.count('exitPlayback:finished'), 1);
+      expect(h.commands.count('exitPlayback'), 0);
     });
   });
 
@@ -416,7 +424,9 @@ void main() {
 
       expect(h.commands.count('advanceNext'), 0);
       expect(h.commands.count('resume'), 0);
-      expect(h.commands.count('exitPlayback'), 1);
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.count('exitPlayback:finished'), 1);
+      expect(h.commands.count('exitPlayback'), 0);
     });
 
     test('below the episode threshold no prompt shows', () async {
@@ -471,6 +481,43 @@ void main() {
       expect(h.commands.count('advanceNext'), 0);
       expect(h.commands.count('resume'), 0);
       expect(h.commands.count('exitPlayback'), 0);
+    });
+
+    test('stop after the queue moved under the prompt still exits, unmarked',
+        () async {
+      final h = await harnessAtThreshold();
+
+      h.tick(remainingMs: 900);
+      final play = h.controller.handleNextUpPlay();
+      await Future<void>.delayed(Duration.zero);
+
+      h.snapshot = _snapshot(currentId: 'ep_other');
+      h.controller.resolveStillWatching(shouldContinue: false);
+      await play;
+
+      expect(h.commands.count('markPlayed'), 0);
+      expect(h.commands.count('exitPlayback:finished'), 0);
+      expect(h.commands.count('exitPlayback'), 1);
+      expect(h.commands.count('advanceNext'), 0);
+      expect(h.commands.count('resume'), 0);
+    });
+
+    test('continue after the queue moved under the prompt does not advance '
+        'again', () async {
+      final h = await harnessAtThreshold();
+
+      h.tick(remainingMs: 900);
+      final play = h.controller.handleNextUpPlay();
+      await Future<void>.delayed(Duration.zero);
+
+      h.snapshot = _snapshot(currentId: 'ep_other');
+      h.controller.resolveStillWatching(shouldContinue: true);
+      await play;
+
+      expect(h.commands.count('advanceNext'), 0);
+      expect(h.commands.count('resume'), 0);
+      expect(h.commands.count('exitPlayback'), 0);
+      expect(h.controller.consecutiveEpisodes, 0);
     });
   });
 
@@ -618,7 +665,82 @@ void main() {
       expect(h.commands.lastSeekTarget, const Duration(milliseconds: 2380000));
     });
 
-    test('skipping an outro with no next item exits playback', () async {
+    test('skipping an outro that runs to the end lands a second short',
+        () async {
+      final prefs = await testPrefs();
+      final h = _Harness(prefs);
+      h.segmentService = await segmentServiceWith(prefs, [
+        segmentJson(
+          id: 's1',
+          type: 'Outro',
+          startMs: 2300000,
+          endMs: 2400000,
+        ),
+      ]);
+
+      h.controller.onPositionTick(
+        const Duration(milliseconds: 2310000),
+        const Duration(milliseconds: 2400000),
+      );
+      h.controller.handleSkipSegment();
+
+      expect(h.commands.lastSeekTarget, const Duration(milliseconds: 2399000));
+    });
+
+    test('skipping an outro that runs to the end with no next item exits',
+        () async {
+      final prefs = await testPrefs();
+      final h = _Harness(prefs);
+      h.snapshot = _snapshot(hasNext: false);
+      h.segmentService = await segmentServiceWith(prefs, [
+        segmentJson(
+          id: 's1',
+          type: 'Outro',
+          startMs: 2300000,
+          endMs: 2395000,
+        ),
+      ]);
+
+      h.controller.onPositionTick(
+        const Duration(milliseconds: 2310000),
+        const Duration(milliseconds: 2400000),
+      );
+      h.controller.handleSkipSegment();
+
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.count('exitPlayback:finished'), 1);
+      expect(h.commands.count('exitPlayback'), 0);
+      expect(h.commands.count('advanceNext'), 0);
+    });
+
+    test('an auto-skip outro that runs to the end with no next item exits',
+        () async {
+      final prefs = await testPrefs();
+      await prefs.set(UserPreferences.mediaSegmentActions, 'outro:skip');
+      final h = _Harness(prefs);
+      h.snapshot = _snapshot(hasNext: false);
+      h.segmentService = await segmentServiceWith(prefs, [
+        segmentJson(
+          id: 's1',
+          type: 'Outro',
+          startMs: 2300000,
+          endMs: 2400000,
+        ),
+      ]);
+
+      h.controller.onPositionTick(
+        const Duration(milliseconds: 2310000),
+        const Duration(milliseconds: 2400000),
+      );
+
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.lastMarkedPlayedId, 'ep1');
+      expect(h.commands.count('exitPlayback:finished'), 1);
+      expect(h.commands.count('seekTo'), 0);
+    });
+
+    test('skipping an outro that ends early with no next item seeks past it',
+        () async {
       final prefs = await testPrefs();
       final h = _Harness(prefs);
       h.snapshot = _snapshot(hasNext: false);
@@ -638,8 +760,57 @@ void main() {
       h.controller.handleSkipSegment();
 
       expect(h.commands.count('markPlayed'), 1);
-      expect(h.commands.count('exitPlayback'), 1);
-      expect(h.commands.count('advanceNext'), 0);
+      expect(h.commands.lastSeekTarget, const Duration(milliseconds: 2380000));
+      expect(h.commands.count('exitPlayback:finished'), 0);
+    });
+
+    test('an auto-skip outro that ends early with no next item seeks past it',
+        () async {
+      final prefs = await testPrefs();
+      await prefs.set(UserPreferences.mediaSegmentActions, 'outro:skip');
+      final h = _Harness(prefs);
+      h.snapshot = _snapshot(hasNext: false);
+      h.segmentService = await segmentServiceWith(prefs, [
+        segmentJson(
+          id: 's1',
+          type: 'Outro',
+          startMs: 2300000,
+          endMs: 2380000,
+        ),
+      ]);
+
+      h.controller.onPositionTick(
+        const Duration(milliseconds: 2310000),
+        const Duration(milliseconds: 2400000),
+      );
+
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.lastSeekTarget, const Duration(milliseconds: 2380000));
+      expect(h.commands.count('exitPlayback:finished'), 0);
+    });
+
+    test('an auto-skip outro with a next item marks it played and seeks',
+        () async {
+      final prefs = await testPrefs();
+      await prefs.set(UserPreferences.mediaSegmentActions, 'outro:skip');
+      final h = _Harness(prefs);
+      h.segmentService = await segmentServiceWith(prefs, [
+        segmentJson(
+          id: 's1',
+          type: 'Outro',
+          startMs: 2300000,
+          endMs: 2380000,
+        ),
+      ]);
+
+      h.controller.onPositionTick(
+        const Duration(milliseconds: 2310000),
+        const Duration(milliseconds: 2400000),
+      );
+
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.lastSeekTarget, const Duration(milliseconds: 2380000));
+      expect(h.commands.count('exitPlayback:finished'), 0);
     });
 
     test('replace outro with next up presents the card instead of skipping',
@@ -663,6 +834,12 @@ void main() {
 
       expect(h.commands.count('showSkipSegment'), 0);
       expect(h.commands.count('showNextUp'), 1);
+
+      h.controller.handleNextUpCancel();
+      expect(h.commands.count('markPlayed'), 1);
+      expect(h.commands.lastMarkedPlayedId, 'ep1');
+      expect(h.commands.count('exitPlayback:finished'), 1);
+      expect(h.commands.count('exitPlayback'), 0);
     });
 
     test('outro deferral holds the card until the end threshold', () async {

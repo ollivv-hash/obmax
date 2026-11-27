@@ -6,6 +6,7 @@ class _LibrariesCategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final prefs = GetIt.instance<UserPreferences>();
     return Scaffold(
       appBar: buildSettingsAppBar(context, Text(l10n.libraries)),
       body: ListView(
@@ -34,11 +35,33 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                 icon: Icons.dns,
                 onChanged: _pushPersonalizationSync,
               ),
+              // Rebuild on preference changes so this tile's enabled state
+              // follows the switch above, which writes through its own
+              // binding.
+              ListenableBuilder(
+                listenable: prefs,
+                builder: (context, _) => SwitchPreferenceTile(
+                  preference: UserPreferences.mergeLibrariesByType,
+                  title: l10n.mergeLibrariesByType,
+                  subtitle: l10n.mergeLibrariesByTypeDescription,
+                  icon: Icons.merge_type,
+                  enabled: prefs.get(
+                    UserPreferences.enableMultiServerLibraries,
+                  ),
+                ),
+              ),
               SwitchPreferenceTile(
                 preference: UserPreferences.showBookDiscoverTab,
                 title: l10n.showBookDiscoverTab,
                 subtitle: l10n.showBookDiscoverTabDescription,
                 icon: Icons.explore,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.bookFoldersAsSeries,
+                title: l10n.bookFoldersAsSeries,
+                subtitle: l10n.bookFoldersAsSeriesDescription,
+                icon: Icons.book,
                 onChanged: _pushPersonalizationSync,
               ),
             ],
@@ -162,6 +185,20 @@ class _LibrariesCategoryScreen extends StatelessWidget {
                 icon: Icons.subtitles,
                 onChanged: _pushPersonalizationSync,
               ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.hideLibraryWatchProgress,
+                title: l10n.hideHomeWatchProgress,
+                subtitle: l10n.hideHomeWatchProgressSubtitle,
+                icon: Icons.linear_scale,
+                onChanged: _pushPersonalizationSync,
+              ),
+              SwitchPreferenceTile(
+                preference: UserPreferences.hideLibraryUnwatchedCount,
+                title: l10n.hideHomeUnwatchedCount,
+                subtitle: l10n.hideHomeUnwatchedCountSubtitle,
+                icon: Icons.filter_9_plus_outlined,
+                onChanged: _pushPersonalizationSync,
+              ),
             ],
           ),
         ],
@@ -169,3 +206,7 @@ class _LibrariesCategoryScreen extends StatelessWidget {
     );
   }
 }
+
+/// The page is otherwise only reachable inside the panel's private navigator.
+@visibleForTesting
+Widget librariesSettingsScreenForTesting() => const _LibrariesCategoryScreen();

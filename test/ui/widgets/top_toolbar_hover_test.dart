@@ -44,6 +44,9 @@ class _FakePluginSyncService extends ChangeNotifier
   bool get seerrAvailable => false;
 
   @override
+  bool get calendarAvailable => false;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -205,5 +208,22 @@ void main() {
     await tester.pump();
 
     expect(librariesLabel, findsOneWidget);
+  });
+
+  testWidgets("a TV toolbar keeps only its own margin from the screen's sides", (
+    tester,
+  ) async {
+    PlatformDetection.setInterfaceLayout(InterfaceLayout.tv);
+    tester.view.padding = const FakeViewPadding(left: 48, right: 48);
+    await pumpToolbar(tester);
+
+    final overscan = find.byWidgetPredicate(
+      (widget) =>
+          widget is Padding &&
+          widget.padding ==
+              const EdgeInsets.symmetric(horizontal: 48, vertical: 27),
+    );
+    expect(tester.getTopLeft(overscan).dx, 0);
+    expect(tester.getTopRight(overscan).dx, 1600);
   });
 }

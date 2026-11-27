@@ -31,6 +31,7 @@ import '../../widgets/focus/request_initial_focus.dart';
 import '../../widgets/focus/locked_focus_row.dart';
 import '../../widgets/seerr/seerr_shortcuts.dart';
 import '../../util/home_row_title_localizer.dart';
+import '../../widgets/home_row_spacing.dart';
 import '../../widgets/horizontal_scroll_section.dart';
 import '../../widgets/quick_return_wrapper.dart';
 import '../../widgets/selector_builder.dart';
@@ -64,6 +65,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   final _loadingHoldFocusNode =
       FocusNode(debugLabel: 'seerrDiscoverLoadingHold', skipTraversal: true);
   final _requestsEntryFocusNode = FocusNode(debugLabel: 'seerrRequestsEntry');
+  final _searchEntryFocusNode = FocusNode(debugLabel: 'seerrSearchEntry');
   int _badgeCount = 0;
   bool _initialFocusResolved = false;
   bool _isFirstRowFocused = false;
@@ -75,7 +77,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   final Set<String> _modernRatingsRequested = {};
 
   bool get _isModern =>
-      _prefs.get(UserPreferences.homeRowsStyle) == HomeRowsStyle.v2;
+      _prefs.get(UserPreferences.homeRowsStyle).usesModernCards;
 
   GlobalKey<LockedFocusRowState> _getRowKey(int index) {
     return _rowKeys.putIfAbsent(index, () => GlobalKey<LockedFocusRowState>());
@@ -196,6 +198,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     _initialFocusNode.dispose();
     _loadingHoldFocusNode.dispose();
     _requestsEntryFocusNode.dispose();
+    _searchEntryFocusNode.dispose();
     _modernExpansion.dispose();
     _modernRatings.dispose();
     super.dispose();
@@ -336,7 +339,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     final navbarIsLeft = navbarPosition == NavbarPosition.left;
     final tvTopNavbarInset =
         navbarPosition == NavbarPosition.top && PlatformDetection.isTV && !PlatformDetection.useMobileUi
-        ? 48.0
+        ? tvTopNavbarRowInset
         : 0.0;
     final rowLeftInset =
         ((navbarIsLeft && !PlatformDetection.useMobileUi)
@@ -344,13 +347,17 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
             : tvTopNavbarInset) +
         (!PlatformDetection.useMobileUi ? 16.0 : 0.0);
     final infoPanelLeft =
-        ((navbarIsLeft && !PlatformDetection.useMobileUi) ? 80.0 : 48.0) +
+        ((navbarIsLeft && !PlatformDetection.useMobileUi)
+            ? 80.0
+            : tvTopNavbarInset > 0
+            ? tvTopNavbarInset
+            : 48.0) +
         (!PlatformDetection.useMobileUi ? 16.0 : 0.0);
     final infoTopInset = topPad + (navbarHeight > 0 ? navbarHeight - 12.0 : 28.0);
-    // On phones the navbar pill and row titles crowd the top edge, so the
-    // requests entry drops below them.
+    // On phones, align the entry buttons with the floating back button (or
+    // just below the top navbar when pinned at the top).
     final requestsEntryTop = PlatformDetection.useMobileUi
-        ? infoTopInset + 40.0
+        ? topPad + (navbarHeight > 0 ? navbarHeight + 8.0 : 16.0)
         : infoTopInset;
     return Scaffold(
       backgroundColor: AppColorScheme.background,
@@ -369,9 +376,13 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Modern cards show their details under the focused card,
-                  // so the rows only need to clear the requests entry.
-                  if (_isModern)
-                    SizedBox(height: requestsEntryTop + 44.0)
+                  // and mobile has no top info panel, so the rows only need
+                  // to clear the requests entry.
+                  if (_isModern || PlatformDetection.useMobileUi)
+                    SizedBox(
+                      height: requestsEntryTop +
+                          44.0 * MediaQuery.textScalerOf(context).scale(1.0),
+                    )
                   else
                     _InfoPanel(item: _selectedItem, topInset: infoTopInset, leftInset: infoPanelLeft),
                   Expanded(
@@ -387,13 +398,43 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
               ),
               Positioned(
                 top: requestsEntryTop,
-                right: 24,
-                child: _RequestsEntryButton(
-                  focusNode: _requestsEntryFocusNode,
-                  badgeCount: _badgeCount,
-                  onTap: _openRequests,
-                  onDown: () => _initialFocusNode.requestFocus(),
-                  onUp: _focusNavbarFromEntry,
+                left: PlatformDetection.useMobileUi
+                    ? (navbarPosition == NavbarPosition.top ? 24 : 68) +
+                        MediaQuery.paddingOf(context).left
+                    : null,
+                // An opened folding phone on its side keeps the clock in
+                // this corner.
+                right: 24 + MediaQuery.paddingOf(context).right,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // The app's own search, which lists library titles and
+                        // ones to request side by side.
+                        _RequestsEntryButton(
+                          focusNode: _searchEntryFocusNode,
+                          icon: Icons.search,
+                          label: AppLocalizations.of(context).search,
+                          onTap: () =>
+                              context.navigateTopLevel(Destinations.searchRequests),
+                          onDown: () => _initialFocusNode.requestFocus(),
+                          onUp: _focusNavbarFromEntry,
+                        ),
+                        const SizedBox(width: 10),
+                        _RequestsEntryButton(
+                          focusNode: _requestsEntryFocusNode,
+                          badgeCount: _badgeCount,
+                          onTap: _openRequests,
+                          onDown: () => _initialFocusNode.requestFocus(),
+                          onUp: _focusNavbarFromEntry,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -404,12 +445,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   }
 
   Widget _buildSkeleton({double rowLeftInset = 0.0}) {
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
-    final modern = _isModern ? _modernSizes() : null;
-    final cardWidth = modern?.portraitWidth ?? 130.0 * desktopScale;
-    final imageHeight = modern?.imageHeight ?? 195.0 * desktopScale;
+    final sizes = _posterSizes();
+    final desktopScale = sizes.desktopScale;
     return SkeletonShimmer(
       child: ListView(
         physics: const NeverScrollableScrollPhysics(),
@@ -425,11 +462,11 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
               ),
             ),
             SkeletonHomeRow(
-              cardWidth: cardWidth,
-              imageHeight: imageHeight,
+              cardWidth: sizes.portraitWidth,
+              imageHeight: sizes.imageHeight,
               leadingPadding: 20 * desktopScale,
               itemSpacing: 12 * desktopScale,
-              isModern: modern != null,
+              isModern: _isModern,
             ),
             const SizedBox(height: 16),
           ],
@@ -483,101 +520,120 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       }
     }
 
+    final expanded = expandedHomeRows(_prefs);
     return BottomNavPadded(
       fallback: 32,
-      builder: (context, bottom) => ListView.builder(
-        controller: _scrollController,
-        padding: EdgeInsets.only(left: rowLeftInset, bottom: bottom),
-        itemCount: rows.length,
-        scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
-        itemBuilder: (context, index) {
-          final row = rows[index];
-          if (!row.isLoading && !_rowHasFocusableContent(row)) {
-            return const SizedBox.shrink();
-          }
-          final isFirstFocusableRow = index == _firstFocusableVisibleIndex;
-          final autofocusRow = isFirstFocusableRow && _wantsInitialFocus;
-          final firstNode = autofocusRow ? _initialFocusNode : null;
-          Widget rowWidget;
-          if (row.isShortcutsRow) {
-            rowWidget = _buildShortcutsRow(
-              row,
-              index,
-              autofocusFirst: autofocusRow,
-              firstFocusNode: firstNode,
-            );
-          } else if (row.isGenreRow) {
-            rowWidget = _buildGenreRow(
-              row,
-              index,
-              isFirstVisibleRow: isFirstFocusableRow,
-              autofocusFirst: autofocusRow,
-              firstFocusNode: firstNode,
-            );
-          } else if (row.isNetworkRow) {
-            rowWidget = _buildNetworkRow(
-              row,
-              index,
-              isFirstVisibleRow: isFirstFocusableRow,
-              autofocusFirst: autofocusRow,
-              firstFocusNode: firstNode,
-            );
-          } else if (row.isStudioRow) {
-            rowWidget = _buildStudioRow(
-              row,
-              index,
-              isFirstVisibleRow: isFirstFocusableRow,
-              autofocusFirst: autofocusRow,
-              firstFocusNode: firstNode,
-            );
-          } else {
-            rowWidget = _isModern
-                ? _buildModernMediaRow(
-                    row,
-                    index,
-                    rowLeftInset: rowLeftInset,
-                    autofocusFirst: autofocusRow,
-                    firstFocusNode: firstNode,
-                  )
-                : _buildMediaRow(
-                    row,
-                    index,
-                    isFirstVisibleRow: isFirstFocusableRow,
-                    autofocusFirst: autofocusRow,
-                    firstFocusNode: firstNode,
-                  );
-          }
-          return Builder(
-            builder: (rowContext) => Focus(
-              skipTraversal: true,
-              onFocusChange: (hasFocus) {
-                if (hasFocus) {
-                  if (index == _firstFocusableVisibleIndex) {
-                    if (_scrollController.hasClients) {
-                      _scrollController.animateTo(
-                        0.0,
+      builder: (context, bottom) => LayoutBuilder(
+        builder: (context, constraints) => ListView.builder(
+          controller: _scrollController,
+          padding: EdgeInsets.only(left: rowLeftInset, bottom: bottom),
+          itemCount: rows.length,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
+          itemBuilder: (context, index) {
+            final row = rows[index];
+            if (!row.isLoading && !_rowHasFocusableContent(row)) {
+              return const SizedBox.shrink();
+            }
+            final isFirstFocusableRow = index == _firstFocusableVisibleIndex;
+            final autofocusRow = isFirstFocusableRow && _wantsInitialFocus;
+            final firstNode = autofocusRow ? _initialFocusNode : null;
+            Widget rowWidget;
+            if (row.isShortcutsRow) {
+              rowWidget = _buildShortcutsRow(
+                row,
+                index,
+                autofocusFirst: autofocusRow,
+                firstFocusNode: firstNode,
+              );
+            } else if (row.isGenreRow) {
+              rowWidget = _buildGenreRow(
+                row,
+                index,
+                isFirstVisibleRow: isFirstFocusableRow,
+                autofocusFirst: autofocusRow,
+                firstFocusNode: firstNode,
+              );
+            } else if (row.isNetworkRow) {
+              rowWidget = _buildNetworkRow(
+                row,
+                index,
+                isFirstVisibleRow: isFirstFocusableRow,
+                autofocusFirst: autofocusRow,
+                firstFocusNode: firstNode,
+              );
+            } else if (row.isStudioRow) {
+              rowWidget = _buildStudioRow(
+                row,
+                index,
+                isFirstVisibleRow: isFirstFocusableRow,
+                autofocusFirst: autofocusRow,
+                firstFocusNode: firstNode,
+              );
+            } else {
+              rowWidget = _isModern
+                  ? _buildModernMediaRow(
+                      row,
+                      index,
+                      rowLeftInset: rowLeftInset,
+                      autofocusFirst: autofocusRow,
+                      firstFocusNode: firstNode,
+                    )
+                  : _buildMediaRow(
+                      row,
+                      index,
+                      isFirstVisibleRow: isFirstFocusableRow,
+                      autofocusFirst: autofocusRow,
+                      firstFocusNode: firstNode,
+                    );
+            }
+            return Builder(
+              builder: (rowContext) => Focus(
+                skipTraversal: true,
+                onFocusChange: (hasFocus) {
+                  if (hasFocus) {
+                    if (index == _firstFocusableVisibleIndex) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          0.0,
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    } else {
+                      Scrollable.ensureVisible(
+                        rowContext,
+                        alignment: 0.0,
                         duration: const Duration(milliseconds: 240),
                         curve: Curves.easeInOut,
                       );
                     }
-                  } else {
-                    Scrollable.ensureVisible(
-                      rowContext,
-                      alignment: 0.0,
-                      duration: const Duration(milliseconds: 240),
-                      curve: Curves.easeInOut,
-                    );
                   }
-                }
-              },
-              child: rowWidget,
-            ),
-          );
-        },
+                },
+                child: !expanded
+                    ? rowWidget
+                    // Expanded Rows gives each row the whole area, with the cards
+                    // where Home puts them, near the top in Modern and centered in Classic.
+                    : ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight - bottom,
+                        ),
+                        child: Align(
+                          alignment: _isModern
+                              ? const Alignment(-1, -0.8)
+                              : Alignment.centerLeft,
+                          child: rowWidget,
+                        ),
+                      ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
+  /// Rows are spaced the way Home spaces its own, by the Row Padding setting
+  /// of the style the row draws in. Tile rows always take Classic's.
   Widget _buildRowContainer({
     required SeerrDiscoverRow row,
     required double rowHeight,
@@ -585,6 +641,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     required bool hasItems,
     required ScrollController scrollController,
     required Widget child,
+    bool modernRow = false,
   }) {
     final l10n = AppLocalizations.of(context);
     final slider = row.slider;
@@ -595,48 +652,65 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         .get(UserPreferences.desktopUiScale)
         .scaleFactor;
     final showControls = hasItems && PlatformDetection.useDesktopUi;
+    final contentHeight = (rowHeight + 10) * desktopScale;
+    final spacing = expandedHomeRows(_prefs)
+        ? 0.0
+        : (modernRow ? modernRowPadding(_prefs) : classicRowPadding(_prefs));
+    final headerTop = homeRowHeaderTop(_isModern);
+    final headerBottom = _isModern ? 1.0 : 8.0;
 
-    return HorizontalScrollSection(
-      title: title,
-      scrollController: scrollController,
-      titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: AppColorScheme.onSurface,
-        fontWeight: FontWeight.w700,
-      ),
-      headerPadding: EdgeInsets.fromLTRB(
-        16 * desktopScale,
-        16 * desktopScale,
-        8 * desktopScale,
-        8 * desktopScale,
-      ),
-      contentSpacing: 0,
-      showControls: showControls,
-      builder: (context, controller) {
-        return SizedBox(
-          height: (rowHeight + 10) * desktopScale,
-          child: isLoading
-              ? const Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : hasItems
-                  ? child
-                  : Center(
-                      child: Text(
-                        l10n.noItems,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withAlpha(128),
-                            ),
+    // Home gives a row's title 20 points however tall the header draws, and
+    // lets the rest run into the room under the row. At Modern's default
+    // padding that room is negative, so a card's details can reach the next row.
+    return SizedBox(
+      height: headerTop + 20 * desktopScale + headerBottom + contentHeight + spacing,
+      child: OverflowBox(
+        alignment: Alignment.topLeft,
+        minHeight: 0,
+        maxHeight: double.infinity,
+        child: HorizontalScrollSection(
+          title: title,
+          scrollController: scrollController,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: AppColorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+          headerPadding: EdgeInsets.fromLTRB(
+            16 * desktopScale,
+            headerTop,
+            8 * desktopScale,
+            headerBottom,
+          ),
+          contentSpacing: 0,
+          showControls: showControls,
+          builder: (context, controller) {
+            return SizedBox(
+              height: contentHeight,
+              child: isLoading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                    ),
-        );
-      },
+                    )
+                  : hasItems
+                      ? child
+                      : Center(
+                          child: Text(
+                            l10n.noItems,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withAlpha(128),
+                                ),
+                          ),
+                        ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -666,17 +740,18 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     final cardExpansion =
       GetIt.instance<UserPreferences>().get(UserPreferences.cardFocusExpansion);
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
+    final sizes = _posterSizes();
+    final desktopScale = sizes.desktopScale;
+    final cardWidth = sizes.portraitWidth;
 
     final upwardGrowth = cardExpansion && !PlatformDetection.useMobileUi
-        ? (195.0 * (MediaCard.focusScale - 1.0))
+        ? (sizes.imageHeight * (MediaCard.focusScale - 1.0))
         : 0.0;
     final itemSpacing = cardExpansion && !PlatformDetection.useMobileUi
-        ? MediaCard.focusGap(130.0, minimum: 12.0 * desktopScale)
+        ? MediaCard.focusGap(cardWidth, minimum: 12.0 * desktopScale)
         : 12.0 * desktopScale;
-    final rowHeight = (260.0 * desktopScale) + upwardGrowth;
+    final rowHeight =
+        sizes.imageHeight + (classicCardCaptionHeight * desktopScale) + upwardGrowth;
     final topPadding = (5.0 * desktopScale) + upwardGrowth;
 
     final focusKey = _getRowKey(rowIndex);
@@ -687,7 +762,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         items: row.items,
         hubKey: 'seerr_discover_media_${rowIndex}_${row.key}',
         controller: _getRowScroll(rowIndex),
-        itemExtent: 130,
+        itemExtent: cardWidth,
         itemSpacing: itemSpacing,
         height: rowHeight,
         clipBehavior: Clip.none,
@@ -719,7 +794,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
             title: item.displayTitle,
             subtitle: _yearFromItem(item),
             imageUrl: _posterUrl(item),
-            width: 130,
+            width: cardWidth,
             aspectRatio: 2 / 3,
             seerrMediaType: item.mediaType,
             seerrStatus: item.mediaInfo?.status,
@@ -736,7 +811,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
     return _buildRowContainer(
       row: row,
-      rowHeight: 260.0 + (upwardGrowth / desktopScale),
+      rowHeight: rowHeight / desktopScale,
       isLoading: row.isLoading && row.items.isEmpty,
       hasItems: row.items.isNotEmpty,
       scrollController: _getRowScroll(rowIndex),
@@ -744,17 +819,33 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     );
   }
 
-  ({double imageHeight, double portraitWidth, double focusedWidth, double desktopScale})
-      _modernSizes() {
+  /// Posters and tiles both follow the poster size, so a row of tiles stays in
+  /// proportion with the posters around it. Tiles keep their 180 by 90 at
+  /// Medium. Discover stops at Extra Large, since a Grandparents row no longer
+  /// fits on a TV.
+  ({
+    double imageHeight,
+    double portraitWidth,
+    double focusedWidth,
+    double tileWidth,
+    double tileHeight,
+    double desktopScale,
+  })
+      _posterSizes() {
     final desktopScale = _prefs.get(UserPreferences.desktopUiScale).scaleFactor;
     final platformScale =
         PlatformDetection.isTV ? 0.8 * desktopScale : desktopScale;
-    final imageHeight =
-        modernImageHeight(_prefs.get(UserPreferences.posterSize), platformScale);
+    final posterSize = _prefs.get(UserPreferences.posterSize).upToExtraLarge;
+    final imageHeight = modernImageHeight(posterSize, platformScale);
+    final tileScale = posterSize.portraitHeight /
+        PosterSize.medium.portraitHeight *
+        desktopScale;
     return (
       imageHeight: imageHeight,
       portraitWidth: imageHeight * 2 / 3,
       focusedWidth: imageHeight * 16 / 9,
+      tileWidth: 180 * tileScale,
+      tileHeight: 90 * tileScale,
       desktopScale: desktopScale,
     );
   }
@@ -799,7 +890,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
-    final sizes = _modernSizes();
+    final sizes = _posterSizes();
     final desktopScale = sizes.desktopScale;
     final suppressFocusGlow = ThemeRegistry.active.borders.focusGlow.isNotEmpty;
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
@@ -956,12 +1047,14 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       ),
     );
 
+    // The container adds back the 10 the row's own padding takes.
     return _buildRowContainer(
       row: row,
-      rowHeight: rowHeight / desktopScale,
+      rowHeight: (rowHeight - 2 * rowPadding) / desktopScale,
       isLoading: row.isLoading && row.items.isEmpty,
       hasItems: row.items.isNotEmpty,
       scrollController: scrollController,
+      modernRow: true,
       child: child,
     );
   }
@@ -973,9 +1066,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     FocusNode? firstFocusNode,
   }) {
     final l10n = AppLocalizations.of(context);
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
+    final sizes = _posterSizes();
+    final desktopScale = sizes.desktopScale;
     final shortcuts = SeerrShortcut.withoutDiscover;
     final backdrops = pickShortcutBackdrops(
       shortcuts: shortcuts,
@@ -989,9 +1081,9 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       items: shortcuts,
       hubKey: 'seerr_discover_shortcuts_$rowIndex',
       controller: _getRowScroll(rowIndex),
-      itemExtent: 180,
+      itemExtent: sizes.tileWidth,
       itemSpacing: 12 * desktopScale,
-      height: 90 * desktopScale,
+      height: sizes.tileHeight,
       clipBehavior: Clip.none,
       padding: EdgeInsets.fromLTRB(
         20 * desktopScale,
@@ -1018,6 +1110,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       itemBuilder: (context, shortcut, index, isFocused) {
         final backdrop = backdrops[shortcut];
         return _GenreCard(
+          width: sizes.tileWidth,
+          height: sizes.tileHeight,
           name: shortcut.label(l10n),
           imageUrl: backdrop == null ? null : '$_tmdbBackdropBase$backdrop',
           icon: shortcut.icon,
@@ -1029,7 +1123,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
     return _buildRowContainer(
       row: row,
-      rowHeight: 100 * desktopScale,
+      rowHeight: sizes.tileHeight / desktopScale + 10,
       isLoading: false,
       hasItems: true,
       scrollController: _getRowScroll(rowIndex),
@@ -1054,9 +1148,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     FocusNode? firstFocusNode,
   }) {
     final mediaType = row.type == SeerrRowType.movieGenres ? 'movie' : 'tv';
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
+    final sizes = _posterSizes();
+    final desktopScale = sizes.desktopScale;
 
     final focusKey = _getRowKey(rowIndex);
     final child = LockedFocusRow<SeerrGenre>(
@@ -1064,9 +1157,9 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       items: row.genres,
       hubKey: 'seerr_discover_genres_${rowIndex}_${row.key}',
       controller: _getRowScroll(rowIndex),
-      itemExtent: 180,
+      itemExtent: sizes.tileWidth,
       itemSpacing: 12 * desktopScale,
-      height: 90 * desktopScale,
+      height: sizes.tileHeight,
       clipBehavior: Clip.none,
       padding: EdgeInsets.fromLTRB(
         20 * desktopScale,
@@ -1104,6 +1197,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       itemBuilder: (context, genre, index, isFocused) {
         final backdrop = seerrGenreBackdropUrl(genre.id, genre.backdrops);
         return _GenreCard(
+          width: sizes.tileWidth,
+          height: sizes.tileHeight,
           name: genre.name,
           imageUrl: backdrop,
           externalIsFocused: isFocused,
@@ -1125,7 +1220,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
     return _buildRowContainer(
       row: row,
-      rowHeight: 90,
+      rowHeight: sizes.tileHeight / desktopScale,
       isLoading: row.isLoading && row.genres.isEmpty,
       hasItems: row.genres.isNotEmpty,
       scrollController: _getRowScroll(rowIndex),
@@ -1140,9 +1235,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
+    final sizes = _posterSizes();
+    final desktopScale = sizes.desktopScale;
 
     final focusKey = _getRowKey(rowIndex);
     final child = LockedFocusRow<SeerrNetwork>(
@@ -1150,9 +1244,9 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       items: row.networks,
       hubKey: 'seerr_discover_networks_${rowIndex}_${row.key}',
       controller: _getRowScroll(rowIndex),
-      itemExtent: 180,
+      itemExtent: sizes.tileWidth,
       itemSpacing: 12 * desktopScale,
-      height: 90 * desktopScale,
+      height: sizes.tileHeight,
       clipBehavior: Clip.none,
       padding: EdgeInsets.fromLTRB(
         20 * desktopScale,
@@ -1189,6 +1283,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       focusNode: autofocusFirst ? firstFocusNode : null,
       itemBuilder: (context, network, index, isFocused) {
         return _LogoCard(
+          width: sizes.tileWidth,
+          height: sizes.tileHeight,
           name: network.name,
           logoUrl: network.logoPath,
           externalIsFocused: isFocused,
@@ -1210,7 +1306,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
     return _buildRowContainer(
       row: row,
-      rowHeight: 90,
+      rowHeight: sizes.tileHeight / desktopScale,
       isLoading: row.isLoading && row.networks.isEmpty,
       hasItems: row.networks.isNotEmpty,
       scrollController: _getRowScroll(rowIndex),
@@ -1225,9 +1321,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
+    final sizes = _posterSizes();
+    final desktopScale = sizes.desktopScale;
 
     final focusKey = _getRowKey(rowIndex);
     final child = LockedFocusRow<SeerrStudio>(
@@ -1235,9 +1330,9 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       items: row.studios,
       hubKey: 'seerr_discover_studios_${rowIndex}_${row.key}',
       controller: _getRowScroll(rowIndex),
-      itemExtent: 180,
+      itemExtent: sizes.tileWidth,
       itemSpacing: 12 * desktopScale,
-      height: 90 * desktopScale,
+      height: sizes.tileHeight,
       clipBehavior: Clip.none,
       padding: EdgeInsets.fromLTRB(
         20 * desktopScale,
@@ -1274,6 +1369,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       focusNode: autofocusFirst ? firstFocusNode : null,
       itemBuilder: (context, studio, index, isFocused) {
         return _LogoCard(
+          width: sizes.tileWidth,
+          height: sizes.tileHeight,
           name: studio.name,
           logoUrl: studio.logoPath,
           externalIsFocused: isFocused,
@@ -1295,7 +1392,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
     return _buildRowContainer(
       row: row,
-      rowHeight: 90,
+      rowHeight: sizes.tileHeight / desktopScale,
       isLoading: row.isLoading && row.studios.isEmpty,
       hasItems: row.studios.isNotEmpty,
       scrollController: _getRowScroll(rowIndex),
@@ -1464,6 +1561,8 @@ class _InfoPanel extends StatelessWidget {
 }
 
 class _GenreCard extends StatefulWidget {
+  final double width;
+  final double height;
   final String name;
   final String? imageUrl;
   final IconData? icon;
@@ -1471,6 +1570,8 @@ class _GenreCard extends StatefulWidget {
   final bool? externalIsFocused;
 
   const _GenreCard({
+    required this.width,
+    required this.height,
     required this.name,
     this.imageUrl,
     this.icon,
@@ -1505,8 +1606,8 @@ class _GenreCardState extends State<_GenreCard> with FocusStateMixin {
           scale: effectiveFocused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
           child: SizedBox(
-            width: 180,
-            height: 90,
+            width: widget.width,
+            height: widget.height,
             child: ClipRRect(
               borderRadius: AppRadius.circular(8),
               child: Stack(
@@ -1619,12 +1720,16 @@ class _GenreCardState extends State<_GenreCard> with FocusStateMixin {
 }
 
 class _LogoCard extends StatefulWidget {
+  final double width;
+  final double height;
   final String name;
   final String? logoUrl;
   final VoidCallback? onTap;
   final bool? externalIsFocused;
 
   const _LogoCard({
+    required this.width,
+    required this.height,
     required this.name,
     this.logoUrl,
     this.onTap,
@@ -1658,8 +1763,8 @@ class _LogoCardState extends State<_LogoCard> with FocusStateMixin {
           scale: effectiveFocused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
           child: SizedBox(
-            width: 180,
-            height: 90,
+            width: widget.width,
+            height: widget.height,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: AppColorScheme.surface,
@@ -1730,12 +1835,18 @@ class _RequestsEntryButton extends StatefulWidget {
   final VoidCallback onDown;
   final VoidCallback onUp;
 
+  /// The requests list's icon and title unless given.
+  final IconData icon;
+  final String? label;
+
   const _RequestsEntryButton({
     required this.focusNode,
-    required this.badgeCount,
+    this.badgeCount = 0,
     required this.onTap,
     required this.onDown,
     required this.onUp,
+    this.icon = Icons.move_to_inbox_outlined,
+    this.label,
   });
 
   @override
@@ -1809,7 +1920,7 @@ class _RequestsEntryButtonState extends State<_RequestsEntryButton>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.move_to_inbox_outlined,
+                          widget.icon,
                           color: AppColorScheme.onSurface.withValues(
                             alpha: 0.7,
                           ),
@@ -1817,7 +1928,7 @@ class _RequestsEntryButtonState extends State<_RequestsEntryButton>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          l10n.seerrRequestsTitle,
+                          widget.label ?? l10n.seerrRequestsTitle,
                           style: TextStyle(
                             color: AppColorScheme.onSurface,
                             fontSize: 13.5,

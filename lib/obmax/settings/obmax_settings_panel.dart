@@ -3,56 +3,64 @@
 // settings library rather than an import.
 part of '../../ui/screens/settings/settings_side_panel.dart';
 
-List<_PanelEntry> _obMaxPanelEntries(
+/// The OB Max categories, in the settings pill tabs in place of Moonfin's.
+/// None of them changes the live preview, so it stays off.
+List<_SettingsCategory> _obMaxCategories(
   BuildContext context, {
   required bool showAdmin,
-  required FocusNode? firstFocus,
   required VoidCallback openAdmin,
 }) {
   final l10n = AppLocalizations.of(context);
   return [
     if (showAdmin)
-      _PanelEntry(
-        icon: Icons.admin_panel_settings,
-        title: l10n.administration,
-        subtitle: l10n.settingsAdministrationSubtitle,
-        focusNode: firstFocus,
-        onTap: openAdmin,
+      _SettingsCategory(
+        l10n.administration,
+        l10n.settingsAdministrationSubtitle,
+        () => _SettingsEntryListScreen(
+          title: l10n.administration,
+          entries: [
+            _PanelEntry(
+              icon: Icons.admin_panel_settings,
+              title: l10n.administration,
+              subtitle: l10n.settingsAdministrationSubtitle,
+              onTap: openAdmin,
+            ),
+          ],
+        ),
+        preview: false,
       ),
-    _PanelEntry(
-      icon: Icons.lock,
-      title: 'Compte et sécurité',
-      subtitle: 'Certificat, code PIN, contrôle parental, déconnexion',
-      focusNode: showAdmin ? null : firstFocus,
-      onTap: () => context.pushSettingsScreen(const _ObMaxAccountScreen()),
+    _SettingsCategory(
+      'Compte et sécurité',
+      'Certificat, code PIN, contrôle parental, déconnexion',
+      () => const _ObMaxAccountScreen(),
+      preview: false,
     ),
-    _PanelEntry(
-      icon: Icons.play_circle,
-      title: l10n.playback,
-      subtitle: 'Langues, sous-titres, qualité, épisode suivant, SyncPlay',
-      onTap: () => context.pushSettingsScreen(const _ObMaxPlaybackScreen()),
+    _SettingsCategory(
+      l10n.playback,
+      'Langues, sous-titres, qualité, épisode suivant, SyncPlay',
+      () => const _ObMaxPlaybackScreen(),
+      preview: false,
     ),
     if (ObMaxFeatures.seerr)
-      _PanelEntry(
-        icon: Icons.playlist_add,
-        title: 'Demandes',
-        subtitle: 'Demander des films et des séries (connexion avec ton compte)',
-        onTap: () => context.pushSettingsScreen(const SeerrConfigScreen()),
+      _SettingsCategory(
+        'Demandes',
+        'Demander des films et des séries (connexion avec ton compte)',
+        () => const SeerrConfigScreen(),
+        preview: false,
       ),
-    _PanelEntry(
-      icon: Icons.palette,
-      title: 'Personnalisation',
-      subtitle: PlatformDetection.isTV
+    _SettingsCategory(
+      'Personnalisation',
+      PlatformDetection.isTV
           ? 'Affichage, économiseur d’écran, fiche détaillée, navigation'
           : 'Affichage, fiche détaillée, navigation',
-      onTap: () =>
-          context.pushSettingsScreen(const _ObMaxCustomizationScreen()),
+      () => const _ObMaxCustomizationScreen(),
+      preview: false,
     ),
-    _PanelEntry(
-      icon: Icons.info_outline,
-      title: l10n.aboutTitle,
-      subtitle: 'Version, mises à jour, licences',
-      onTap: () => context.pushSettingsScreen(const _ObMaxAboutScreen()),
+    _SettingsCategory(
+      l10n.aboutTitle,
+      'Version, mises à jour, licences',
+      () => const _ObMaxAboutScreen(),
+      preview: false,
     ),
   ];
 }
@@ -376,6 +384,7 @@ class _ObMaxDisplayScreenState extends State<_ObMaxDisplayScreen> {
                 labelOf: (style) => switch (style) {
                   HomeRowsStyle.v1 => l10n.homeRowsStyleClassic,
                   HomeRowsStyle.v2 => l10n.homeRowsStyleModern,
+                  HomeRowsStyle.carousel => l10n.homeRowsStyleCarousel,
                 },
                 onChanged: () {
                   _reloadHomeRows();
@@ -383,15 +392,15 @@ class _ObMaxDisplayScreenState extends State<_ObMaxDisplayScreen> {
                 },
               ),
               SliderPreferenceTile(
-                preference: rowsStyle == HomeRowsStyle.v2
+                preference: rowsStyle.usesModernCards
                     ? UserPreferences.modernHomeRowsPadding
                     : UserPreferences.classicHomeRowsPadding,
                 title: l10n.homeRowsPadding,
                 description: l10n.homeRowsPaddingDescription,
                 icon: Icons.unfold_more,
-                min: rowsStyle == HomeRowsStyle.v2 ? 360 : 10,
-                max: rowsStyle == HomeRowsStyle.v2 ? 560 : 130,
-                divisions: rowsStyle == HomeRowsStyle.v2 ? 10 : 6,
+                min: rowsStyle.usesModernCards ? 360 : 10,
+                max: rowsStyle.usesModernCards ? 560 : 130,
+                divisions: rowsStyle.usesModernCards ? 10 : 6,
                 enabled: isPaddingEnabled,
                 onChangeEnd: _pushPersonalizationSync,
               ),
@@ -449,7 +458,7 @@ class _ObMaxDisplayScreenState extends State<_ObMaxDisplayScreen> {
                   subtitle: l10n.scaleFocusedCards,
                   icon: Icons.zoom_in,
                 ),
-                if (rowsStyle == HomeRowsStyle.v2) ...[
+                if (rowsStyle.usesModernCards) ...[
                   EnumPreferenceTile<ModernCardTransitionSpeed>(
                     preference: UserPreferences.modernCardTransitionSpeed,
                     title: l10n.modernCardsTransitionSpeed,

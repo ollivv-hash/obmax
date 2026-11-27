@@ -21,6 +21,7 @@ import '../../util/game_cores.dart';
 import '../../util/platform_detection.dart';
 import '../screens/admin/admin_nav.dart';
 import '../screens/admin/admin_routes.dart';
+import '../../util/signed_in_server_features.dart';
 import '../screens/auth/emby_connect_screen.dart';
 import '../screens/auth/plex_sign_in_screen.dart';
 import '../screens/auth/login_screen.dart';
@@ -29,6 +30,7 @@ import '../screens/auth/server_select_screen.dart';
 import '../screens/auth/startup_screen.dart';
 import '../screens/web_diagnostics_screen.dart';
 import '../screens/browse/all_genres_screen.dart';
+import '../screens/calendar/calendar_screen.dart';
 import '../screens/browse/collection_screen.dart';
 import '../screens/browse/favorites_screen.dart';
 import '../screens/browse/folder_browse_screen.dart';
@@ -83,6 +85,7 @@ import '../screens/setup/setup_wizard_screen.dart';
 import 'destinations.dart';
 import 'focus_route_observer.dart';
 import 'route_lifecycle_observer.dart';
+import '../screens/watch_party/watch_together_route.dart';
 
 const _authRoutes = {
   Destinations.startup,
@@ -162,6 +165,41 @@ CustomTransitionPage<T> _opaqueFullScreenPage<T>({
   );
 }
 
+/// A title's page. Quick Look opens it as a drawer over the screen it was
+/// picked on, unless the full page was asked for, and anything else gets the
+/// page go_router builds for a plain route.
+Page<void> _detailPage(
+  GoRouterState state,
+  Widget Function({bool quickLook}) screen,
+) {
+  final quickLook =
+      GetIt.instance<UserPreferences>().effectiveDetailScreenStyle ==
+          DetailScreenStyle.quickLook &&
+      state.uri.queryParameters['full'] != 'true';
+  if (!quickLook) {
+    return MaterialPage<void>(
+      key: state.pageKey,
+      name: state.name ?? state.path,
+      arguments: <String, String>{
+        ...state.pathParameters,
+        ...state.uri.queryParameters,
+      },
+      restorationId: state.pageKey.value,
+      child: screen(),
+    );
+  }
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    name: state.name ?? state.path,
+    opaque: false,
+    transitionDuration: const Duration(milliseconds: 260),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        child,
+    child: screen(quickLook: true),
+  );
+}
+
 final appRouter = GoRouter(
   initialLocation: Destinations.startup,
   observers: [
@@ -192,7 +230,12 @@ final appRouter = GoRouter(
 
     if (path.startsWith('/admin')) {
       final user = getIt<UserRepository>().currentUser;
-      if (user == null || !user.isAdministrator || !_adminAvailable()) {
+      // Silo is administered from its own web app, so a deep link to
+      // Moonfin's admin screens (Jellyfin/Emby admin APIs) would only fail.
+      if (user == null ||
+          !user.isAdministrator ||
+          !_adminAvailable() ||
+          !activeServerSupports((f) => f.supportsAdmin)) {
         return Destinations.home;
       }
     }
@@ -302,14 +345,28 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: Destinations.watchParty,
+      builder: (context, state) => WatchPartyLinkScreen(
+        code: state.uri.queryParameters['code'],
+        serverId: state.uri.queryParameters['serverId'],
+        address: state.uri.queryParameters['address'],
+        switched: state.uri.queryParameters['userId'] != null,
+      ),
+    ),
+    GoRoute(
       path: Destinations.search,
       builder: (context, state) => SearchScreen(
-        key: state.extra is RemoteSearchSession ? ObjectKey(state.extra) : null,
+        // A link to search while it's open reuses this page, so the URI key
+        // gives the screen a fresh state that reads the new query.
+        key: state.extra is RemoteSearchSession
+            ? ObjectKey(state.extra)
+            : ValueKey(state.uri.toString()),
         remoteSearch: state.extra is RemoteSearchSession
             ? state.extra as RemoteSearchSession
             : null,
         initialQuery: state.uri.queryParameters['query'],
         scopedLibraryId: state.uri.queryParameters['libraryId'],
+        preferRequests: state.uri.queryParameters['tab'] == 'requests',
       ),
     ),
 
@@ -357,6 +414,16 @@ final appRouter = GoRouter(
     GoRoute(
       path: Destinations.allGenres,
       builder: (context, state) => const AllGenresScreen(),
+    ),
+    GoRoute(
+      path: Destinations.calendar,
+      builder: (context, state) => const CalendarScreen(),
+      routes: [
+        GoRoute(
+          path: 'month',
+          builder: (context, state) => const CalendarMonthScreen(),
+        ),
+      ],
     ),
     GoRoute(
       path: Destinations.allFavorites,
@@ -428,8 +495,10 @@ final appRouter = GoRouter(
         final genreId = state.uri.queryParameters['genreId']!;
         final parentId = state.uri.queryParameters['parentId'];
         final includeType = state.uri.queryParameters['includeType'];
+        final serverId = state.uri.queryParameters['serverId'];
         return LibraryBrowseScreen(
           libraryId: parentId ?? '',
+          serverId: serverId,
           genreId: genreId,
           genreName: genreName,
           includeItemTypes: includeType != null ? [includeType] : null,
@@ -440,18 +509,24 @@ final appRouter = GoRouter(
       path: Destinations.studioBrowse,
       builder: (context, state) {
         final studioName = state.pathParameters['studioName']!;
-        return LibraryBrowseScreen(libraryId: '', studioName: studioName);
+        final serverId = state.uri.queryParameters['serverId'];
+        return LibraryBrowseScreen(
+          libraryId: '',
+          serverId: serverId,
+          studioName: studioName,
+        );
       },
     ),
 
     // Item details
     GoRoute(
       path: Destinations.itemDetail,
-      builder: (context, state) {
+      pageBuilder: (_, state) => _detailPage(state, ({quickLook = false}) {
         final itemId = state.pathParameters['itemId']!;
         final serverId = state.uri.queryParameters['serverId'];
         final autoPlay = state.uri.queryParameters['autoPlay'] == 'true';
         final contextSeasonId = state.uri.queryParameters['seasonContext'];
+        final libraryId = state.uri.queryParameters['libraryId'];
         return ItemDetailScreen(
           // The browsed season decides which episode list this screen loads, so
           // a change of context has to remount rather than reuse the view model.
@@ -460,8 +535,10 @@ final appRouter = GoRouter(
           serverId: serverId,
           autoPlay: autoPlay,
           contextSeasonId: contextSeasonId,
+          quickLook: quickLook,
+          libraryId: libraryId,
         );
-      },
+      }),
       routes: [
         GoRoute(
           path: 'list',
@@ -716,7 +793,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: Destinations.seerrMediaDetail,
-      builder: (context, state) {
+      pageBuilder: (_, state) => _detailPage(state, ({quickLook = false}) {
         final rawId = state.pathParameters['itemId']!;
         final kind = state.uri.queryParameters['mediaType'] == 'tv'
             ? TmdbItemKind.tv
@@ -726,8 +803,9 @@ final appRouter = GoRouter(
           key: ValueKey(ref.itemId),
           itemId: ref.itemId,
           seerrTitle: state.uri.queryParameters['title'],
+          quickLook: quickLook,
         );
-      },
+      }),
     ),
     GoRoute(
       path: Destinations.seerrCollectionDetail,

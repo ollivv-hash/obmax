@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:moonfin/data/models/media_bar_slide_item.dart';
 import 'package:moonfin/data/models/media_bar_state.dart';
 import 'package:moonfin/data/repositories/mdblist_repository.dart';
 import 'package:moonfin/data/repositories/media_bar_repository.dart';
 import 'package:moonfin/data/services/plugin_sync_service.dart';
 import 'package:moonfin/data/viewmodels/media_bar_view_model.dart';
+import 'package:moonfin/preference/preference_constants.dart';
 import 'package:moonfin/preference/user_preferences.dart';
 import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,6 +38,8 @@ void main() {
   late _Sync sync;
   late List<Completer<MediaBarState>> loads;
 
+  setUpAll(() => registerFallbackValue(<MediaBarSlideItem>[]));
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final store = PreferenceStore();
@@ -50,6 +54,9 @@ void main() {
       loads.add(load);
       return load.future;
     });
+    when(
+      () => repository.loadNewReleases(any()),
+    ).thenAnswer((_) async => const {});
   });
 
   tearDown(() => GetIt.instance.reset());
@@ -69,6 +76,43 @@ void main() {
     expect(loads, hasLength(2));
   });
 
+  test('the bar shows before its new release labels, which follow', () async {
+    const series = MediaBarSlideItem(
+      itemId: 'series',
+      serverId: 'server',
+      title: 'Show',
+      itemType: 'Series',
+    );
+    const movie = MediaBarSlideItem(
+      itemId: 'movie',
+      serverId: 'server',
+      title: 'Film',
+    );
+    final labels = Completer<Map<String, MediaBarNewReleaseInfo>>();
+    when(
+      () => repository.loadNewReleases(any()),
+    ).thenAnswer((_) => labels.future);
+    final viewModel = create();
+    unawaited(viewModel.load());
+    loads.first.complete(const MediaBarReady([series, movie]));
+    await pumpEventQueue();
+
+    expect(viewModel.state, isA<MediaBarReady>());
+    expect(viewModel.items.map((item) => item.newRelease), [null, null]);
+
+    labels.complete({
+      'series': const MediaBarNewReleaseInfo(
+        kind: MediaBarNewRelease.newSeason,
+        season: 2,
+      ),
+    });
+    await pumpEventQueue();
+
+    expect(viewModel.items.first.newRelease?.kind, MediaBarNewRelease.newSeason);
+    expect(viewModel.items.last.newRelease, isNull);
+    viewModel.dispose();
+  });
+
   test('picked lists load again once Moonbase answers', () async {
     await prefs.set(UserPreferences.mediaBarExternalLists, 'imdb_top_250_movies');
     final viewModel = create();
@@ -79,6 +123,36 @@ void main() {
     sync
       ..available = true
       ..notifyListeners();
+    await pumpEventQueue();
+
+    expect(loads, hasLength(2));
+    viewModel.dispose();
+  });
+
+  test('seeding hideWatchedInRecentRows reloads the media bar when changed', () async {
+    final viewModel = create();
+    unawaited(viewModel.load());
+    loads.first.complete(const MediaBarReady([]));
+    await pumpEventQueue();
+    expect(loads, hasLength(1));
+
+    prefs.seedHideWatchedFromServer(const UserConfiguration(hidePlayedInLatest: true));
+    await pumpEventQueue();
+
+    expect(loads, hasLength(2));
+    viewModel.dispose();
+  });
+
+  test('changing the recently released sort reloads the media bar', () async {
+    final viewModel = create();
+    unawaited(viewModel.load());
+    loads.first.complete(const MediaBarReady([]));
+    await pumpEventQueue();
+
+    await prefs.set(
+      UserPreferences.recentlyReleasedSeriesType,
+      RecentlyReleasedSeriesType.episode,
+    );
     await pumpEventQueue();
 
     expect(loads, hasLength(2));

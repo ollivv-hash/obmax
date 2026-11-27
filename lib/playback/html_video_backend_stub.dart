@@ -130,6 +130,11 @@ class HtmlVideoBackend extends PlayerBackend {
     double? fontSize,
     int? fontWeight,
     double? verticalOffset,
+    double? strokeScale,
+    int? shadowColor,
+    double? shadowOffset,
+    double? shadowBlur,
+    String? fontFamily,
   }) async {}
 
   @override
@@ -156,6 +161,14 @@ class HtmlVideoBackend extends PlayerBackend {
   Widget buildView({BoxFit fit = BoxFit.contain}) {
     return const SizedBox.shrink();
   }
+
+  bool get supportsPictureInPicture => false;
+
+  final ValueNotifier<bool> inPictureInPicture = ValueNotifier<bool>(false);
+
+  Future<void> enterPictureInPicture() async {}
+
+  Future<void> exitPictureInPicture() async {}
 
   @override
   void dispose() {}

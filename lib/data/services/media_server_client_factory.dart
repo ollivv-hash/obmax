@@ -4,12 +4,15 @@ import 'package:server_core/server_core.dart';
 import 'package:server_emby/server_emby.dart';
 import 'package:server_jellyfin/server_jellyfin.dart';
 import 'package:server_plex/server_plex.dart';
+import 'package:server_silo/server_silo.dart';
 
+import '../../util/platform_detection.dart';
 import '../../util/server_url.dart';
 import '../offline/connectivity_aware_media_server_client.dart';
 import '../offline/offline_catalog.dart';
 import '../repositories/offline_repository.dart';
 import 'pending_rating_store.dart';
+import 'plex_games_api.dart';
 import 'storage_path_service.dart';
 
 class MediaServerClientFactory {
@@ -49,6 +52,11 @@ class MediaServerClientFactory {
     required String baseUrl,
   }) {
     final normalizedBaseUrl = normalizeServerBaseUrl(baseUrl);
+    // A server whose saved type was corrected needs the other kind of client.
+    if (_clients[serverId]?.serverType case final cached?
+        when cached != serverType) {
+      removeClient(serverId);
+    }
     return _clients.putIfAbsent(serverId, () {
       return _createClient(
         serverType: serverType,
@@ -138,6 +146,13 @@ class MediaServerClientFactory {
         return PlexMediaServerClient(
           baseUrl: baseUrl,
           deviceInfo: deviceInfo,
+          gamesApi: plexMoonbaseGamesApi,
+        );
+      case ServerType.silo:
+        return SiloMediaServerClient(
+          baseUrl: baseUrl,
+          deviceInfo: deviceInfo,
+          platform: _siloDevicePlatform(),
         );
     }
   }
@@ -152,4 +167,19 @@ class MediaServerClientFactory {
     }
     _clients.clear();
   }
+}
+
+/// The platform Silo records for this device (`X-Silo-Device-Platform`),
+/// named the same way as the client name in `lib/di/injection.dart`.
+String _siloDevicePlatform() {
+  if (PlatformDetection.isAppleTV) return 'tvOS';
+  if (PlatformDetection.isWeb) return 'Web';
+  if (PlatformDetection.isAndroid) {
+    return PlatformDetection.isTV ? 'Android TV' : 'Android';
+  }
+  if (PlatformDetection.isIOS) return 'iOS';
+  if (PlatformDetection.isMacOS) return 'macOS';
+  if (PlatformDetection.isWindows) return 'Windows';
+  if (PlatformDetection.isLinux) return 'Linux';
+  return 'Unknown';
 }

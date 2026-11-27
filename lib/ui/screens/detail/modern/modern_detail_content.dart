@@ -85,6 +85,7 @@ import '../../../../data/viewmodels/seerr_media_detail_view_model.dart';
 import '../../../../preference/seerr_preferences.dart';
 import '../../../widgets/overlay_sheet.dart';
 import '../../../widgets/seerr/seerr_collection_banner.dart';
+import '../../../widgets/seerr/seerr_image_urls.dart';
 import '../../../widgets/seerr/seerr_item_chips.dart';
 import '../../../widgets/seerr/seerr_request_dialog.dart';
 import '../../../widgets/seerr/seerr_item_status.dart';
@@ -272,6 +273,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   final FocusNode _episodesFirstFocusNode = FocusNode(debugLabel: 'episodesFirst');
   final FocusNode _episodesCurrentFocusNode = FocusNode(debugLabel: 'episodesCurrent');
   final FocusNode _overviewFocusNode = FocusNode(debugLabel: 'overview');
+  final FocusNode _booksFirstFocusNode = FocusNode(debugLabel: 'booksFirst');
   final FocusNode _personMoviesFirstFocusNode = FocusNode(debugLabel: 'personMoviesFirst');
   final FocusNode _personSeriesFirstFocusNode = FocusNode(debugLabel: 'personSeriesFirst');
   final FocusNode _personSeerrAppearancesFirstFocusNode = FocusNode(debugLabel: 'personSeerrAppearancesFirst');
@@ -512,6 +514,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _reviewsFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _seasonsFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _episodesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
+    _booksFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _personMoviesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _personSeriesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
     _personSeerrAppearancesFirstFocusNode.onKeyEvent = leftToSidebarHandler;
@@ -547,6 +550,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     attachAutoScroll(_seasonsFirstFocusNode);
     attachAutoScroll(_episodesFirstFocusNode);
     attachAutoScroll(_episodesCurrentFocusNode);
+    attachAutoScroll(_booksFirstFocusNode);
 
     for (final cat in extraCategoriesOrder) {
       final node = FocusNode(debugLabel: 'modernFeatureFirst_$cat');
@@ -708,6 +712,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _episodesFirstFocusNode.dispose();
     _episodesCurrentFocusNode.dispose();
     _overviewFocusNode.dispose();
+    _booksFirstFocusNode.dispose();
     _personMoviesFirstFocusNode.dispose();
     _personSeriesFirstFocusNode.dispose();
     _personSeerrAppearancesFirstFocusNode.dispose();
@@ -901,6 +906,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                 _personSeriesFirstFocusNode.requestFocus();
               }
               break;
+            case 'books':
+              _booksFirstFocusNode.requestFocus();
             case 'other':
               _otherFirstFocusNode.requestFocus();
               break;
@@ -1085,6 +1092,11 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           ...extraTabs,
           if (hasSimilar) similar,
         ];
+      case 'BookSeries':
+        final booksList = _vm.seriesBooks;
+        return [
+          _ModernTab('books', l10n.books, (context, item) => _mediaGrid(context, booksList, firstFocusNode: _booksFirstFocusNode)),
+        ];
       case 'MusicAlbum':
       case 'Playlist':
       case 'AudioBook':
@@ -1114,9 +1126,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (series.isNotEmpty)
             _ModernTab('series', l10n.series, (context, item) => _seriesTab(context, series)),
           if (sortedSeerrAppearances.isNotEmpty)
-            _ModernTab('seerrAppearances', l10n.appearancesSeerr, (context, item) => _seerrAppearancesTab(context, sortedSeerrAppearances)),
+            _ModernTab('seerrAppearances', seerrBrand(l10n.appearancesSeerr), (context, item) => _seerrAppearancesTab(context, sortedSeerrAppearances)),
           if (sortedSeerrCrewCredits.isNotEmpty)
-            _ModernTab('seerrCrewContributions', l10n.crewContributionsSeerr, (context, item) => _seerrCrewCreditsTab(context, sortedSeerrCrewCredits)),
+            _ModernTab('seerrCrewContributions', seerrBrand(l10n.crewContributionsSeerr), (context, item) => _seerrCrewCreditsTab(context, sortedSeerrCrewCredits)),
           if (movies.isEmpty && series.isEmpty && sortedSeerrAppearances.isEmpty && sortedSeerrCrewCredits.isEmpty && _vm.filmography.isNotEmpty)
             _ModernTab('appearances', l10n.appearances, (_, _) => _itemGrid(_sortJellyfinItems(_vm.filmography))),
         ];
@@ -1347,8 +1359,6 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     // unplayed episode's seasonId so the cyan border always renders correctly.
     final nextUpSeasonId = _vm.nextUp?.seasonId ??
         _vm.seriesEpisodes.firstWhereOrNull((e) => !e.isPlayed)?.seasonId;
-    final showAvailabilityBadges =
-        widget.prefs.get(UserPreferences.showSeerrAvailabilityBadges);
     final seerrSeasonStatus = seerrItemSeasonStatus(_vm);
     // Set only for a series with no season to open, where the card offers to
     // request that season instead.
@@ -1384,9 +1394,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       );
 
       return SeasonCard(
-        seerrStatus: showAvailabilityBadges
-            ? seerrSeasonStatus[season.indexNumber]
-            : null,
+        seerrStatus: seerrSeasonStatus[season.indexNumber],
         badge: AnimeSeasonAudioBadge(
           seriesId: season.seriesId,
           seasonId: season.id,
@@ -1735,12 +1743,15 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
 
   Widget _crewTab(BuildContext context, AggregatedItem item) {
     final l10n = AppLocalizations.of(context);
+    final isEpisode = item.type == 'Episode';
+    final fallbackDirector = isEpisode ? l10n.episodeDirector : l10n.director;
+    final fallbackWriter = isEpisode ? l10n.episodeWriter : l10n.writer;
     final Map<String, Map<String, dynamic>> merged = {};
     for (final d in _vm.directors) {
       final id = d['Id']?.toString() ?? d['Name']?.toString() ?? '';
       if (id.isEmpty) continue;
       final roleStr = d['Role']?.toString().trim();
-      final role = (roleStr != null && roleStr.isNotEmpty) ? roleStr : l10n.director;
+      final role = (roleStr != null && roleStr.isNotEmpty) ? roleStr : fallbackDirector;
       merged[id] = {
         ...d,
         'Roles': <String>{role},
@@ -1750,7 +1761,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       final id = w['Id']?.toString() ?? w['Name']?.toString() ?? '';
       if (id.isEmpty) continue;
       final roleStr = w['Role']?.toString().trim();
-      final role = (roleStr != null && roleStr.isNotEmpty) ? roleStr : l10n.writer;
+      final role = (roleStr != null && roleStr.isNotEmpty) ? roleStr : fallbackWriter;
       if (merged.containsKey(id)) {
         final roles = merged[id]!['Roles'] as Set<String>;
         roles.add(role);
@@ -2373,7 +2384,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                 return FocusableWrapper(
                   focusNode: index == 0 ? _studiosFirstFocusNode : null,
                   onSelect: name.isNotEmpty
-                      ? () => context.push(Destinations.studio(name))
+                      ? () => context.push(
+                          Destinations.studio(name, serverId: item.serverId),
+                        )
                       : null,
                   borderRadius: 12,
                   suppressFocusGlow: true,
@@ -2404,7 +2417,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                               fit: BoxFit.contain,
                               imageBuilder: (context, imageProvider) {
                                 return Container(
-                                  color: Colors.white,
+                                  color: imageUrl.contains('duotone,ffffff')
+                                      ? const Color(0xFF1A1A1A)
+                                      : Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
@@ -2576,7 +2591,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       if (pieces.similar)
         _seerrTabRow(
           l10n.similar,
-          state.similar,
+          pieces.similarItems,
           firstFocusNode: _seerrSimilarFocusNode,
           onNavigateUp: above(_seerrSimilarFocusNode),
           onNavigateDown: below(_seerrSimilarFocusNode),
@@ -3516,6 +3531,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
             itemBuilder: (context, i) {
               final entry = items[i];
               return MediaCard(
+                posterBadgeItemId: entry.id,
                 title: entry.name,
                 titleColor: titleColor,
                 focusNode: i == 0 ? (focusNode ?? _gridFirstFocusNode) : null,
@@ -3566,10 +3582,12 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       showContextMenu(
         context,
         entry,
-        collectionRemoval: CollectionRemovalContext(
-          collectionName: _vm.item?.name ?? '',
-          remove: _vm.removeFromCollection,
-        ),
+        collectionRemoval: _vm.canRemoveFromCollection
+            ? CollectionRemovalContext(
+                collectionName: _vm.item?.name ?? '',
+                remove: _vm.removeFromCollection,
+              )
+            : null,
         onChanged: () {
           if (mounted) setState(() {});
         },
@@ -3632,6 +3650,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
                         entry.id.startsWith('tmdb:') || entry.serverId == 'seerr';
                     final topRow = i < columns;
                     return MediaCard(
+                      posterBadgeItemId: isSeerrItem ? null : entry.id,
                       title: entry.name,
                       titleColor: titleColor,
                       imageUrl: _imageUrl(entry),
@@ -4124,6 +4143,9 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     AggregatedItem item,
     List<_ModernTab> tabs,
   ) {
+    final series = item.type == 'BookSeries' ? item : null;
+    item = _vm.seriesFeaturedBook ?? item;
+
     final textTheme = Theme.of(context).textTheme;
     final isEpisode = item.type == 'Episode';
     final isSeason = item.type == 'Season';
@@ -4295,9 +4317,13 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
         ),
       );
 
-      final authorOrArtistName = isBookLayout
-          ? (_getAuthorName(item) ?? item.albumArtist)
-          : item.albumArtist;
+      final authorOrArtistName = series == null
+          ? isBookLayout
+              ? (_getAuthorName(item) ?? item.albumArtist)
+              : item.albumArtist
+          : item.name;
+
+      final itemName = series?.name ?? item.name;
 
       final playlistInfo = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4308,7 +4334,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               maxWidth: _landscape ? 600 : (MediaQuery.sizeOf(context).width - 40),
             ),
             child: MarqueeText(
-              text: item.name,
+              text: itemName,
               style: textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: _titleColor,
@@ -5195,7 +5221,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     }
     final posterPath = item.rawData['PosterPath'] as String?;
     if (posterPath != null && posterPath.isNotEmpty) {
-      return 'https://image.tmdb.org/t/p/w342$posterPath';
+      return seerrImageUrl(seerrPosterBase, posterPath);
     }
     final profilePath = item.rawData['ProfilePath'] as String?;
     if (profilePath != null && profilePath.isNotEmpty) {

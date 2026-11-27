@@ -26,6 +26,8 @@ import 'package:volume_controller/volume_controller.dart';
 import 'package:logger/logger.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
+import 'package:server_silo/server_silo.dart'
+    show SiloUsersApi, siloAccessChangedEvent;
 
 import '../../data/models/aggregated_item.dart';
 import '../../data/services/carplay_service.dart';
@@ -36,17 +38,22 @@ import '../../data/services/topshelf_service.dart';
 import '../../data/services/tv_channels_service.dart';
 import '../../data/services/watch_next_service.dart';
 import '../../data/services/media_server_client_factory.dart';
+import '../services/silo_household.dart';
+import '../services/silo_token_storage.dart';
 import '../../data/services/achievements_service.dart';
+import '../../data/services/item_membership_service.dart';
 import '../../data/services/plex_tv_service.dart';
 import '../../data/services/plugin_sync_service.dart';
 import '../../data/services/push_messaging_service.dart';
 import '../../data/services/remote_search_session.dart';
 import '../../data/services/server_messages_service.dart';
 import '../../data/services/socket_handler.dart';
+import '../../playback/remote_media_notification_service.dart';
 import '../../data/services/user_data_sync.dart';
 import '../../di/modules/app_module.dart';
 import '../../di/modules/playback_module.dart';
 import '../../di/modules/server_module.dart';
+import '../../playback/media_kit_player_backend.dart';
 import '../../playback/native_apple_player_backend.dart';
 import '../../playback/audio_handler.dart';
 import '../../playback/headless_session_bootstrap.dart';
@@ -65,6 +72,7 @@ import '../models/server.dart';
 import '../models/user.dart';
 import 'server_repository.dart';
 import 'user_repository.dart';
+import '../../watch_party/silo_watch_party_manager.dart';
 
 enum SessionState { ready, restoring, switching }
 
@@ -122,6 +130,7 @@ class SessionRepository {
   StreamSubscription<ServerWebSocketMessage>? _remoteCommandSubscription;
   RemoteSearchSession? _remoteSearch;
   StreamSubscription<ServerWebSocketMessage>? _pluginEventSubscription;
+  StreamSubscription<ServerWebSocketMessage>? _accessChangedSubscription;
   StreamSubscription<void>? _socketConnectionSubscription;
   double _lastUnmutedVolume = 100;
   Future<void> _remoteVolumeFlight = Future.value();
@@ -145,6 +154,8 @@ class SessionRepository {
     this._pluginSyncService, {
     GoRouter? router,
   }) : _router = router ?? appRouter;
+
+  late final _siloTokens = SiloTokenStorage(_authStore);
 
   final GoRouter _router;
 
@@ -245,6 +256,7 @@ class SessionRepository {
     _remoteNavigationGeneration++;
     _remoteSearch?.close();
     _pluginSyncService.resetState();
+    ItemMembershipService.instance.clearCache();
     if (GetIt.instance.isRegistered<AchievementsService>()) {
       GetIt.instance<AchievementsService>().reset();
     }
@@ -252,12 +264,13 @@ class SessionRepository {
       GetIt.instance<ServerMessagesService>().clear();
     }
 
-    final server = _serverRepository.getServer(serverId);
-    if (server == null) {
+    final stored = _serverRepository.getServer(serverId);
+    if (stored == null) {
       _logger.w('Server $serverId not found in stored servers');
       _setState(SessionState.ready);
       return false;
     }
+    final server = await _serverRepository.withCheckedType(stored);
 
     final users = _authStore.getUsers(serverId);
     final userIndex = users.indexWhere((u) => u.id == userId);
@@ -267,6 +280,15 @@ class SessionRepository {
       return false;
     }
     final user = users[userIndex];
+
+    // A PIN-locked Silo profile without a live proof can't act yet: whoever
+    // switches asks for the PIN first. At start-up this sends the
+    // person to the server's user grid, where tapping the profile asks.
+    if (_siloTokens.needsPin(user)) {
+      _logger.i('Silo profile $userId needs its PIN before it can be used');
+      _setState(SessionState.ready);
+      return false;
+    }
 
     final token = await _credentialStore.getToken(serverId);
     final accessToken = user.accessToken.isNotEmpty ? user.accessToken : token;
@@ -292,7 +314,16 @@ class SessionRepository {
     // A client kept from an earlier session still has the old address.
     if (address != server.address) client.baseUrl = address;
 
-    client.accessToken = accessToken;
+    // A Silo profile restores its account's token pair and profile, because
+    // the stored access token alone can't refresh.
+    _siloTokens.putLogin(
+      client: client,
+      user: user,
+      accessToken: accessToken,
+      onEnded: () => _onSiloLoginEnded(serverId, userId, user.name),
+    );
+    siloClientOf(client)?.onProfileProofRejected = () =>
+        _onSiloProofRejected(serverId, userId);
     client.userId = userId;
 
     // A stored token can be long dead, and everything past this point fires
@@ -307,6 +338,7 @@ class SessionRepository {
           _logger.w('Stored access token was rejected. Logging out.');
           // Point the teardown at this session so it removes the right
           // stored credentials.
+          _forgetUnrememberedPinOfActive();
           _activeServerId = serverId;
           _activeUserId = userId;
           await destroyCurrentSession(tokenKnownInvalid: true);
@@ -321,6 +353,9 @@ class SessionRepository {
     }
 
     setActiveServerClient(client);
+    if (GetIt.instance.isRegistered<RemoteMediaNotificationService>()) {
+      GetIt.instance<RemoteMediaNotificationService>().clearSessions();
+    }
     resetUserScopedSingletons();
     setActiveStreamResolver(client);
     _cancelSocketIdleTimer();
@@ -334,13 +369,24 @@ class SessionRepository {
     _bindRemoteCommandHandling();
     _bindCapabilityReporting(client);
     _bindPluginEventHandling(client);
+    _bindAccessChanges(client);
     userDataSync.bindTo(_socketHandler.events, userId: userId);
     _refreshCarBrowseTree(signedIn: true);
 
+    if (serverId != _activeServerId || userId != _activeUserId) {
+      _forgetUnrememberedPinOfActive();
+    }
     _activeServerId = serverId;
     _activeUserId = userId;
 
-    _userRepository.setCurrentUser(user);
+    // A Silo profile records when it was last used: the account switcher
+    // sorts by it, and another server's rows read the most recent one.
+    var activeUser = user;
+    if (user.isSiloProfile) {
+      activeUser = user.copyWith(lastUsed: DateTime.now());
+      await _authStore.putUser(activeUser);
+    }
+    _userRepository.setCurrentUser(activeUser);
     await _authPrefs.setLastServerId(serverId);
     await _authPrefs.setLastUserId(userId);
 
@@ -402,9 +448,63 @@ class SessionRepository {
       unawaited(GetIt.instance<CrashReportService>().flushPending());
     } catch (_) {}
 
+    if (!await _refreshServerUser(
+      client,
+      user,
+      serverId,
+      preFetched: preFetchedServerUser,
+    )) {
+      return;
+    }
+    unawaited(_syncSiloHousehold(client, user, serverId));
+
+    // The settings entry and the friends button stay hidden until this
+    // answers. It doesn't wait for the settings sync, which on a first
+    // connection can take long enough to leave them hidden on the home screen.
+    if (GetIt.instance.isRegistered<AchievementsService>()) {
+      final achievements = GetIt.instance<AchievementsService>();
+      unawaited(
+        achievements.refreshAvailability(client).then((available) {
+          if (available) achievements.startPolling(client);
+        }),
+      );
+    }
+
+    await _pluginSyncService.syncOnLogin(client, serverId: serverId);
+
+    // Register the FCM token now that a session exists. This is where Firebase
+    // first starts, and only when the plugin can deliver push.
+    if (PlatformDetection.isMobile) {
+      try {
+        if (GetIt.instance.isRegistered<PushMessagingService>()) {
+          await GetIt.instance<PushMessagingService>()
+              .registerWithCurrentToken();
+        }
+      } catch (_) {}
+    }
+    await _pluginSyncService.syncNotificationPrefs(client);
+
+    final seerrCameUp = await _pluginSyncService.configureSeerr(
+      client,
+      username: username ?? user.name,
+      password: password,
+    );
+    if (seerrCameUp) {
+      homeRefreshBus.requestNowOrAfterNavigation(newSectionsOnly: true);
+    }
+  }
+
+  /// Reads the signed-in user from the server and keeps the stored user's
+  /// permissions and the language preferences in step with it. Answers false
+  /// when the server turned the login down and the session was ended.
+  Future<bool> _refreshServerUser(
+    MediaServerClient client,
+    PrivateUser user,
+    String serverId, {
+    ServerUser? preFetched,
+  }) async {
     try {
-      final serverUser =
-          preFetchedServerUser ?? await client.usersApi.getCurrentUser();
+      final serverUser = preFetched ?? await client.usersApi.getCurrentUser();
       final isAdmin = serverUser.policy?.isAdministrator ?? false;
       final canDownload = serverUser.policy?.enableContentDownloading ?? false;
       final canManageSubtitles =
@@ -431,9 +531,11 @@ class SessionRepository {
       }
 
       // init language prefs if not already set
-      if (serverUser.configuration != null) {
+      if (serverUser.configuration != null &&
+          GetIt.instance.isRegistered<UserPreferences>()) {
         GetIt.instance<UserPreferences>().initLanguagePrefs(
           serverUser.configuration!,
+          expectedProfileScope: '${serverId}_${user.id}',
         );
       }
     } on DioException catch (e) {
@@ -443,48 +545,54 @@ class SessionRepository {
         appRouter.go(
           '${Destinations.login}?serverId=$serverId&username=${Uri.encodeComponent(user.name)}',
         );
-        return;
+        return false;
       }
     } catch (_) {}
+    return true;
+  }
 
-    // The settings entry and the friends button stay hidden until this
-    // answers. It doesn't wait for the settings sync, which on a first
-    // connection can take long enough to leave them hidden on the home screen.
-    if (GetIt.instance.isRegistered<AchievementsService>()) {
-      final achievements = GetIt.instance<AchievementsService>();
-      unawaited(
-        achievements.refreshAvailability(client).then((available) {
-          if (available) achievements.startPolling(client);
-        }),
+  /// Reads the active Silo account's household again and stores it, so
+  /// profiles added, renamed, deleted or locked with a PIN on the web since
+  /// sign-in show in the user grid and the switcher. A login stored with the
+  /// main profile alone gets its other profiles this way. Best effort: the
+  /// next start tries again.
+  Future<void> _syncSiloHousehold(
+    MediaServerClient client,
+    PrivateUser user,
+    String serverId,
+  ) async {
+    final accountId = user.siloAccountId;
+    final silo = siloClientOf(client);
+    if (accountId == null || silo == null) return;
+    try {
+      final members = await (silo.usersApi as SiloUsersApi).getHousehold();
+      if (members.isEmpty) return;
+      await SiloHousehold(_authStore).store(
+        serverId: serverId,
+        accountId: accountId,
+        members: members,
+        accessToken: silo.session.accessToken ?? user.accessToken,
       );
+    } catch (e) {
+      _logger.w('Reading the Silo household failed: $e');
     }
+  }
 
-    // Plugin sync, push enrollment and Seerr all need the Moonbase plugin,
-    // which only runs on Jellyfin and Emby.
-    if (client.serverType == ServerType.plex) return;
-
-    await _pluginSyncService.syncOnLogin(client, serverId: serverId);
-
-    // Register the FCM token now that a session exists, and push the current
-    // notification prefs so defaults reach the plugin. Startup registration
-    // bails before login, so this is where closed-app push actually enrolls.
-    if (PlatformDetection.isMobile) {
-      try {
-        if (GetIt.instance.isRegistered<PushMessagingService>()) {
-          await GetIt.instance<PushMessagingService>()
-              .registerWithCurrentToken();
-        }
-        await _pluginSyncService.pushNotificationPrefs(client);
-      } catch (_) {}
-    }
-
-    final seerrCameUp = await _pluginSyncService.configureSeerr(
-      client,
-      username: username ?? user.name,
-      password: password,
-    );
-    if (seerrCameUp) {
-      homeRefreshBus.requestNowOrAfterNavigation(newSectionsOnly: true);
+  /// Silo said the login's access changed: the libraries, rating limits or
+  /// permissions it decides may be different now. The Silo client has
+  /// already forgotten its reads. This reads the user again (a refused login
+  /// ends the session as at start) and reloads Home.
+  Future<void> _onSiloAccessChanged(MediaServerClient client) async {
+    final serverId = _activeServerId;
+    final userId = _activeUserId;
+    if (serverId == null || userId == null) return;
+    final user = _authStore
+        .getUsers(serverId)
+        .where((u) => u.id == userId)
+        .firstOrNull;
+    if (user == null) return;
+    if (await _refreshServerUser(client, user, serverId)) {
+      homeRefreshBus.requestNowOrAfterNavigation();
     }
   }
 
@@ -504,14 +612,18 @@ class SessionRepository {
       // A socket that dropped while the app sat idle is waiting out its
       // backoff, and the user is here now, so do not make them wait for it.
       _socketHandler.retryNow();
-      return;
+    } else {
+      _socketSuspended = false;
+      final serverId = _activeServerId;
+      if (serverId != null) {
+        final client = _clientFactory.getClientIfExists(serverId);
+        if (client != null) {
+          _socketHandler.connectTo(client);
+        }
+      }
     }
-    _socketSuspended = false;
-    final serverId = _activeServerId;
-    if (serverId == null) return;
-    final client = _clientFactory.getClientIfExists(serverId);
-    if (client != null) {
-      _socketHandler.connectTo(client);
+    if (GetIt.instance.isRegistered<RemoteMediaNotificationService>()) {
+      unawaited(GetIt.instance<RemoteMediaNotificationService>().refresh());
     }
   }
 
@@ -566,7 +678,118 @@ class SessionRepository {
         getIt<CastService>().activeKindNotifier.value != null) {
       return true;
     }
+    if (getIt.isRegistered<RemoteMediaNotificationService>() &&
+        getIt<RemoteMediaNotificationService>().keepsSocketAlive) {
+      return true;
+    }
     return false;
+  }
+
+  /// Silo refused to renew the login of [userId] on [serverId] (revoked from
+  /// Silo's sessions page, or idle past the refresh token's expiry). If that
+  /// is still the active session, sign out the way a rejected token at
+  /// start-up does, and open the login screen with the name filled in.
+  ///
+  /// Jellyfin and Emby have no equivalent signal mid-session. Silo's refused
+  /// refresh is unambiguous, since only a 401 on the refresh ends a session.
+  void _onSiloLoginEnded(String serverId, String userId, String name) {
+    if (_activeServerId != serverId || _activeUserId != userId) return;
+    _logger.w('Silo refused to renew the login. Signing out.');
+    unawaited(() async {
+      // The login was the whole account's: its other profiles can't act
+      // without it either.
+      await _removeSiloSiblings(serverId, userId);
+      await destroyCurrentSession(tokenKnownInvalid: true);
+      _router.go(
+        '${Destinations.login}?serverId=$serverId&username=${Uri.encodeComponent(name)}',
+      );
+    }());
+  }
+
+  /// Silo no longer takes the active profile's PIN proof (its PIN was set,
+  /// changed or reset elsewhere). The proof goes, and the server's profiles
+  /// open, where picking the profile asks for the PIN again.
+  void _onSiloProofRejected(String serverId, String userId) {
+    if (_activeServerId != serverId || _activeUserId != userId) return;
+    final user = _authStore
+        .getUsers(serverId)
+        .where((u) => u.id == userId)
+        .firstOrNull;
+    if (user == null) return;
+    _logger.w('Silo refused the profile\'s PIN proof. Asking for the PIN.');
+    unawaited(() async {
+      try {
+        await _siloTokens.forgetProfileToken(user);
+      } catch (e) {
+        _logger.w('Forgetting the refused PIN proof failed: $e');
+      }
+      final silo = _clientFactory.getClientIfExists(serverId);
+      if (silo != null) siloClientOf(silo)?.profileToken = null;
+      _router.go('${Destinations.server}?serverId=$serverId');
+    }());
+  }
+
+  bool _hasOtherSignedInUser(String? serverId, String? userId) =>
+      _authStore.getServers().any(
+        (server) => _authStore.getUsers(server.id).any(
+          (u) =>
+              u.accessToken.isNotEmpty &&
+              !(u.serverId == serverId && u.id == userId),
+        ),
+      );
+
+  /// The other stored profiles of [userId]'s Silo account on [serverId].
+  /// Empty for Jellyfin and Emby users and for a lone profile.
+  List<PrivateUser> _siloSiblings(String serverId, String? userId) {
+    final users = _authStore.getUsers(serverId);
+    final accountId = users
+        .where((u) => u.id == userId)
+        .firstOrNull
+        ?.siloAccountId;
+    if (accountId == null) return const [];
+    return [
+      for (final u in users)
+        if (u.siloAccountId == accountId && u.id != userId) u,
+    ];
+  }
+
+  Future<void> _removeSiloSiblings(String serverId, String userId) async {
+    for (final sibling in _siloSiblings(serverId, userId)) {
+      await _authStore.removeUser(serverId, sibling.id);
+    }
+  }
+
+  /// How many other profiles of the active user's Silo account are stored
+  /// here. "Sign out" takes them too.
+  int get activeSiloSiblingCount {
+    final serverId = _activeServerId;
+    return serverId == null ? 0 : _siloSiblings(serverId, _activeUserId).length;
+  }
+
+  /// Leaving a Silo profile whose PIN is asked for every time locks it
+  /// again, however it is left: a switch, a sign-out or a rejected token.
+  void _forgetUnrememberedPinOfActive() {
+    final serverId = _activeServerId;
+    final userId = _activeUserId;
+    if (serverId == null || userId == null) return;
+    final user = _authStore
+        .getUsers(serverId)
+        .where((u) => u.id == userId)
+        .firstOrNull;
+    if (user != null) _siloTokens.forgetUnrememberedPin(user);
+  }
+
+  /// Signs the whole Silo account out on this device: every stored
+  /// profile of the active user's account goes, the login is ended on Silo
+  /// and its tokens are forgotten. For any other user it is the same as
+  /// [destroyCurrentSession].
+  Future<void> signOutSiloAccount() async {
+    final serverId = _activeServerId;
+    final userId = _activeUserId;
+    if (serverId != null && userId != null) {
+      await _removeSiloSiblings(serverId, userId);
+    }
+    await destroyCurrentSession();
   }
 
   /// [tokenKnownInvalid] is set when the server has already rejected the
@@ -583,6 +806,7 @@ class SessionRepository {
   }
 
   Future<void> destroyCurrentSession({bool tokenKnownInvalid = false}) async {
+    _forgetUnrememberedPinOfActive();
     await _stopPlaybackForSessionChange();
     _remoteVolumeGeneration++;
     _remoteNavigationGeneration++;
@@ -598,12 +822,20 @@ class SessionRepository {
     if (PlatformDetection.isMobile && !tokenKnownInvalid) {
       try {
         if (GetIt.instance.isRegistered<PushMessagingService>()) {
-          await GetIt.instance<PushMessagingService>().unregister();
+          await GetIt.instance<PushMessagingService>().unregister(
+            deleteToken: !_hasOtherSignedInUser(serverId, userId),
+          );
         }
       } catch (_) {}
     }
 
     _pluginSyncService.resetState();
+    ItemMembershipService.instance.clearCache();
+    if (GetIt.instance.isRegistered<SiloWatchPartyManager>()) {
+      GetIt.instance<SiloWatchPartyManager>().onSessionChanged(
+        signedOut: true,
+      );
+    }
     if (GetIt.instance.isRegistered<AchievementsService>()) {
       GetIt.instance<AchievementsService>().reset();
     }
@@ -611,7 +843,13 @@ class SessionRepository {
       GetIt.instance<ServerMessagesService>().clear();
     }
 
-    if (serverId != null && !tokenKnownInvalid) {
+    // A Silo login belongs to the account, not the profile: signing out of
+    // one profile keeps it for the account's other stored profiles, and
+    // only the last one ends it on Silo. The tokens go with that
+    // last profile too (AuthenticationStore.removeUser).
+    final keepsSiloLogin =
+        serverId != null && _siloSiblings(serverId, userId).isNotEmpty;
+    if (serverId != null && !tokenKnownInvalid && !keepsSiloLogin) {
       try {
         final client = _clientFactory.getClientIfExists(serverId);
         await client?.authApi.logout();
@@ -622,14 +860,21 @@ class SessionRepository {
     _remoteCommandSubscription = null;
     _pluginEventSubscription?.cancel();
     _pluginEventSubscription = null;
+    _accessChangedSubscription?.cancel();
+    _accessChangedSubscription = null;
     _socketConnectionSubscription?.cancel();
     _socketConnectionSubscription = null;
     userDataSync.reset();
+    if (GetIt.instance.isRegistered<RemoteMediaNotificationService>()) {
+      GetIt.instance<RemoteMediaNotificationService>().clearSessions();
+    }
     _socketHandler.disconnect();
 
     if (serverId != null) {
       await _credentialStore.deleteToken(serverId);
-      if (userId != null) {
+      // A profile whose account stays signed in stays listed, so the user
+      // grid still offers every profile of the account.
+      if (userId != null && !keepsSiloLogin) {
         await _authStore.removeUser(serverId, userId);
       }
       _clientFactory.removeClient(serverId);
@@ -702,6 +947,9 @@ class SessionRepository {
     _socketConnectionSubscription = _socketHandler.connections.listen(
       (_) => unawaited(_reportRemoteCapabilities(client)),
     );
+    if (GetIt.instance.isRegistered<RemoteMediaNotificationService>()) {
+      unawaited(GetIt.instance<RemoteMediaNotificationService>().refresh());
+    }
   }
 
   // Plugin events pushed over the session websocket (Emby transport) get
@@ -719,6 +967,15 @@ class SessionRepository {
               .catchError((_) {}),
         );
       } catch (_) {}
+    });
+  }
+
+  void _bindAccessChanges(MediaServerClient client) {
+    _accessChangedSubscription?.cancel();
+    _accessChangedSubscription = _socketHandler.events.listen((event) {
+      if (event is ServerEventMessage && event.type == siloAccessChangedEvent) {
+        unawaited(_onSiloAccessChanged(client));
+      }
     });
   }
 
@@ -764,6 +1021,14 @@ class SessionRepository {
     }
   }
 
+  /// Marks [userId] on [serverId] as the active session without starting
+  /// it, for tests of what happens to an active session, such as sign-out.
+  @visibleForTesting
+  void setActiveSessionForTest(String serverId, String userId) {
+    _activeServerId = serverId;
+    _activeUserId = userId;
+  }
+
   /// Lets a test drive a command straight in, so every name a control surface
   /// sends can be checked against what the receiver does with it.
   @visibleForTesting
@@ -779,7 +1044,7 @@ class SessionRepository {
   }
 
   Future<void> _setLocalVolume(PlaybackManager manager, double volume) async {
-    final clamped = volume.clamp(0, 100).toDouble();
+    final clamped = volume.clamp(0, maxPlayerVolume).toDouble();
     final backend = manager.backend;
     if (backend == null) return;
     if (PlatformDetection.isMobile) {
@@ -895,6 +1160,15 @@ class SessionRepository {
       return;
     }
 
+    final command = message.playCommand.toLowerCase();
+    final queuesOnly =
+        command == 'playnext' || command == 'playlast' || command == 'enqueue';
+    // A command that starts playback takes its turn on arrival, before its
+    // items load, so a Stop sent after it outdates it even while they load.
+    final generation = queuesOnly
+        ? _remoteNavigationGeneration
+        : ++_remoteNavigationGeneration;
+
     final loaded = await Future.wait(
       message.itemIds.map((itemId) async {
         try {
@@ -917,11 +1191,10 @@ class SessionRepository {
 
     final startIndex = message.startIndex.clamp(0, items.length - 1).toInt();
     final manager = GetIt.instance<PlaybackManager>();
-    final command = message.playCommand.toLowerCase();
 
     switch (command) {
       case 'playnow':
-        await _playRemoteItems(manager, items, startIndex, message);
+        await _playRemoteItems(manager, items, startIndex, message, generation);
         break;
       case 'playnext':
         for (final item in items.reversed) {
@@ -933,18 +1206,21 @@ class SessionRepository {
         manager.queueService.addItems(items);
         break;
       default:
-        await _playRemoteItems(manager, items, startIndex, message);
+        await _playRemoteItems(manager, items, startIndex, message, generation);
         break;
     }
   }
 
+  /// Plays [items] for a remote command that took [generation] on arrival,
+  /// unless a newer remote command took over while its items loaded.
   Future<void> _playRemoteItems(
     PlaybackManager manager,
     List<AggregatedItem> items,
     int startIndex,
     PlayMessage message,
+    int generation,
   ) async {
-    _remoteNavigationGeneration++;
+    if (generation != _remoteNavigationGeneration) return;
     _remoteSearch?.close();
     final item = items[startIndex];
     final isLiveTv = _isLiveTvItem(item);
@@ -954,7 +1230,7 @@ class SessionRepository {
           )
         : true;
 
-    _ensurePlayerRouteForItem(item);
+    if (!await _ensurePlayerRouteForItem(item, generation)) return;
     await manager.playItems(
       items,
       startIndex: startIndex,
@@ -978,11 +1254,31 @@ class SessionRepository {
         item.rawData['TimerId'] != null;
   }
 
-  void _ensurePlayerRouteForItem(AggregatedItem item) {
-    final currentPath = appRouter.routerDelegate.currentConfiguration.uri.path;
+  /// Opens the player [item] plays in, unless one is already open. Returns
+  /// false when a newer remote command took over while Live TV was closing.
+  Future<bool> _ensurePlayerRouteForItem(
+    AggregatedItem item,
+    int generation,
+  ) async {
+    // A pushed player leaves the configuration's uri on the page under it, so
+    // only the top route shows a player already open. Reading the uri pushed a
+    // second player, which a later Stop left behind empty.
+    final currentPath = _remoteRoutePath;
     if (currentPath == Destinations.videoPlayer ||
         currentPath == Destinations.audioPlayer) {
-      return;
+      return true;
+    }
+    if (currentPath == Destinations.liveTvPlayer) {
+      // Pushed over Live TV, the new player left it underneath for Stop to
+      // uncover. Live TV stops the manager when its page goes, so it has to be
+      // gone before the new item starts or it would stop that one too.
+      final liveTv = _closeDialogsAbovePage();
+      _leaveTopPage();
+      if (liveTv != null) {
+        await liveTv.completed;
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      if (generation != _remoteNavigationGeneration) return false;
     }
 
     final mediaType = item.rawData['MediaType'] as String?;
@@ -992,9 +1288,32 @@ class SessionRepository {
         item.type == 'AudioBook' ||
         mediaType == 'Audio';
 
-    appRouter.push(
+    _router.push(
       isAudio ? Destinations.audioPlayer : Destinations.videoPlayer,
     );
+    return true;
+  }
+
+  /// Closes any dialog above the top page and returns that page, so a later
+  /// step can tell it is still the same page and not just one at its path.
+  PageRoute<dynamic>? _closeDialogsAbovePage() {
+    PageRoute<dynamic>? page;
+    _router.routerDelegate.navigatorKey.currentState?.popUntil((route) {
+      if (route is! PageRoute) return false;
+      page = route;
+      return true;
+    });
+    return page;
+  }
+
+  /// Leaves the top page the way the viewer's own Back would, or goes home
+  /// when nothing is under it.
+  void _leaveTopPage() {
+    if (_router.canPop()) {
+      _router.pop();
+    } else {
+      _router.go(Destinations.home);
+    }
   }
 
   Future<void> _handlePlaystateMessage(PlaystateMessage message) async {
@@ -1006,7 +1325,7 @@ class SessionRepository {
       case 'play':
         await manager.resume();
       case 'stop':
-        await manager.stop(userInitiated: false);
+        await _stopRemotePlayback(manager);
       case 'seek':
         final seek = _durationFromTicks(message.seekPositionTicks);
         if (seek != null) {
@@ -1031,6 +1350,43 @@ class SessionRepository {
       default:
         break;
     }
+  }
+
+  /// Screens that show what the playback manager plays, and so are left empty
+  /// once it stops.
+  static const _remoteStopPlayerRoutes = {
+    Destinations.videoPlayer,
+    Destinations.audioPlayer,
+    Destinations.liveTvPlayer,
+  };
+
+  /// Stops playback and leaves its player the way the viewer's own Back would,
+  /// so a remote Stop doesn't strand an empty player on screen. Any other page
+  /// stays where it is.
+  Future<void> _stopRemotePlayback(PlaybackManager manager) async {
+    // Stop outdates any PlayNow still on its way, even one that left Live TV
+    // for the page under it and has not opened its player yet.
+    final generation = ++_remoteNavigationGeneration;
+    if (!_remoteStopPlayerRoutes.contains(_remoteRoutePath)) {
+      await manager.stop(userInitiated: false);
+      return;
+    }
+    final player = _closeDialogsAbovePage();
+    final backend = manager.backend;
+    if (OverlaySheetController.hasOpenSheet) {
+      await OverlaySheetController.closeAllSheets();
+    }
+    // A PlayNow while the sheets closed started something this Stop predates.
+    if (generation != _remoteNavigationGeneration) return;
+    await manager.stop(userInitiated: false);
+    if (generation != _remoteNavigationGeneration) return;
+    if (backend is NativeApplePlayerBackend) await backend.dismissPlayer();
+    if (generation != _remoteNavigationGeneration) return;
+    // The player may have closed itself while playback stopped, or the viewer
+    // may have left it, even for another player at the same path.
+    if (!_remoteStopPlayerRoutes.contains(_remoteRoutePath)) return;
+    if (player != null && !player.isCurrent) return;
+    _leaveTopPage();
   }
 
   /// Moves playback by the same amount this device's own skip buttons use, so
@@ -1246,6 +1602,7 @@ class SessionRepository {
     _remoteSearch?.close();
     _remoteCommandSubscription?.cancel();
     _pluginEventSubscription?.cancel();
+    _accessChangedSubscription?.cancel();
     _stateController.close();
   }
 }

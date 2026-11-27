@@ -35,6 +35,13 @@ class _FakeServer extends Interceptor {
   return (dio, requests);
 }
 
+Map<String, dynamic> _episode(String key, String title, [String? aired]) => {
+  'ratingKey': key,
+  'type': 'episode',
+  'title': title,
+  'originallyAvailableAt': ?aired,
+};
+
 void main() {
   test(
     'a library page asks Plex for the type, sort, filter and window',
@@ -82,6 +89,72 @@ void main() {
 
     expect(requests.single.path, '/library/metadata/22999/children');
     expect(requests.single.queryParameters.containsKey('sort'), isFalse);
+  });
+
+  test('a list asked for provider ids gets them', () async {
+    final (dio, requests) = _recordingDio({
+      'Metadata': [
+        {
+          'ratingKey': '7',
+          'type': 'movie',
+          'title': 'The Ledger of the Tides',
+          'Guid': [
+            {'id': 'tmdb://1005'},
+            {'id': 'imdb://tt9000002'},
+          ],
+        },
+      ],
+    });
+    final api = PlexItemsApi(dio);
+
+    final listed = await api.getItems(
+      parentId: 'section-1',
+      includeItemTypes: ['Movie'],
+      fields: 'SortName,ProviderIds',
+    );
+    await api.getItems(ids: ['7', '8'], fields: 'ProviderIds');
+    await api.getItems(parentId: 'section-1', includeItemTypes: ['Movie']);
+    await api.getItems(ids: ['7'], fields: 'UserData');
+
+    expect(requests[0].queryParameters['includeGuids'], 1);
+    expect(requests[1].path, '/library/metadata/7,8');
+    expect(requests[1].queryParameters['includeGuids'], 1);
+    expect(requests[2].queryParameters.containsKey('includeGuids'), isFalse);
+    expect(requests[3].queryParameters.containsKey('includeGuids'), isFalse);
+    final item = (listed['Items'] as List).single as Map;
+    expect(item['ProviderIds'], {'Tmdb': '1005', 'Imdb': 'tt9000002'});
+  });
+
+  test("a library's latest items get provider ids only when asked", () async {
+    final (dio, requests) = _recordingDio({
+      'Metadata': [
+        {
+          'ratingKey': '7',
+          'type': 'movie',
+          'title': 'The Ledger of the Tides',
+          'Guid': [
+            {'id': 'tmdb://1005'},
+          ],
+        },
+      ],
+    });
+    final api = PlexItemsApi(dio);
+
+    final latest = await api.getLatestItems(
+      parentId: 'section-1',
+      limit: 5,
+      fields: 'DateCreated,ProviderIds',
+    );
+    await api.getLatestItems(parentId: 'section-1', fields: 'DateCreated');
+    await api.getLatestItems(parentId: 'section-1');
+
+    expect(requests[0].path, '/library/sections/1/recentlyAdded');
+    expect(requests[0].queryParameters['includeGuids'], 1);
+    expect(requests[0].queryParameters['X-Plex-Container-Size'], 5);
+    expect(requests[1].queryParameters.containsKey('includeGuids'), isFalse);
+    expect(requests[2].queryParameters.containsKey('includeGuids'), isFalse);
+    final item = (latest['Items'] as List).single as Map;
+    expect(item['ProviderIds'], {'Tmdb': '1005'});
   });
 
   test('a search across libraries keeps only titles that match', () async {
@@ -944,6 +1017,58 @@ void main() {
 
     expect(requests, isEmpty);
     expect(result['Items'], isEmpty);
+  });
+
+  test("a show's episodes since a date are read whole, then filtered and "
+      'paged', () async {
+    final (dio, requests) = _recordingDio({
+      'Metadata': [
+        _episode('1', 'Old', '2020-01-01'),
+        _episode('2', 'New', '2026-10-20'),
+        _episode('3', 'Newer', '2026-10-27'),
+        _episode('4', 'Undated'),
+      ],
+    });
+
+    final result = await PlexItemsApi(dio).getItems(
+      parentId: '17098',
+      includeItemTypes: ['Episode'],
+      recursive: true,
+      minPremiereDate: DateTime.utc(2026, 10, 4),
+      limit: 1,
+    );
+
+    final request = requests.single;
+    expect(request.path, '/library/metadata/17098/allLeaves');
+    expect(request.queryParameters, isNot(contains('X-Plex-Container-Size')));
+    expect((result['Items'] as List).map((item) => item['Name']), ['New']);
+    expect(result['TotalRecordCount'], 2);
+  });
+
+  test("a library's recent episodes keep Plex's paging and sort", () async {
+    final (dio, requests) = _recordingDio({
+      'totalSize': 900,
+      'Metadata': [
+        _episode('3', 'Newer', '2026-10-27'),
+        _episode('1', 'Old', '2020-01-01'),
+      ],
+    });
+
+    final result = await PlexItemsApi(dio).getItems(
+      parentId: 'section-2',
+      includeItemTypes: ['Episode'],
+      sortBy: 'PremiereDate',
+      sortOrder: 'Descending',
+      recursive: true,
+      minPremiereDate: DateTime.utc(2026, 10, 4),
+      limit: 300,
+    );
+
+    final request = requests.single;
+    expect(request.path, '/library/sections/2/all');
+    expect(request.queryParameters['sort'], 'originallyAvailableAt:desc');
+    expect(request.queryParameters['X-Plex-Container-Size'], 300);
+    expect((result['Items'] as List).map((item) => item['Name']), ['Newer']);
   });
 
   test('a season lists its episodes and a series all of them', () async {
