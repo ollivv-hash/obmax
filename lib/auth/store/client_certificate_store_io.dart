@@ -9,6 +9,10 @@ class ClientCertificateStoreImpl implements ClientCertificateStore {
   // without a keychain access group, so this keeps to the file based one.
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+    // OBMAX: never wipe the store on a read error. The default deletes the
+    // entry, or everything after a failed readAll, and with it the mTLS
+    // certificate; a failed read now just answers nothing.
+    aOptions: AndroidOptions(resetOnError: false),
   );
   bool _unavailable = false;
 
