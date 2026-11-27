@@ -27962,6 +27962,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Controls stay visible'**
   String get bookReaderControlsStayVisible;
+
+  /// OB Max: settings switch that plays the jingle with the startup splash
+  ///
+  /// In en, this message translates to:
+  /// **'Startup sound'**
+  String get obmaxSplashSoundSetting;
+
+  /// OB Max: subtitle of the startup sound switch
+  ///
+  /// In en, this message translates to:
+  /// **'Play the OB Max jingle when the app starts'**
+  String get obmaxSplashSoundSettingSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -15029,5 +15029,13 @@
   "bookReaderControlsStayVisible": "Controls stay visible",
   "@bookReaderControlsStayVisible": {
     "description": "Comic reader toggle while its bars stay on screen"
+  },
+  "obmaxSplashSoundSetting": "Startup sound",
+  "@obmaxSplashSoundSetting": {
+    "description": "OB Max: settings switch that plays the jingle with the startup splash"
+  },
+  "obmaxSplashSoundSettingSubtitle": "Play the OB Max jingle when the app starts",
+  "@obmaxSplashSoundSettingSubtitle": {
+    "description": "OB Max: subtitle of the startup sound switch"
   }
 }

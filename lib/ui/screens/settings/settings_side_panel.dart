@@ -19,6 +19,7 @@ import '../../../obmax/enroll/obmax_enrollment.dart'; // OBMAX
 import '../../../obmax/obmax_features.dart'; // OBMAX
 import '../../../obmax/ota/obmax_updater.dart'; // OBMAX
 import '../../../obmax/playback/obmax_mac_player.dart'; // OBMAX
+import '../../../obmax/splash/obmax_splash_sound.dart'; // OBMAX
 import '../../navigation/app_router.dart' show appRouter; // OBMAX
 import '../../../data/services/achievements_service.dart';
 import '../../../data/services/auto_download_service.dart';

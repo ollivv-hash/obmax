@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../theme/obmax_colors.dart';
+import 'obmax_splash_sound.dart';
 
 /// The animated OB Max splash, drawn from five aligned 1024 px layers.
 ///
@@ -15,17 +16,22 @@ import '../theme/obmax_colors.dart';
 ///
 /// With [holdFinalFrame] it starts on the last frame: used by screens that
 /// keep the splash on screen while the session restores.
+///
+/// With [playSound] (cold start only, see ObMaxBoot) the OB Max jingle plays
+/// with the animation, unless turned off in the settings.
 class ObMaxSplash extends StatefulWidget {
   const ObMaxSplash({
     super.key,
     this.ready = false,
     this.onFinished,
     this.holdFinalFrame = false,
+    this.playSound = false,
   });
 
   final bool ready;
   final VoidCallback? onFinished;
   final bool holdFinalFrame;
+  final bool playSound;
 
   static const duration = Duration(milliseconds: 2600);
 
@@ -58,6 +64,9 @@ class _ObMaxSplashState extends State<ObMaxSplash>
   bool _loadStarted = false;
   bool _skipped = false;
   bool _finished = false;
+  ObMaxSplashSound? _sound;
+  // The splash left before its animation ended (key or tap).
+  bool _cutShort = false;
 
   @override
   void initState() {
@@ -79,8 +88,13 @@ class _ObMaxSplashState extends State<ObMaxSplash>
 
   /// Precaches the five layers and keeps their decoded images for the
   /// painter, then starts the timeline. Nothing animates half-loaded.
+  /// The jingle loads alongside, within its own 300 ms budget.
   Future<void> _load() async {
     final config = createLocalImageConfiguration(context);
+    final sound = widget.playSound && !widget.holdFinalFrame
+        ? _sound = ObMaxSplashSound()
+        : null;
+    final soundLoaded = sound?.load();
     final completers = <Completer<void>>[];
     for (var i = 0; i < ObMaxSplash.layerAssets.length; i++) {
       final completer = Completer<void>();
@@ -99,12 +113,17 @@ class _ObMaxSplashState extends State<ObMaxSplash>
       _streams.add(stream);
       _listeners.add(listener);
     }
-    await Future.wait(completers.map((c) => c.future));
+    await Future.wait([
+      ...completers.map((c) => c.future),
+      ?soundLoaded,
+    ]);
     if (!mounted) return;
     setState(() => _images = List.of(_images));
     if (widget.holdFinalFrame) {
       _timeline.value = 1;
     } else {
+      // Same frame as forward(): the timing is in the audio file.
+      _sound?.play();
       unawaited(_timeline.forward());
     }
   }
@@ -132,6 +151,7 @@ class _ObMaxSplashState extends State<ObMaxSplash>
   void _skip() {
     _skipped = true;
     if (widget.ready && _timeline.value > 0) {
+      if (!_timeline.isCompleted) _cutShort = true;
       _timeline.value = 1;
       _maybeFinish();
     }
@@ -141,12 +161,15 @@ class _ObMaxSplashState extends State<ObMaxSplash>
     if (_finished || !widget.ready) return;
     final done = _timeline.isCompleted || _skipped && _timeline.value > 0;
     if (!done) return;
+    if (!_timeline.isCompleted) _cutShort = true;
     _finished = true;
     widget.onFinished?.call();
   }
 
   @override
   void dispose() {
+    // Cut short: 150 ms fade then stop. Otherwise the jingle ends by itself.
+    unawaited(_sound?.finish(fade: _cutShort) ?? Future<void>.value());
     HardwareKeyboard.instance.removeHandler(_onKey);
     for (var i = 0; i < _streams.length; i++) {
       _streams[i].removeListener(_listeners[i]);

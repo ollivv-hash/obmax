@@ -16088,4 +16088,11 @@ class AppLocalizationsEo extends AppLocalizations {
 
   @override
   String get bookReaderControlsStayVisible => 'Controls stay visible';
+
+  @override
+  String get obmaxSplashSoundSetting => 'Startup sound';
+
+  @override
+  String get obmaxSplashSoundSettingSubtitle =>
+      'Play the OB Max jingle when the app starts';
 }

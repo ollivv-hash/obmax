@@ -16196,4 +16196,11 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get bookReaderControlsStayVisible => 'Ohjaimet pysyvät näkyvissä';
+
+  @override
+  String get obmaxSplashSoundSetting => 'Startup sound';
+
+  @override
+  String get obmaxSplashSoundSettingSubtitle =>
+      'Play the OB Max jingle when the app starts';
 }

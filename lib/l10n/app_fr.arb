@@ -15054,5 +15054,7 @@
     "bookDiscoverSearchAudiobooks": "Rechercher sur LibriVox",
     "bookDiscoverFeatured": "À la une",
     "bookReaderControlsAutoHide": "Les commandes se masquent automatiquement",
-    "bookReaderControlsStayVisible": "Les commandes restent visibles"
+    "bookReaderControlsStayVisible": "Les commandes restent visibles",
+    "obmaxSplashSoundSetting": "Son au démarrage",
+    "obmaxSplashSoundSettingSubtitle": "Jouer le jingle OB Max au lancement de l’application"
 }

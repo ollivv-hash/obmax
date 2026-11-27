@@ -16319,4 +16319,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get bookReaderControlsStayVisible => 'Les commandes restent visibles';
+
+  @override
+  String get obmaxSplashSoundSetting => 'Son au démarrage';
+
+  @override
+  String get obmaxSplashSoundSettingSubtitle =>
+      'Jouer le jingle OB Max au lancement de l’application';
 }
