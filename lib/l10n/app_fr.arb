@@ -174,11 +174,11 @@
     },
     "themeMoonfin": "OB Max",
     "@themeMoonfin": {
-        "description": "Display name for the Moonfin theme"
+        "description": "Display name for the OB Max theme"
     },
     "themeMoonfinSubtitle": "Le look actuel d'OB Max que vous aimez tous.",
     "@themeMoonfinSubtitle": {
-        "description": "Preview description for the Moonfin theme"
+        "description": "Preview description for the OB Max theme"
     },
     "themeNeonPulse": "Neon Pulse",
     "@themeNeonPulse": {
@@ -3468,7 +3468,7 @@
     },
     "mediaBarModeMoonfin": "OB Max",
     "@mediaBarModeMoonfin": {
-        "description": "Media bar style option: Moonfin"
+        "description": "Media bar style option: OB Max"
     },
     "mediaBarModeMakd": "MakD",
     "@mediaBarModeMakd": {
@@ -4167,7 +4167,7 @@
     },
     "playInMoonfin": "Lire dans OB Max",
     "@playInMoonfin": {
-        "description": "Button to play available media in Moonfin"
+        "description": "Button to play available media in OB Max"
     },
     "requestedByName": "Demandé par {name}",
     "@requestedByName": {
@@ -8015,7 +8015,7 @@
     },
     "recommendationSystemMoonfin": "OB Max recommande",
     "@recommendationSystemMoonfin": {
-        "description": "Recommendation system option: Moonfin Recommends"
+        "description": "Recommendation system option: OB Max Recommends"
     },
     "audiobookSave": "Enregistrer",
     "detailScreenStyleModern": "Moderne",
@@ -10701,7 +10701,7 @@
     },
     "loadingAnimationImageMoonfinLogo": "Logo OB Max",
     "@loadingAnimationImageMoonfinLogo": {
-        "description": "Loading animation image option: Moonfin Logo"
+        "description": "Loading animation image option: OB Max Logo"
     },
     "loadingAnimationImageSpinner": "Roue de chargement",
     "@loadingAnimationImageSpinner": {
@@ -10717,7 +10717,7 @@
     },
     "loadingAnimationImageMoonfinPhases": "Phases OB Max",
     "@loadingAnimationImageMoonfinPhases": {
-        "description": "Loading animation image option: Moonfin Phases in brand gradient"
+        "description": "Loading animation image option: OB Max Phases in brand gradient"
     },
     "loadingAnimationImageNeonfinPhases": "Phases Neonfin",
     "@loadingAnimationImageNeonfinPhases": {
@@ -10996,7 +10996,7 @@
     },
     "screensaverBackdropMoonfin": "OB Max",
     "@screensaverBackdropMoonfin": {
-        "description": "Screensaver backdrop: Moonfin"
+        "description": "Screensaver backdrop: OB Max"
     },
     "screensaverBackdropCalm": "Apaisé",
     "@screensaverBackdropCalm": {
@@ -11016,7 +11016,7 @@
     },
     "screensaverComponentMoonfinLogo": "Logo OB Max",
     "@screensaverComponentMoonfinLogo": {
-        "description": "Screensaver component: Moonfin Logo"
+        "description": "Screensaver component: OB Max Logo"
     },
     "screensaverComponentRunner": "Runner",
     "@screensaverComponentRunner": {
@@ -13578,7 +13578,7 @@
     },
     "topShelf": "Top Shelf",
     "@topShelf": {
-        "description": "Apple TV settings label for what the tvOS home screen shows above the Moonfin icon. Top Shelf is Apple's name for that area"
+        "description": "Apple TV settings label for what the tvOS home screen shows above the OB Max icon. Top Shelf is Apple's name for that area"
     },
     "topShelfDescription": "Ce que l'écran d'accueil de l'Apple TV affiche au-dessus de l'icône OB Max lorsqu'elle est sélectionnée. Ce paramètre ne s'applique qu'à cet appareil.",
     "@topShelfDescription": {
@@ -13590,7 +13590,7 @@
     },
     "topShelfAppBanner": "Bannière OB Max",
     "@topShelfAppBanner": {
-        "description": "Top Shelf option that shows only the static Moonfin logo banner, nothing from the library"
+        "description": "Top Shelf option that shows only the static OB Max logo banner, nothing from the library"
     },
     "detailsPage": "Page de détails",
     "@detailsPage": {
@@ -15346,8 +15346,8 @@
     "displaySinceYouWatchedRows": "Afficher les rangées « Selon vos visionnages »",
     "displaySinceYouWatchedRowsSubtitle": "Afficher et personnaliser les rangées « Selon vos visionnages » dans les sections d'accueil.",
     "sinceYouWatchedSource": "Source des recommandations",
-    "sinceYouWatchedSourceDescription": "Choisissez la source des recommandations (l'algorithme local « Moonfin recommande », le serveur « Jellyfin recommande » ou les mesures de similarité TMDb. Remarque : les recommandations en ligne nécessitent l'intégration Seerr).",
-    "sinceYouWatchedSourceLocal": "Moonfin recommande",
+    "sinceYouWatchedSourceDescription": "Choisissez la source des recommandations (l'algorithme local « OB Max recommande », le serveur « Jellyfin recommande » ou les mesures de similarité TMDb. Remarque : les recommandations en ligne nécessitent l'intégration Seerr).",
+    "sinceYouWatchedSourceLocal": "OB Max recommande",
     "sinceYouWatchedSourceServer": "Recommandé par le serveur",
     "sinceYouWatchedSourceOnline": "Similarité TMDb",
     "sinceYouWatchedSourceType": "Type de source",
@@ -15564,7 +15564,7 @@
     "cadenceSlowdownSubtitle": "Quand « Adapter la fréquence d'images » est désactivé, lit la vidéo 24 fps 0,1 % plus lentement pour l'adapter au téléviseur sans perte d'images. Inutilisé quand l'audio est transmis en Passthrough vers un ampli AV.",
     "cadenceTipTitle": "Activer « Adapter la fréquence d'images »",
     "cadenceTipMessage": "Cette vidéo ne peut pas être lue de façon fluide à la fréquence de rafraîchissement actuelle de votre téléviseur. Sur votre Apple TV, ouvrez Réglages > Vidéo et audio > Adapter au contenu, puis activez « Adapter à la fréquence d'images ».",
-    "cadenceTipSlowdownHint": "Ou activez « 24 fps fluide sur un téléviseur 60 Hz » dans Moonfin, sous Lecture > Qualité et décodage.",
+    "cadenceTipSlowdownHint": "Ou activez « 24 fps fluide sur un téléviseur 60 Hz » dans OB Max, sous Lecture > Qualité et décodage.",
     "@externalPlayerLiveTvOnly": {
         "description": "Setting that limits the external player to Live TV channels"
     },
@@ -15829,7 +15829,7 @@
         "description": "What the Bottom Bar navigation position gives you on phones"
     },
     "@setupMediaBarMoonfinHint": {
-        "description": "What the Moonfin media bar style looks like"
+        "description": "What the OB Max media bar style looks like"
     },
     "@setupMediaBarMakdHint": {
         "description": "What the MakD media bar style looks like"
@@ -16325,7 +16325,7 @@
         "description": "Settings description for the video player choice, listing what the native Apple style player lacks"
     },
     "@settingsApplePlayerUiStandard": {
-        "description": "Option for the regular Moonfin video player on iPhone and iPad"
+        "description": "Option for the regular OB Max video player on iPhone and iPad"
     },
     "@settingsApplePlayerUiNative": {
         "description": "Option for the native video player that the Apple TV app uses, offered on iPhone and iPad"
@@ -16408,7 +16408,7 @@
         "description": "Record prompt question when a future showing is shown below it"
     },
     "@recordPromptSearchLater": {
-        "description": "Record prompt question when no future showing is known yet and Moonfin will look for one"
+        "description": "Record prompt question when no future showing is known yet and OB Max will look for one"
     },
     "@recordPromptNow": {
         "description": "Label of the Record prompt card for the program that is airing now"
@@ -16459,7 +16459,7 @@
         }
     },
     "@recordNowAndLater": {
-        "description": "Record prompt choice when no future showing is known yet: record now and let Moonfin find a future showing"
+        "description": "Record prompt choice when no future showing is known yet: record now and let OB Max find a future showing"
     },
     "@recordOnlyLater": {
         "description": "Record prompt choice: skip the airing now and record only the future showing. The placeholder is a time today, Tomorrow, a weekday or a short date",
@@ -16470,7 +16470,7 @@
         }
     },
     "@recordLaterShowingOnly": {
-        "description": "Record prompt choice when no future showing is known yet: skip the airing now and let Moonfin record a future showing"
+        "description": "Record prompt choice when no future showing is known yet: skip the airing now and let OB Max record a future showing"
     },
     "@laterShowingOnlyRequested": {
         "description": "Snackbar after choosing to record only the future showing"
@@ -16546,7 +16546,7 @@
     "@siloNativeOfferTitle": {
         "description": "Title of the dialog shown when the address being added is Silo's Jellyfin-compatible service and Silo's own API answers on another port of the same host"
     },
-    "siloNativeOfferMessage": "Cette adresse est le service compatible Jellyfin de {serverName}. Moonfin peut se connecter directement à Silo sur {address}, avec les fonctions propres à Silo.",
+    "siloNativeOfferMessage": "Cette adresse est le service compatible Jellyfin de {serverName}. OB Max peut se connecter directement à Silo sur {address}, avec les fonctions propres à Silo.",
     "@siloNativeOfferMessage": {
         "description": "Body of the dialog offering to add a Silo server natively instead of through its Jellyfin-compatible service",
         "placeholders": {
@@ -16566,13 +16566,13 @@
     "@siloNativeOfferKeep": {
         "description": "Button: add the address as a Jellyfin server, as entered"
     },
-    "siloAppUpdateRequired": "Ce serveur Silo nécessite une version plus récente de Moonfin. Mettez Moonfin à jour pour l'utiliser.",
+    "siloAppUpdateRequired": "Ce serveur Silo nécessite une version plus récente de OB Max. Mettez OB Max à jour pour l'utiliser.",
     "@siloAppUpdateRequired": {
-        "description": "Shown when a Silo server no longer speaks the API this version of Moonfin uses (its API is newer)"
+        "description": "Shown when a Silo server no longer speaks the API this version of OB Max uses (its API is newer)"
     },
-    "siloServerUpdateRequired": "Ce serveur Silo est trop ancien pour cette version de Moonfin. Mettez Silo à jour pour l'utiliser.",
+    "siloServerUpdateRequired": "Ce serveur Silo est trop ancien pour cette version de OB Max. Mettez Silo à jour pour l'utiliser.",
     "@siloServerUpdateRequired": {
-        "description": "Shown when a Silo server's API is older than the one this version of Moonfin uses"
+        "description": "Shown when a Silo server's API is older than the one this version of OB Max uses"
     },
     "siloTooManyAttempts": "Trop de tentatives. Réessayez plus tard.",
     "@siloTooManyAttempts": {
@@ -16622,9 +16622,9 @@
     "@siloPlaybackUnavailable": {
         "description": "Player message: the Silo server has playback switched off for this account"
     },
-    "siloPlaybackUpdateRequired": "Ce serveur Silo nécessite une version plus récente de Moonfin pour la lecture.",
+    "siloPlaybackUpdateRequired": "Ce serveur Silo nécessite une version plus récente de OB Max pour la lecture.",
     "@siloPlaybackUpdateRequired": {
-        "description": "Player message: the Silo server no longer speaks the playback protocol this version of Moonfin uses"
+        "description": "Player message: the Silo server no longer speaks the playback protocol this version of OB Max uses"
     },
     "siloPlaybackEndedOnServer": "La lecture a été arrêtée sur le serveur Silo.",
     "@siloPlaybackEndedOnServer": {
@@ -17108,7 +17108,7 @@
     "@calendarProblemAdminsOnly": {
         "description": "Calendar message when the server admin keeps the calendar to admins"
     },
-    "calendarProblemNeedsSeerr": "Un administrateur doit se connecter à Seerr dans Moonfin avant que le calendrier puisse se charger.",
+    "calendarProblemNeedsSeerr": "Un administrateur doit se connecter à Seerr dans OB Max avant que le calendrier puisse se charger.",
     "@calendarProblemNeedsSeerr": {
         "description": "Calendar message when the server can't reach Sonarr and Radarr yet"
     },
@@ -17339,11 +17339,11 @@
     "@sleepAfterIdle": {
         "description": "TV setting for how long without a button press before the TV's own screensaver and sleep timer take over"
     },
-    "sleepAfterIdleDescriptionAndroid": "Ferme Moonfin après ce délai sans appui sur une touche, pour laisser l'économiseur d'écran et le minuteur de veille de votre téléviseur prendre le relais. Toute lecture en pause est d'abord arrêtée, pour conserver son point de reprise.",
+    "sleepAfterIdleDescriptionAndroid": "Ferme OB Max après ce délai sans appui sur une touche, pour laisser l'économiseur d'écran et le minuteur de veille de votre téléviseur prendre le relais. Toute lecture en pause est d'abord arrêtée, pour conserver son point de reprise.",
     "@sleepAfterIdleDescriptionAndroid": {
         "description": "Description under the Let TV Sleep After setting on Android TV, where the app closes"
     },
-    "sleepAfterIdleDescriptionAppleTv": "Après ce délai sans appui sur une touche, rend la main à l'économiseur d'écran et au réglage de veille de votre Apple TV. Moonfin reste ouvert, vous reprenez donc exactement là où vous en étiez.",
+    "sleepAfterIdleDescriptionAppleTv": "Après ce délai sans appui sur une touche, rend la main à l'économiseur d'écran et au réglage de veille de votre Apple TV. OB Max reste ouvert, vous reprenez donc exactement là où vous en étiez.",
     "@sleepAfterIdleDescriptionAppleTv": {
         "description": "Description under the Let TV Sleep After setting on Apple TV, where the app stays open"
     },
@@ -17525,7 +17525,7 @@
     "@watchPartyRoomsEmpty": {
         "description": "Empty room list on the Watch Parties screen"
     },
-    "watchPartyPasteHint": "Vous pouvez aussi coller un lien d'invitation ici. Sur téléphone, le lien ouvre Moonfin directement dans la Watch Party.",
+    "watchPartyPasteHint": "Vous pouvez aussi coller un lien d'invitation ici. Sur téléphone, le lien ouvre OB Max directement dans la Watch Party.",
     "@watchPartyPasteHint": {
         "description": "Hint under the room code field on the Watch Parties screen"
     },
@@ -17591,7 +17591,7 @@
     "@watchPartyYours": {
         "description": "Title of the lobby and party controls"
     },
-    "watchPartyInviteHint": "Collez-le dans n'importe quelle conversation. Il ouvre une page sur ce serveur avec un bouton « Ouvrir dans Moonfin ».",
+    "watchPartyInviteHint": "Collez-le dans n'importe quelle conversation. Il ouvre une page sur ce serveur avec un bouton « Ouvrir dans OB Max ».",
     "@watchPartyInviteHint": {
         "description": "Hint under Copy invite link in the lobby"
     },
@@ -17944,11 +17944,11 @@
     "@setupMoonbaseTitle": {
         "description": "Row on the last setup wizard step that opens the Moonbase server plugin dialog"
     },
-    "setupMoonbaseHint": "Un plugin serveur gratuit qui débloque d'autres fonctionnalités de Moonfin",
+    "setupMoonbaseHint": "Un plugin serveur gratuit qui débloque d'autres fonctionnalités de OB Max",
     "@setupMoonbaseHint": {
         "description": "Line under the Moonbase row on the last setup wizard step"
     },
-    "setupMoonbaseIntro": "Moonbase est gratuit et fonctionne sur votre serveur. Avec lui, Moonfin gagne :",
+    "setupMoonbaseIntro": "Moonbase est gratuit et fonctionne sur votre serveur. Avec lui, OB Max gagne :",
     "@setupMoonbaseIntro": {
         "description": "First line of the Moonbase dialog, followed by a list of features"
     },
@@ -18657,5 +18657,62 @@
     "seerrDownloadFailed": "Échec du téléchargement",
     "@seerrDownloadFailed": {
         "description": "Label on the Seerr download bar when the download client reports the download as failed"
-    }
+    },
+    "playerBlackBarsCropped": "Bandes noires rognées",
+    "playerNoBlackBarsFound": "Aucune bande noire trouvée",
+    "playerBlackBarsNotDetected": "Bandes noires non détectées. Réessayez sur une scène plus claire",
+    "mergeLibrariesByType": "Fusionner les bibliothèques de films et de séries",
+    "mergeLibrariesByTypeDescription": "Avec les bibliothèques multi-serveurs, afficher une seule bibliothèque Films et une seule bibliothèque Séries pour tous les serveurs. Un titre présent sur plusieurs serveurs n’apparaît qu’une fois.",
+    "mergedServerCount": "{count, plural, other{Sur {count} serveurs}}",
+    "mergedCopiesNotChanged": "Inchangé sur {servers}",
+    "recentlyAddedAndReleased": "Ajouts et sorties récents",
+    "hideWatchedInRecentRows": "Masquer les contenus vus",
+    "hideWatchedInRecentRowsDescription": "Masquer les contenus déjà vus des rangées Ajouts récents et Sorties récentes de l’accueil.",
+    "mediaBarNewMovie": "Nouveau film",
+    "mediaBarNewReleasesSection": "Nouveautés",
+    "mediaBarSourceNewReleasesAll": "Nouveautés",
+    "mediaBarNewReleaseBannerAllDescription": "Signaler les nouvelles séries, saisons, épisodes et films.",
+    "mediaBarNewReleaseKinds": "Étiquettes",
+    "mediaBarNewEpisodeDays": "Durée « Nouvel épisode »",
+    "mediaBarNewMovieDays": "Durée « Nouveau film »",
+    "mediaBarNewMovieDaysDescription": "Combien de temps un film reste nouveau après sa sortie. Les films sortis au cinéma arrivent souvent sur le serveur bien après leur sortie : prévoyez plus long que pour les épisodes.",
+    "mediaBarNewMovieDetail": "Afficher l’accroche",
+    "mediaBarNewMovieDetailDescription": "Sous « Nouveau film », afficher l’accroche du film. Sans accroche, l’étiquette reste seule.",
+    "homeRowsStreamingServices": "Services de streaming",
+    "seerrTestNotification": "Envoyer une notification de test",
+    "seerrTestNotificationDesc": "Vérifier la réception dans l’app et en arrière-plan",
+    "seerrTestNotificationSentBody": "Envoyée à {count, plural, =1{1 appareil} other{{count} appareils}}.",
+    "seerrTestNotificationPushDisabled": "Notification envoyée dans l’app. Les notifications push du serveur ne sont pas activées.",
+    "seerrTestNotificationFailed": "Échec de l’envoi de la notification de test",
+    "seerrPushServerStatus": "Push du serveur",
+    "seerrPushDeviceStatus": "Push de l’appareil",
+    "seerrPushDeviceRegistered": "Enregistré",
+    "seerrPushDeviceNotRegistered": "Non enregistré",
+    "seerrWaitingForImport": "Téléchargé, en attente d’import",
+    "seerrDownloadStalled": "Bloqué",
+    "seerrImportBlocked": "Import bloqué",
+    "seerrNotFoundYet": "Pas encore trouvé",
+    "seerrSearchingIndexers": "Recherche sur les indexeurs",
+    "seerrNotFoundYetSearched": "Pas encore trouvé — recherché {when}",
+    "seerrNotAvailableYet": "Pas encore disponible",
+    "seerrAvailableOn": "Disponible {date}",
+    "seerrNextEpisodeOn": "Prochain épisode {date}",
+    "seerrGetDifferentRelease": "Obtenir une autre version",
+    "seerrGetDifferentReleaseConfirm": "{service} va retirer {release} du client de téléchargement, la bloquer pour qu’elle ne soit plus récupérée, puis chercher une autre version.",
+    "seerrGetDifferentReleaseDone": "Retiré. {service} cherche une autre version.",
+    "seerrGetDifferentReleaseFailed": "Impossible de retirer le téléchargement",
+    "kidsModePinToSwitchUser": "Saisissez le code du mode Enfants pour passer à {name}",
+    "playerTooltipPictureInPicture": "Image dans l’image",
+    "playerTooltipExitPictureInPicture": "Quitter l’image dans l’image",
+    "playerPlayingInPictureInPicture": "Lecture en image dans l’image",
+    "homeRowsStyleCarousel": "Carrousel",
+    "setupRowsCarouselHint": "Affiches avec un grand panneau de détails en dessous.",
+    "remoteMediaNotificationTitle": "Notification de lecture à distance",
+    "remoteMediaNotificationSubtitle": "Afficher les commandes multimédia du système quand vous regardez sur un autre appareil",
+    "remoteActivityWatching": "Regarde sur OB Max",
+    "remoteActivityListening": "Écoute sur OB Max",
+    "clickpadSeeking": "Avancer avec le pavé tactile",
+    "clickpadSeekingDescription": "Quand Gauche, Droite et les glissements sur le pavé tactile peuvent avancer ou reculer. Sinon, le premier affiche les commandes.",
+    "clickpadSeekingControlsVisible": "Quand les commandes sont affichées",
+    "clickpadSeekingPausedOnly": "Seulement en pause"
 }

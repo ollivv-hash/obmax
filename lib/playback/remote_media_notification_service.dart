@@ -561,7 +561,7 @@ class RemoteMediaNotificationService {
       sessionId: sessionId,
       jellyfinSessionId: sessionId,
       itemId: itemId,
-      title: nowPlaying['Name'] as String? ?? 'Moonfin',
+      title: nowPlaying['Name'] as String? ?? 'OB Max', // OBMAX: was 'Moonfin'
       subtitle: _formatSubtitle(
         type: type,
         mediaType: mediaType,

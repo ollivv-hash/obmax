@@ -3586,14 +3586,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get playerRecroppingBlackBars => 'Nouveau rognage des bandes noires';
 
   @override
-  String get playerBlackBarsCropped => 'Black bars cropped';
+  String get playerBlackBarsCropped => 'Bandes noires rognées';
 
   @override
-  String get playerNoBlackBarsFound => 'No black bars found';
+  String get playerNoBlackBarsFound => 'Aucune bande noire trouvée';
 
   @override
   String get playerBlackBarsNotDetected =>
-      'Couldn\'t detect black bars. Try again in a brighter scene';
+      'Bandes noires non détectées. Réessayez sur une scène plus claire';
 
   @override
   String get stretch => 'Étirer';
@@ -4888,36 +4888,37 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher les bibliothèques de tous les serveurs connectés';
 
   @override
-  String get mergeLibrariesByType => 'Merge Movie and TV Show Libraries';
+  String get mergeLibrariesByType =>
+      'Fusionner les bibliothèques de films et de séries';
 
   @override
   String get mergeLibrariesByTypeDescription =>
-      'With multi-server libraries on, show one Movies library and one TV Shows library for all servers. A title several servers hold is listed once.';
+      'Avec les bibliothèques multi-serveurs, afficher une seule bibliothèque Films et une seule bibliothèque Séries pour tous les serveurs. Un titre présent sur plusieurs serveurs n’apparaît qu’une fois.';
 
   @override
   String mergedServerCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'On $count servers',
+      other: 'Sur $count serveurs',
     );
     return '$_temp0';
   }
 
   @override
   String mergedCopiesNotChanged(String servers) {
-    return 'Not changed on $servers';
+    return 'Inchangé sur $servers';
   }
 
   @override
-  String get recentlyAddedAndReleased => 'Recently Added and Released';
+  String get recentlyAddedAndReleased => 'Ajouts et sorties récents';
 
   @override
-  String get hideWatchedInRecentRows => 'Hide Watched';
+  String get hideWatchedInRecentRows => 'Masquer les contenus vus';
 
   @override
   String get hideWatchedInRecentRowsDescription =>
-      'Hide watched content from Recently Added and Recently Released home rows.';
+      'Masquer les contenus déjà vus des rangées Ajouts récents et Sorties récentes de l’accueil.';
 
   @override
   String get mergeRecentRowsByType => 'Fusionner les rangées récentes par type';
@@ -5176,37 +5177,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mediaBarNewEpisodes => 'Nouveaux épisodes';
 
   @override
-  String get mediaBarNewMovie => 'New Movie';
+  String get mediaBarNewMovie => 'Nouveau film';
 
   @override
-  String get mediaBarNewReleasesSection => 'New Releases';
+  String get mediaBarNewReleasesSection => 'Nouveautés';
 
   @override
-  String get mediaBarSourceNewReleasesAll => 'New Releases';
+  String get mediaBarSourceNewReleasesAll => 'Nouveautés';
 
   @override
   String get mediaBarNewReleaseBannerAllDescription =>
-      'Flag new series, seasons, episodes and movies.';
+      'Signaler les nouvelles séries, saisons, épisodes et films.';
 
   @override
-  String get mediaBarNewReleaseKinds => 'Labels';
+  String get mediaBarNewReleaseKinds => 'Étiquettes';
 
   @override
-  String get mediaBarNewEpisodeDays => 'New Episode Window';
+  String get mediaBarNewEpisodeDays => 'Durée « Nouvel épisode »';
 
   @override
-  String get mediaBarNewMovieDays => 'New Movie Window';
+  String get mediaBarNewMovieDays => 'Durée « Nouveau film »';
 
   @override
   String get mediaBarNewMovieDaysDescription =>
-      'How long a movie stays new after it comes out. Theatrical movies often reach servers a while after their release, so give it longer than for episodes.';
+      'Combien de temps un film reste nouveau après sa sortie. Les films sortis au cinéma arrivent souvent sur le serveur bien après leur sortie : prévoyez plus long que pour les épisodes.';
 
   @override
-  String get mediaBarNewMovieDetail => 'Show Tagline';
+  String get mediaBarNewMovieDetail => 'Afficher l’accroche';
 
   @override
   String get mediaBarNewMovieDetailDescription =>
-      'Under New Movie, show the movie\'s tagline. With none, the label stays on its own.';
+      'Sous « Nouveau film », afficher l’accroche du film. Sans accroche, l’étiquette reste seule.';
 
   @override
   String get moviesAndTvShows => 'Films et séries TV';
@@ -5396,7 +5397,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeRowsExternalLists => 'Listes externes';
 
   @override
-  String get homeRowsStreamingServices => 'Streaming Services';
+  String get homeRowsStreamingServices => 'Services de streaming';
 
   @override
   String get perRowSettings => 'Paramètres par rangée';
@@ -5512,11 +5513,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sleepAfterIdleDescriptionAndroid =>
-      'Ferme Moonfin après ce délai sans appui sur une touche, pour laisser l\'économiseur d\'écran et le minuteur de veille de votre téléviseur prendre le relais. Toute lecture en pause est d\'abord arrêtée, pour conserver son point de reprise.';
+      'Ferme OB Max après ce délai sans appui sur une touche, pour laisser l\'économiseur d\'écran et le minuteur de veille de votre téléviseur prendre le relais. Toute lecture en pause est d\'abord arrêtée, pour conserver son point de reprise.';
 
   @override
   String get sleepAfterIdleDescriptionAppleTv =>
-      'Après ce délai sans appui sur une touche, rend la main à l\'économiseur d\'écran et au réglage de veille de votre Apple TV. Moonfin reste ouvert, vous reprenez donc exactement là où vous en étiez.';
+      'Après ce délai sans appui sur une touche, rend la main à l\'économiseur d\'écran et au réglage de veille de votre Apple TV. OB Max reste ouvert, vous reprenez donc exactement là où vous en étiez.';
 
   @override
   String get maxAgeRating => 'Classification d’âge maximale';
@@ -5865,11 +5866,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tout nouvel ajout à la bibliothèque du serveur';
 
   @override
-  String get seerrTestNotification => 'Send Test Notification';
+  String get seerrTestNotification => 'Envoyer une notification de test';
 
   @override
   String get seerrTestNotificationDesc =>
-      'Verify in-app and background push delivery';
+      'Vérifier la réception dans l’app et en arrière-plan';
 
   @override
   String seerrTestNotificationSentBody(num count) {
@@ -5881,30 +5882,31 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString devices',
-      one: '1 device',
+      other: '$countString appareils',
+      one: '1 appareil',
     );
-    return 'Dispatched to $_temp0.';
+    return 'Envoyée à $_temp0.';
   }
 
   @override
   String get seerrTestNotificationPushDisabled =>
-      'In-app notification sent. Server push is not enabled.';
+      'Notification envoyée dans l’app. Les notifications push du serveur ne sont pas activées.';
 
   @override
-  String get seerrTestNotificationFailed => 'Failed to send test notification';
+  String get seerrTestNotificationFailed =>
+      'Échec de l’envoi de la notification de test';
 
   @override
-  String get seerrPushServerStatus => 'Server Push';
+  String get seerrPushServerStatus => 'Push du serveur';
 
   @override
-  String get seerrPushDeviceStatus => 'Device Push';
+  String get seerrPushDeviceStatus => 'Push de l’appareil';
 
   @override
-  String get seerrPushDeviceRegistered => 'Registered';
+  String get seerrPushDeviceRegistered => 'Enregistré';
 
   @override
-  String get seerrPushDeviceNotRegistered => 'Not registered';
+  String get seerrPushDeviceNotRegistered => 'Non enregistré';
 
   @override
   String loggedInAs(String username) {
@@ -6090,56 +6092,57 @@ class AppLocalizationsFr extends AppLocalizations {
   String get seerrImportingStatus => 'Importation en cours';
 
   @override
-  String get seerrWaitingForImport => 'Downloaded, waiting for import';
+  String get seerrWaitingForImport => 'Téléchargé, en attente d’import';
 
   @override
-  String get seerrDownloadStalled => 'Stalled';
+  String get seerrDownloadStalled => 'Bloqué';
 
   @override
   String get seerrDownloadFailed => 'Échec du téléchargement';
 
   @override
-  String get seerrImportBlocked => 'Import blocked';
+  String get seerrImportBlocked => 'Import bloqué';
 
   @override
-  String get seerrNotFoundYet => 'Not found yet';
+  String get seerrNotFoundYet => 'Pas encore trouvé';
 
   @override
-  String get seerrSearchingIndexers => 'Searching indexers';
+  String get seerrSearchingIndexers => 'Recherche sur les indexeurs';
 
   @override
   String seerrNotFoundYetSearched(String when) {
-    return 'Not found yet · searched $when';
+    return 'Pas encore trouvé — recherché $when';
   }
 
   @override
-  String get seerrNotAvailableYet => 'Not available yet';
+  String get seerrNotAvailableYet => 'Pas encore disponible';
 
   @override
   String seerrAvailableOn(String date) {
-    return 'Available $date';
+    return 'Disponible $date';
   }
 
   @override
   String seerrNextEpisodeOn(String date) {
-    return 'Next episode $date';
+    return 'Prochain épisode $date';
   }
 
   @override
-  String get seerrGetDifferentRelease => 'Get a different release';
+  String get seerrGetDifferentRelease => 'Obtenir une autre version';
 
   @override
   String seerrGetDifferentReleaseConfirm(String service, String release) {
-    return '$service will remove $release from the download client, block it so it isn\'t grabbed again, and search for another release.';
+    return '$service va retirer $release du client de téléchargement, la bloquer pour qu’elle ne soit plus récupérée, puis chercher une autre version.';
   }
 
   @override
   String seerrGetDifferentReleaseDone(String service) {
-    return 'Removed. $service is searching for another release.';
+    return 'Retiré. $service cherche une autre version.';
   }
 
   @override
-  String get seerrGetDifferentReleaseFailed => 'Couldn\'t remove the download';
+  String get seerrGetDifferentReleaseFailed =>
+      'Impossible de retirer le téléchargement';
 
   @override
   String itemsCount(int count) {
@@ -11604,7 +11607,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String kidsModePinToSwitchUser(String name) {
-    return 'Enter the Kids Mode PIN to switch to $name';
+    return 'Saisissez le code du mode Enfants pour passer à $name';
   }
 
   @override
@@ -11893,13 +11896,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get playerTooltipExitFloatOnTop => 'Désactiver le flottement en haut';
 
   @override
-  String get playerTooltipPictureInPicture => 'Picture-in-picture';
+  String get playerTooltipPictureInPicture => 'Image dans l’image';
 
   @override
-  String get playerTooltipExitPictureInPicture => 'Exit picture-in-picture';
+  String get playerTooltipExitPictureInPicture =>
+      'Quitter l’image dans l’image';
 
   @override
-  String get playerPlayingInPictureInPicture => 'Playing in picture-in-picture';
+  String get playerPlayingInPictureInPicture => 'Lecture en image dans l’image';
 
   @override
   String get playerTooltipLockLandscape => 'Paysage de verrouillage';
@@ -12803,7 +12807,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeRowsStyleModern => 'Moderne';
 
   @override
-  String get homeRowsStyleCarousel => 'Carousel';
+  String get homeRowsStyleCarousel => 'Carrousel';
 
   @override
   String get homeRowsSection => 'Rangées d\'accueil';
@@ -12937,10 +12941,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sinceYouWatchedSourceDescription =>
-      'Choisissez la source des recommandations (l\'algorithme local « Moonfin recommande », le serveur « Jellyfin recommande » ou les mesures de similarité TMDb. Remarque : les recommandations en ligne nécessitent l\'intégration Seerr).';
+      'Choisissez la source des recommandations (l\'algorithme local « OB Max recommande », le serveur « Jellyfin recommande » ou les mesures de similarité TMDb. Remarque : les recommandations en ligne nécessitent l\'intégration Seerr).';
 
   @override
-  String get sinceYouWatchedSourceLocal => 'Moonfin recommande';
+  String get sinceYouWatchedSourceLocal => 'OB Max recommande';
 
   @override
   String get sinceYouWatchedSourceServer => 'Recommandé par le serveur';
@@ -13237,7 +13241,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cadenceTipSlowdownHint =>
-      'Ou activez « 24 fps fluide sur un téléviseur 60 Hz » dans Moonfin, sous Lecture > Qualité et décodage.';
+      'Ou activez « 24 fps fluide sur un téléviseur 60 Hz » dans OB Max, sous Lecture > Qualité et décodage.';
 
   @override
   String get useExternalPlayer => 'Toujours utiliser un lecteur externe';
@@ -13675,7 +13679,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get watchPartyPasteHint =>
-      'Vous pouvez aussi coller un lien d\'invitation ici. Sur téléphone, le lien ouvre Moonfin directement dans la Watch Party.';
+      'Vous pouvez aussi coller un lien d\'invitation ici. Sur téléphone, le lien ouvre OB Max directement dans la Watch Party.';
 
   @override
   String watchPartyWatchingCount(int count) {
@@ -13733,7 +13737,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get watchPartyInviteHint =>
-      'Collez-le dans n\'importe quelle conversation. Il ouvre une page sur ce serveur avec un bouton « Ouvrir dans Moonfin ».';
+      'Collez-le dans n\'importe quelle conversation. Il ouvre une page sur ce serveur avec un bouton « Ouvrir dans OB Max ».';
 
   @override
   String get watchPartySendInvite => 'Envoyer l\'invitation';
@@ -15991,7 +15995,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setupRowsCarouselHint =>
-      'Posters with a large details panel underneath.';
+      'Affiches avec un grand panneau de détails en dessous.';
 
   @override
   String get setupDetailClassicHint =>
@@ -16101,11 +16105,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setupMoonbaseHint =>
-      'Un plugin serveur gratuit qui débloque d\'autres fonctionnalités de Moonfin';
+      'Un plugin serveur gratuit qui débloque d\'autres fonctionnalités de OB Max';
 
   @override
   String get setupMoonbaseIntro =>
-      'Moonbase est gratuit et fonctionne sur votre serveur. Avec lui, Moonfin gagne :';
+      'Moonbase est gratuit et fonctionne sur votre serveur. Avec lui, OB Max gagne :';
 
   @override
   String get setupMoonbaseAskAdmin =>
@@ -17483,7 +17487,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String siloNativeOfferMessage(String serverName, String address) {
-    return 'Cette adresse est le service compatible Jellyfin de $serverName. Moonfin peut se connecter directement à Silo sur $address, avec les fonctions propres à Silo.';
+    return 'Cette adresse est le service compatible Jellyfin de $serverName. OB Max peut se connecter directement à Silo sur $address, avec les fonctions propres à Silo.';
   }
 
   @override
@@ -17494,11 +17498,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get siloAppUpdateRequired =>
-      'Ce serveur Silo nécessite une version plus récente de Moonfin. Mettez Moonfin à jour pour l\'utiliser.';
+      'Ce serveur Silo nécessite une version plus récente de OB Max. Mettez OB Max à jour pour l\'utiliser.';
 
   @override
   String get siloServerUpdateRequired =>
-      'Ce serveur Silo est trop ancien pour cette version de Moonfin. Mettez Silo à jour pour l\'utiliser.';
+      'Ce serveur Silo est trop ancien pour cette version de OB Max. Mettez Silo à jour pour l\'utiliser.';
 
   @override
   String get siloTooManyAttempts => 'Trop de tentatives. Réessayez plus tard.';
@@ -17545,7 +17549,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get siloPlaybackUpdateRequired =>
-      'Ce serveur Silo nécessite une version plus récente de Moonfin pour la lecture.';
+      'Ce serveur Silo nécessite une version plus récente de OB Max pour la lecture.';
 
   @override
   String get siloPlaybackEndedOnServer =>
@@ -18058,7 +18062,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get calendarProblemNeedsSeerr =>
-      'Un administrateur doit se connecter à Seerr dans Moonfin avant que le calendrier puisse se charger.';
+      'Un administrateur doit se connecter à Seerr dans OB Max avant que le calendrier puisse se charger.';
 
   @override
   String get calendarProblemNotConfigured =>
@@ -18589,28 +18593,30 @@ class AppLocalizationsFr extends AppLocalizations {
       'Gauche et Droite déplacent le curseur.';
 
   @override
-  String get remoteMediaNotificationTitle => 'Remote playback notification';
+  String get remoteMediaNotificationTitle =>
+      'Notification de lecture à distance';
 
   @override
   String get remoteMediaNotificationSubtitle =>
-      'Show system media controls when watching on another device';
+      'Afficher les commandes multimédia du système quand vous regardez sur un autre appareil';
 
   @override
-  String get remoteActivityWatching => 'Watching on Moonfin';
+  String get remoteActivityWatching => 'Regarde sur OB Max';
 
   @override
-  String get remoteActivityListening => 'Listening on Moonfin';
+  String get remoteActivityListening => 'Écoute sur OB Max';
 
   @override
-  String get clickpadSeeking => 'Allow Clickpad Seeking';
+  String get clickpadSeeking => 'Avancer avec le pavé tactile';
 
   @override
   String get clickpadSeekingDescription =>
-      'When Left, Right and touchpad swipes can seek. Otherwise the first one brings up the controls.';
+      'Quand Gauche, Droite et les glissements sur le pavé tactile peuvent avancer ou reculer. Sinon, le premier affiche les commandes.';
 
   @override
-  String get clickpadSeekingControlsVisible => 'When controls are showing';
+  String get clickpadSeekingControlsVisible =>
+      'Quand les commandes sont affichées';
 
   @override
-  String get clickpadSeekingPausedOnly => 'Only while paused';
+  String get clickpadSeekingPausedOnly => 'Seulement en pause';
 }
