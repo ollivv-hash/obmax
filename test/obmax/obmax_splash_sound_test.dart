@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,6 +74,42 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     expect(sound.isReady, isFalse);
     await sound.finish(fade: false);
+  });
+
+  group('on screen', () {
+    final binding = TestWidgetsFlutterBinding.instance;
+    TestFlutterView view() =>
+        binding.platformDispatcher.views.single;
+    tearDown(() => view().resetPhysicalSize());
+
+    test('started by a media key, no window: no jingle', () async {
+      view().physicalSize = Size.zero;
+      final watch = Stopwatch()..start();
+      expect(await ObMaxSplashSound.isOnScreen(), isFalse);
+      expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
+    });
+
+    test('the window gets its size in time: jingle', () async {
+      view().physicalSize = Size.zero;
+      Timer(
+        const Duration(milliseconds: 100),
+        () => view().physicalSize = const Size(1920, 1080),
+      );
+      expect(await ObMaxSplashSound.isOnScreen(), isTrue);
+    });
+
+    test('window already on screen: no wait', () async {
+      view().physicalSize = const Size(1920, 1080);
+      final watch = Stopwatch()..start();
+      expect(await ObMaxSplashSound.isOnScreen(), isTrue);
+      expect(watch.elapsed, lessThan(const Duration(milliseconds: 50)));
+    });
+
+    test('desktop starts always have a window', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      view().physicalSize = Size.zero;
+      expect(await ObMaxSplashSound.isOnScreen(), isTrue);
+    });
   });
 
   test('not on Linux', () {

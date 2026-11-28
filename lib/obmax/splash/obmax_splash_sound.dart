@@ -4,6 +4,7 @@ import 'package:audio_session/audio_session.dart'
     show AndroidAudioManager, AndroidRingerMode;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -140,24 +141,29 @@ class ObMaxSplashSound {
     return preference.defaultValue;
   }
 
-  /// Starts the jingle, if [load] got it ready. Call it right next to the
-  /// timeline's `forward()`.
+  /// Starts the jingle, if [load] got it ready and the app is on screen.
+  /// Call it right next to the timeline's `forward()`.
   void play() {
     if (_released) return;
-    final player = _player;
-    if (_ready && player != null) {
-      _ready = false;
-      unawaited(_start(player, Duration.zero));
+    final Future<bool> loaded;
+    if (_ready && _player != null) {
+      loaded = Future.value(true);
+    } else if (_pending case final pending?) {
+      loaded = pending;
+    } else {
       return;
     }
-    final pending = _pending;
-    if (pending == null) return;
+    _ready = false;
     _pending = null;
     final sinceStart = Stopwatch()..start();
     unawaited(
-      pending.then((ready) async {
+      Future.wait([loaded, isOnScreen()]).then((results) async {
         final player = _player;
-        if (!ready || _released || player == null) return _release();
+        if (!results[0] || _released || player == null) return _release();
+        if (!results[1]) {
+          debugPrint('OB Max splash sound: app not on screen, not played');
+          return _release();
+        }
         final late = sinceStart.elapsed;
         if (late > lateStartLimit) {
           debugPrint(
@@ -166,9 +172,46 @@ class ObMaxSplashSound {
           );
           return _release();
         }
-        await _start(player, late);
+        await _start(player, late < _onTime ? Duration.zero : late);
       }),
     );
+  }
+
+  /// Below this, a start counts as on time and is not seeked.
+  static const _onTime = Duration(milliseconds: 40);
+
+  /// Whether the app has a window on screen, waiting up to [lateStartLimit]
+  /// for one to get a size.
+  ///
+  /// On Android a play/pause key can start OB Max with no screen at all:
+  /// once OB Max has played something, Android sends it the media keys no
+  /// other app takes, and audio_service's receiver then runs `main()` in the
+  /// background, splash included. That engine's view stays 0x0 (seen on a
+  /// Shield, which reports 1920x1080 for a launch from the home screen).
+  /// The lifecycle state can't tell them apart: a visible launch also stays
+  /// paused, the engine being created by audio_service before the activity.
+  /// Elsewhere every start comes with a window.
+  @visibleForTesting
+  static Future<bool> isOnScreen() async {
+    if (!PlatformDetection.isAndroid) return true;
+    final binding = WidgetsBinding.instance;
+    bool hasWindow() => binding.platformDispatcher.views.any(
+      (view) => !view.physicalSize.isEmpty,
+    );
+    if (hasWindow()) return true;
+    final sized = Completer<bool>();
+    final observer = _MetricsObserver(() {
+      if (hasWindow() && !sized.isCompleted) sized.complete(true);
+    });
+    binding.addObserver(observer);
+    try {
+      return await sized.future.timeout(
+        lateStartLimit,
+        onTimeout: () => false,
+      );
+    } finally {
+      binding.removeObserver(observer);
+    }
   }
 
   /// Starts [player] at [position] into the jingle.
@@ -224,4 +267,13 @@ class ObMaxSplashSound {
       await player?.dispose();
     } catch (_) {}
   }
+}
+
+class _MetricsObserver with WidgetsBindingObserver {
+  _MetricsObserver(this.onChange);
+
+  final VoidCallback onChange;
+
+  @override
+  void didChangeMetrics() => onChange();
 }
